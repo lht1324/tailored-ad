@@ -1,7 +1,7 @@
 import { getFetch, postFetch } from "@/lib/api/client/baseFetch";
 
 /*
- * ShortReal Ad — 임시 타입 및 클라이언트 API.
+ * TailorAd — 임시 타입 및 클라이언트 API.
  * UI/플로우가 완결된 뒤 lib/api/types/ad/ 로 스키마를 이관할 것 (타입은 여기서만 정의).
  */
 

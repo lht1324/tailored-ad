@@ -179,7 +179,7 @@ function FormatTile({ ratioKey, imageResult, signedUrl, brandLogoUrl, isProjectR
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `shortreal-${creativeIndex + 1}-${ratioLabel}.png`;
+            a.download = `tailorad-${creativeIndex + 1}-${ratioLabel}.png`;
             document.body.appendChild(a);
             a.click();
             a.remove();

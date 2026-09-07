@@ -339,7 +339,7 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
                             </div>
                             <a
                                 href={url}
-                                download={`shortreal-project-${project.id.slice(0, 6)}-c${cIdx + 1}-${ratioLabel}.png`}
+                                download={`tailorad-project-${project.id.slice(0, 6)}-c${cIdx + 1}-${ratioLabel}.png`}
                                 className="inline-flex items-center gap-2 rounded-full bg-text1 px-5 py-2.5 text-[13px] font-semibold text-canvas hover:scale-[1.02] active:scale-[0.98] transition-transform"
                             >
                                 <Download className="h-4 w-4" strokeWidth={1.8} />

@@ -8,7 +8,7 @@ import {
 } from "@/lib/api/client/ad/adClientAPI";
 
 /*
- * ShortReal Ad — 서버 API (현재 mock).
+ * TailorAd — 서버 API (현재 mock).
  * 태스크 진행 상태는 경과 시간 기반으로 계산해 무상태에 가깝게 동작한다.
  * 실 구현 시 Supabase 태스크 테이블 + fal.ai 파이프라인으로 교체할 것.
  */
