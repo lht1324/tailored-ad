@@ -189,20 +189,19 @@ export default function ResultsPageClient({ taskId }: ResultsPageClientProps) {
 
     // 태스크 로드 (완료 전이면 폴링)
     useEffect(() => {
-        if (!taskId) {
-            setError('No generation task found. Start a new generation first.');
-            setIsLoading(false);
-            return;
-        }
-
         let cancelled = false;
         let interval: ReturnType<typeof setInterval> | null = null;
 
         const loadTask = () => {
-            const loaded = mockGetTask(taskId);
             if (cancelled) {
                 return;
             }
+            if (!taskId) {
+                setError('No generation task found. Start a new generation first.');
+                setIsLoading(false);
+                return;
+            }
+            const loaded = mockGetTask(taskId);
             if (!loaded) {
                 setError('No generation task found. Start a new generation first.');
                 setIsLoading(false);
@@ -229,7 +228,7 @@ export default function ResultsPageClient({ taskId }: ResultsPageClientProps) {
         };
 
         loadTask();
-        if (!taskId.startsWith('mock-task-')) {
+        if (!taskId || !taskId.startsWith('mock-task-')) {
             return;
         }
 

@@ -43,14 +43,19 @@ const PLACED_IMAGES: PlacedImage[] = [
 
 interface PortfolioTileProps {
     item: PlacedImage;
-    y: MotionValue<number>;
+    progress: MotionValue<number>;
+    yStatic: MotionValue<number>;
+    reducedMotion: boolean;
 }
 
-function PortfolioTile({ item, y }: PortfolioTileProps) {
+function PortfolioTile({ item, progress, yStatic, reducedMotion }: PortfolioTileProps) {
+    // Hook per tile (unconditional): legal here, unlike the previous
+    // PLACED_IMAGES.map(() => useTransform(...)) in the parent.
+    const yLive = useTransform(progress, [0, 1], item.parallax);
     return (
         <motion.div
             style={{
-                y,
+                y: reducedMotion ? yStatic : yLive,
                 left: `${item.left}%`,
                 top: `${item.top}%`,
                 width: `${item.width}%`,
@@ -76,9 +81,6 @@ export default function PortfolioSection() {
     const ref = useRef<HTMLElement>(null);
     const prefersReducedMotion = useReducedMotion();
     const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
-    const ys = PLACED_IMAGES.map((item) =>
-        useTransform(scrollYProgress, [0, 1], item.parallax)
-    );
     const yStatic = useTransform(scrollYProgress, [0, 1], [0, 0]);
 
     return (
@@ -98,7 +100,7 @@ export default function PortfolioSection() {
                                 Portfolio
                             </p>
                             <h2 className="mt-3 text-4xl font-bold leading-tight tracking-tight text-text1 md:text-5xl">
-                                Ads you'd scroll past twice.
+                                Ads you&apos;d scroll past twice.
                             </h2>
                             <p className="mt-5 text-[17px] leading-relaxed text-text2">
                                 No generic stock vibes. Every creative is sampled from a batch, quality-gated, then finished with pixel-exact type and logo.
@@ -111,11 +113,13 @@ export default function PortfolioSection() {
                     {/* 이미지 띄우는 부분을 감싸는 래퍼 (하단 완충 지대 역할) */}
                     <div className="w-full pb-24 md:pb-32">
                         <div className="relative mt-16 aspect-[3/4] w-full md:aspect-[4/5]">
-                            {PLACED_IMAGES.map((item, index) => (
+                            {PLACED_IMAGES.map((item) => (
                                 <PortfolioTile
                                     key={item.id}
                                     item={item}
-                                    y={prefersReducedMotion ? yStatic : ys[index]}
+                                    progress={scrollYProgress}
+                                    yStatic={yStatic}
+                                    reducedMotion={prefersReducedMotion ?? false}
                                 />
                             ))}
                         </div>
@@ -125,7 +129,7 @@ export default function PortfolioSection() {
                 {/* p 태그는 래퍼 밖으로 깔끔하게 분리 */}
                 <div className="mt-8 text-right">
                     <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-text2">
-                        Demo imagery — your product replaces these
+                        Demo imagery · your product replaces these
                     </p>
                 </div>
             </div>

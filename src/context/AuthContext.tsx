@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const profile = await fetchUserProfile(session.user.id)
             setUser(profile)
         }
-    }, [session?.user, fetchUserProfile]);
+    }, [session, fetchUserProfile]);
     
     const getOAuthOptionByProvider = useCallback((provider: OAuthProvider) => {
         switch (provider) {

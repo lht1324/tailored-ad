@@ -43,8 +43,16 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
     }, [projectId]);
 
     useEffect(() => {
-        setStatus('loading');
-        fetchProject(false);
+        let cancelled = false;
+        const run = async () => {
+            if (cancelled) return;
+            setStatus('loading');
+            await fetchProject(false);
+        };
+        void run();
+        return () => {
+            cancelled = true;
+        };
     }, [fetchProject]);
 
     const isRunning = useMemo(() => {

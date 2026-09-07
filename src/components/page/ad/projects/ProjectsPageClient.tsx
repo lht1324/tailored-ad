@@ -51,7 +51,16 @@ export default function ProjectsPageClient() {
     }, []);
 
     useEffect(() => {
-        fetchProjects();
+        let cancelled = false;
+        const run = async () => {
+            if (!cancelled) {
+                await fetchProjects();
+            }
+        };
+        void run();
+        return () => {
+            cancelled = true;
+        };
     }, [fetchProjects]);
 
     // Realtime 구독 — running 여부에 관계없이 변경 시 리스트를 패치 (폴링 제거, 끊기면 Refresh 버튼으로 수동 갱신)
