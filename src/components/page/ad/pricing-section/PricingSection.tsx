@@ -110,7 +110,7 @@ function PricingCard({ plan }: { plan: Plan }) {
                 })}
             </ul>
             <a
-                href="mailto:support@shortreal.ai?subject=Early%20access%20request"
+                href="mailto:support@tailoredad.com?subject=Early%20access%20request"
                 className={`mt-10 inline-flex items-center justify-center rounded-full py-3.5 text-[14px] font-semibold transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] ${
                     dark ? 'bg-canvas text-text1' : 'bg-text1 text-canvas'
                 }`}
