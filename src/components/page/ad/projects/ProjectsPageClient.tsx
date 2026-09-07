@@ -112,7 +112,7 @@ export default function ProjectsPageClient() {
     }, [fetchProjects]);
 
     const onClickProject = useCallback((projectId: string) => {
-        router.push(`/ad/projects/${projectId}`);
+        router.push(`/projects/${projectId}`);
     }, [router]);
 
     const filtered = useMemo(() => {
@@ -162,7 +162,7 @@ export default function ProjectsPageClient() {
                             Refresh
                         </button>
                         <a
-                            href="/ad/create"
+                            href="/create"
                             className="inline-flex items-center gap-2 rounded-full bg-text1 px-5 py-2.5 text-[13px] font-semibold text-canvas transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.02] active:scale-[0.98]"
                         >
                             <Plus className="h-4 w-4" strokeWidth={2} />
@@ -241,7 +241,7 @@ export default function ProjectsPageClient() {
                         </div>
                         {filter === 'all' && (
                             <a
-                                href="/ad/create"
+                                href="/create"
                                 className="mt-2 inline-flex items-center gap-2 rounded-full bg-text1 px-6 py-2.5 text-[13px] font-semibold text-canvas hover:scale-[1.02] active:scale-[0.98] transition-transform"
                             >
                                 <Plus className="h-4 w-4" strokeWidth={2} />

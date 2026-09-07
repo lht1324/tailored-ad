@@ -318,7 +318,7 @@ export default function ResultsPageClient({ taskId }: ResultsPageClientProps) {
                     <div className="flex flex-col items-center gap-4 rounded-[1.5rem] border border-hairline bg-surface px-8 py-16 text-center">
                         <p className="text-[13px] leading-relaxed text-[#F87171]">{error}</p>
                         <a
-                            href="/ad/create"
+                            href="/create"
                             className="rounded-full bg-text1 px-6 py-2.5 text-[13px] font-semibold text-canvas transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.02] active:scale-[0.98]"
                         >
                             Start a new generation

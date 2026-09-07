@@ -100,7 +100,7 @@ export default function CreatePageClient() {
                 }
             }
 
-            router.push(`/ad/projects/${batchId}`);
+            router.push(`/projects/${batchId}`);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to start generation. Please try again.');
             setIsGenerating(false);
