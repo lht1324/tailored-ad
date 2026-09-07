@@ -1,0 +1,7 @@
+.git
+node_modules
+.next
+.next-docker
+.open-next
+.wrangler
+*.log

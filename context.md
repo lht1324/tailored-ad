@@ -10,7 +10,7 @@
 - **짝꿍 도메인**: `tailorad.com` 미구매. 살 때 같이 사서 리다이렉트 예정.
 - **스택**: Next.js 16 + Tailwind v4 + Supabase + Replicate/OpenRouter, Cloudflare Workers 배포(OpenNext)
 - **Git**: Git Flow (`master` 프로덕션 / `develop` 작업). 로컬 작업 브랜치 `develop`.
-- **포트**: dev `3003` (3000/3001 short_real, 3002 포트폴리오와 충돌 방지)
+- **포트**: 클라 `3000` (`npm run dev`) / 서버 `3001` (`docker compose up`, 컨테이너 `3000` 매핑). short_real과 동일.
 
 ## 2. 분리 인벤토리 (short_real → 이 레포)
 
@@ -64,7 +64,8 @@
 ## 6. 명령어
 
 ```bash
-npm run dev      # 3003
+npm run dev      # 3000 (클라)
+docker compose up --build  # 3001 (서버, 컨테이너 3000 매핑)
 npm run build
 npm run lint
 npm run deploy   # opennext build + deploy (master에서)

@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV === "development";
+// docker-compose.yml 확인
+const isDocker = process.env.DOCKER === "true";
+
 const nextConfig: NextConfig = {
+  distDir: isDocker ? ".next-docker" : ".next",
+
   images: {
     remotePatterns: [
       {
@@ -17,6 +23,22 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  ...(isDev && isDocker
+    ? {
+        webpack: (config) => {
+          config.watchOptions = {
+            poll: 800,
+            aggregateTimeout: 300,
+            ignored: /node_modules|\.git/,
+          };
+          return config;
+        },
+      }
+    : isDev
+      ? {
+          turbopack: {},
+        }
+      : {}),
 
   async headers() {
     return [
