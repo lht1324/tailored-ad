@@ -1,6 +1,6 @@
 'use client'
 
-import {memo, useCallback, useEffect, useMemo, useState} from "react";
+import {memo, useCallback, useMemo, useState} from "react";
 import {useSearchParams} from "next/navigation";
 import {OAuthProvider, useAuth} from "@/context/AuthContext";
 import AuthForm from "@/components/page/sign-in/AuthForm";
@@ -10,18 +10,21 @@ function SignInPageClient() {
 
     const { signInWithOAuth } = useAuth();
 
-    const [error, setError] = useState<string | null>(null);
+    // OAuth failure flag comes from the redirect URL: derive initial state
+    // during render instead of syncing it in an effect.
+    const [error, setError] = useState<string | null>(() => {
+        try {
+            return searchParams.get('error') === 'oauth_failed'
+                ? 'OAuth sign-in failed. Please try again.'
+                : null;
+        } catch {
+            return null;
+        }
+    });
     const [isLoading, setIsLoading] = useState(false);
 
     const redirectTo = useMemo(() => {
         return searchParams.get("redirectTo");
-    }, [searchParams]);
-
-    useEffect(() => {
-        const urlError = searchParams.get('error')
-        if (urlError === 'oauth_failed') {
-            setError('OAuth sign-in failed. Please try again.')
-        }
     }, [searchParams]);
 
     const handleOAuthSignIn = useCallback(async (provider: OAuthProvider) => {
