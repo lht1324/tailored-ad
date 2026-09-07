@@ -3,7 +3,7 @@
 import ReactMarkdown from 'react-markdown';
 import {memo, useMemo} from "react";
 import { PRIVACY_POLICY, TERMS_OF_SERVICE } from "@/components/page/legal/LegalPageMarkdownData";
-import Footer from "@/components/public/footer/Footer";
+import AdFooter from "@/components/page/ad/footer/AdFooter";
 import { LegalDataType } from "@/components/page/legal/LegalDataType";
 
 interface LegalPageClientProps {
@@ -72,14 +72,14 @@ function LegalPageClient({ legalDataType }: LegalPageClientProps) {
                 <div className="mt-20 pt-8 border-t border-white/10 text-center sm:text-left">
                     <p className="text-gray-500 text-sm">
                         Questions about these terms?{' '}
-                        <a href="mailto:support@shortreal.ai" className="text-white hover:text-purple-400 transition-colors font-medium">
-                            support@shortreal.ai
+                        <a href="mailto:support@tailoredad.com" className="text-white hover:text-purple-400 transition-colors font-medium">
+                            support@tailoredad.com
                         </a>
                     </p>
                 </div>
             </main>
 
-            <Footer />
+            <AdFooter />
         </div>
     );
 }
