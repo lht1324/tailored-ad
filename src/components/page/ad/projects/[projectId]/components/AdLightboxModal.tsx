@@ -57,7 +57,7 @@ function AdLightboxModal({ imageUrl, ratioLabel, creativeIndex, design, score, h
                     <div className="flex shrink-0 items-center gap-2">
                         <a
                             href={imageUrl}
-                            download={`shortreal-creative-${creativeIndex + 1}-${ratioLabel}.png`}
+                            download={`tailorad-creative-${creativeIndex + 1}-${ratioLabel}.png`}
                             className="inline-flex items-center gap-2 rounded-full bg-text1 px-4 py-1.5 text-[12px] font-medium text-canvas hover:opacity-90"
                         >
                             <Download className="h-3.5 w-3.5" strokeWidth={1.8} />

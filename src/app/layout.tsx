@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ReactNode } from "react";
-import { Rajdhani } from "next/font/google";
+import { Geist_Mono, Rajdhani } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
 import "./globals.css";
 
@@ -24,6 +24,12 @@ const defaultFont = Rajdhani({
   subsets: ["latin"],
 });
 
+const geistMono = Geist_Mono({
+  weight: ["400", "500", "600"],
+  subsets: ["latin"],
+  variable: "--font-geist-mono",
+});
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -33,7 +39,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${defaultFont.className} antialiased`}>
         <AuthProvider>
-          <div className="min-h-screen">
+          <div
+            className={`${geistMono.variable} min-h-screen bg-canvas text-text1 font-satoshi`}
+          >
             <main>{children}</main>
           </div>
         </AuthProvider>

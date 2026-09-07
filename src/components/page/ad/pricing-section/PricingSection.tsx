@@ -110,7 +110,7 @@ function PricingCard({ plan }: { plan: Plan }) {
                 })}
             </ul>
             <a
-                href="mailto:support@shortreal.ai?subject=Early%20access%20request"
+                href="mailto:support@tailoredad.com?subject=Early%20access%20request"
                 className={`mt-10 inline-flex items-center justify-center rounded-full py-3.5 text-[14px] font-semibold transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] ${
                     dark ? 'bg-canvas text-text1' : 'bg-text1 text-canvas'
                 }`}
@@ -144,7 +144,7 @@ export default function PricingSection() {
                 </div>
                 <Reveal delay={0.1}>
                     <p className="mx-auto mt-10 max-w-2xl text-center text-[13px] leading-relaxed text-text2">
-                        Plans bill monthly. Image counts are matched to current model pricing — we always honor the count we show you today, and we'll tell you before anything changes.
+                        Plans bill monthly. Image counts are matched to current model pricing · we always honor the count we show you today, and we&apos;ll tell you before anything changes.
                     </p>
                 </Reveal>
             </div>

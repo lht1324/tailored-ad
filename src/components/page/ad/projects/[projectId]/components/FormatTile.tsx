@@ -132,7 +132,6 @@ function FormatTile({ ratioKey, imageResult, signedUrl, brandLogoUrl, isProjectR
                 ctx.fillStyle = color;
                 ctx.font = `${weight} ${fontSize}px ${family}`;
                 ctx.textBaseline = 'top';
-                // @ts-ignore
                 ctx.textAlign = hl.align as CanvasTextAlign;
                 let textX = hx;
                 if (hl.align === 'center') textX = hx + maxW / 2;
@@ -163,9 +162,7 @@ function FormatTile({ ratioKey, imageResult, signedUrl, brandLogoUrl, isProjectR
                     const cfs = (cta.fontSizePct / 100) * h;
                     const ch = cfs * 2.4;
                     ctx.fillStyle = '#FFFFFF';
-                    // @ts-ignore
                     if (ctx.roundRect) {
-                        // @ts-ignore
                         ctx.beginPath(); ctx.roundRect(cx, cy, cw, ch, ch / 2); ctx.fill();
                     } else {
                         ctx.beginPath(); ctx.arc(cx + ch / 2, cy + ch / 2, ch / 2, Math.PI / 2, Math.PI * 1.5); ctx.arc(cx + cw - ch / 2, cy + ch / 2, ch / 2, Math.PI * 1.5, Math.PI / 2); ctx.closePath(); ctx.fill();
@@ -182,7 +179,7 @@ function FormatTile({ ratioKey, imageResult, signedUrl, brandLogoUrl, isProjectR
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `shortreal-${creativeIndex + 1}-${ratioLabel}.png`;
+            a.download = `tailorad-${creativeIndex + 1}-${ratioLabel}.png`;
             document.body.appendChild(a);
             a.click();
             a.remove();

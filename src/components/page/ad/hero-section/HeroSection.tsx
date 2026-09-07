@@ -21,7 +21,7 @@ export default function HeroSection() {
                         AI Ad Creative Studio
                     </p>
                     <h1 className="mt-6 text-5xl font-bold leading-[1.05] tracking-tight text-text1 md:text-6xl">
-                        Ads that don't look like AI stock.
+                        Ads that don&apos;t look like AI stock.
                     </h1>
                     <p className="mt-6 max-w-md text-[17px] leading-relaxed text-text2">
                         Brand-consistent creatives for teams without a designer. Upload your product — get platform-ready ads in minutes.

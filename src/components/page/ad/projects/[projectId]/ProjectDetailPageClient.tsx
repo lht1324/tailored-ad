@@ -43,8 +43,16 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
     }, [projectId]);
 
     useEffect(() => {
-        setStatus('loading');
-        fetchProject(false);
+        let cancelled = false;
+        const run = async () => {
+            if (cancelled) return;
+            setStatus('loading');
+            await fetchProject(false);
+        };
+        void run();
+        return () => {
+            cancelled = true;
+        };
     }, [fetchProject]);
 
     const isRunning = useMemo(() => {
@@ -148,7 +156,7 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
     const totalAssets = project ? project.concept_count * project.aspect_ratios.length : 0;
 
     const onClickBack = useCallback(() => {
-        router.push('/ad/projects');
+        router.push('/projects');
     }, [router]);
 
     if (status === 'loading') {
@@ -181,7 +189,7 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
                     </button>
                     <div className="mt-8 rounded-[1.5rem] border border-hairline bg-surface px-8 py-16 text-center">
                         <p className="text-[13px] text-[#F87171]">{error ?? 'Project not found.'}</p>
-                        <Link href="/ad/projects" className="mt-4 inline-flex rounded-full bg-text1 px-6 py-2.5 text-[13px] font-semibold text-canvas">
+                        <Link href="/projects" className="mt-4 inline-flex rounded-full bg-text1 px-6 py-2.5 text-[13px] font-semibold text-canvas">
                             Go to Projects
                         </Link>
                     </div>
@@ -331,7 +339,7 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
                             </div>
                             <a
                                 href={url}
-                                download={`shortreal-project-${project.id.slice(0, 6)}-c${cIdx + 1}-${ratioLabel}.png`}
+                                download={`tailorad-project-${project.id.slice(0, 6)}-c${cIdx + 1}-${ratioLabel}.png`}
                                 className="inline-flex items-center gap-2 rounded-full bg-text1 px-5 py-2.5 text-[13px] font-semibold text-canvas hover:scale-[1.02] active:scale-[0.98] transition-transform"
                             >
                                 <Download className="h-4 w-4" strokeWidth={1.8} />
