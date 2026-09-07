@@ -94,7 +94,7 @@ export default function CreatePageClient() {
                     if (product?.file) formData.append('product', product.file);
                     if (person?.file) formData.append('person', person.file);
                     if (brandLogo?.file) formData.append('brand_logo', brandLogo.file);
-                    await postFormFetch(`/api/ad/ad-generation-batches/${batchId}/images`, formData);
+                    await postFormFetch(`/api/ad-generation-batches/${batchId}/images`, formData);
                 } catch (uploadError) {
                     console.warn('[Create] original image upload failed, fallback to text-only:', uploadError);
                 }

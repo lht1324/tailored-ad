@@ -33,7 +33,7 @@ export interface AdUploadedComponentRecord {
 }
 
 /**
- * 파이프라인 진입(POST /api/ad/image) 요청 body — 클라이언트가 보내는 camelCase 계약.
+ * 파이프라인 진입(POST /api/image) 요청 body — 클라이언트가 보내는 camelCase 계약.
  * 배경 입력 없음 (2026-08-24 확정: 배경은 creative마다 AI가 생성).
  * aspectRatios는 사용자 노출 표기('1:1') 그대로 받고, 진입 라우트가 AdRatioKey('1_1')로 정규화한다.
  */

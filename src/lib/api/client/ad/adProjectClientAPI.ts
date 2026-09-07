@@ -2,7 +2,7 @@ import { getFetch, postFetch } from "@/lib/api/client/baseFetch";
 import { AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 
 // ---- AdGenerationBatch 클라이언트 API (정석: DB명 유지) ----
-// 서버 경로는 /api/ad/ad-generation-batches 로 통일 (테이블 ad_generation_batches와 1:1).
+// 서버 경로는 /api/ad-generation-batches 로 통일 (테이블 ad_generation_batches와 1:1).
 // UI 노출은 Project, URL은 /ad/projects 로 별칭. 내부 데이터는 batch로 유지.
 
 export interface AdGenerationBatchListResponse {
@@ -42,7 +42,7 @@ export const adGenerationBatchClientAPI = {
         if (options?.limit != null) params.set('limit', String(options.limit));
         if (options?.offset != null) params.set('offset', String(options.offset));
         const query = params.toString() ? `?${params.toString()}` : '';
-        const response = await getFetch(`/api/ad/ad-generation-batches${query}`);
+        const response = await getFetch(`/api/ad-generation-batches${query}`);
         const result = await response.json();
         if (!result.success || !result.data) {
             throw new Error(result.error ?? 'Failed to list batches');
@@ -59,7 +59,7 @@ export const adGenerationBatchClientAPI = {
     },
 
     async getBatch(batchId: string): Promise<AdGenerationBatchDetailResponse> {
-        const response = await getFetch(`/api/ad/ad-generation-batches/${batchId}`);
+        const response = await getFetch(`/api/ad-generation-batches/${batchId}`);
         const result = await response.json();
         if (!result.success || !result.data) {
             throw new Error(result.error ?? 'Failed to get batch');
@@ -74,7 +74,7 @@ export const adGenerationBatchClientAPI = {
     },
 
     async createBatch(request: AdPipelineStartClientRequest): Promise<{ batchId: string }> {
-        const response = await postFetch('/api/ad/image', request);
+        const response = await postFetch('/api/image', request);
         const result = await response.json();
         if (!result.success || !result.data) {
             throw new Error(result.error ?? 'Failed to create batch');

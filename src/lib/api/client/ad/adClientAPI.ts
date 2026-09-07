@@ -129,7 +129,7 @@ export const adClientAPI = {
     // POST - 생성 태스크 생성 (1회 생성 시도 = 후보 n장 일괄 차감)
     async postGenerateTask(request: AdGenerateRequest): Promise<AdTask> {
         try {
-            const response = await postFetch('/api/ad/tasks', request);
+            const response = await postFetch('/api/tasks', request);
             const result = await response.json();
 
             if (!result.success || !result.data) {
@@ -146,7 +146,7 @@ export const adClientAPI = {
     // GET - 태스크 상태/결과 조회 (폴링)
     async getTask(taskId: string): Promise<AdTask> {
         try {
-            const response = await getFetch(`/api/ad/tasks/${taskId}`);
+            const response = await getFetch(`/api/tasks/${taskId}`);
             const result = await response.json();
 
             if (!result.success || !result.data) {
