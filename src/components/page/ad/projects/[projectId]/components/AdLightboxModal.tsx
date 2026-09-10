@@ -1,13 +1,15 @@
 'use client'
 
-import { memo, useCallback, useEffect } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
-import { X, Download } from 'lucide-react';
+import { X, Download, Loader2 } from 'lucide-react';
 import AdOverlay from "@/components/page/ad/results/components/AdOverlay";
+import { downloadCompositedImage } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
 import { AdDesignLayout } from "@/lib/api/client/ad/adClientAPI";
 
 interface AdLightboxModalProps {
     imageUrl: string;
+    ratioKey: string;
     ratioLabel: string;
     creativeIndex: number;
     design?: AdDesignLayout | null;
@@ -20,10 +22,36 @@ interface AdLightboxModalProps {
     onClose: () => void;
 }
 
-function AdLightboxModal({ imageUrl, ratioLabel, creativeIndex, design, score, headline, headlineFontFamily, headlineFontWeight, headlineColor, brandLogoUrl, onClose }: AdLightboxModalProps) {
+function AdLightboxModal({ imageUrl, ratioKey, ratioLabel, creativeIndex, design, score, headline, headlineFontFamily, headlineFontWeight, headlineColor, brandLogoUrl, onClose }: AdLightboxModalProps) {
     const onClickBackdrop = useCallback((e: React.MouseEvent) => {
         if (e.target === e.currentTarget) onClose();
     }, [onClose]);
+
+    const [isDownloading, setIsDownloading] = useState(false);
+    const onClickDownload = useCallback(async () => {
+        if (!design) {
+            window.open(imageUrl, '_blank');
+            return;
+        }
+        setIsDownloading(true);
+        try {
+            await downloadCompositedImage({
+                imageUrl,
+                design,
+                ratioKey,
+                creativeIndex,
+                headlineFontFamily: headlineFontFamily ?? null,
+                headlineFontWeight: headlineFontWeight ?? null,
+                headlineColor: headlineColor ?? 'white',
+                brandLogoUrl: brandLogoUrl ?? null,
+            });
+        } catch (err) {
+            console.error('download failed', err);
+            window.open(imageUrl, '_blank');
+        } finally {
+            setIsDownloading(false);
+        }
+    }, [imageUrl, design, ratioKey, creativeIndex, headlineFontFamily, headlineFontWeight, headlineColor, brandLogoUrl]);
 
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
@@ -55,14 +83,15 @@ function AdLightboxModal({ imageUrl, ratioLabel, creativeIndex, design, score, h
                         )}
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                        <a
-                            href={imageUrl}
-                            download={`tailorad-creative-${creativeIndex + 1}-${ratioLabel}.png`}
-                            className="inline-flex items-center gap-2 rounded-full bg-text1 px-4 py-1.5 text-[12px] font-medium text-canvas hover:opacity-90"
+                        <button
+                            type="button"
+                            onClick={onClickDownload}
+                            disabled={isDownloading}
+                            className="inline-flex items-center gap-2 rounded-full bg-text1 px-4 py-1.5 text-[12px] font-medium text-canvas hover:opacity-90 disabled:opacity-50"
                         >
-                            <Download className="h-3.5 w-3.5" strokeWidth={1.8} />
+                            {isDownloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.8} /> : <Download className="h-3.5 w-3.5" strokeWidth={1.8} />}
                             Download
-                        </a>
+                        </button>
                         <button
                             type="button"
                             onClick={onClose}

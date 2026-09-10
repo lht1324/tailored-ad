@@ -1,18 +1,26 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, AlertTriangle, CheckCircle2, Clock, Download, Layers, Loader2, Palette, RefreshCw } from 'lucide-react';
 import AppHeader from "@/components/page/ad/app-header/AppHeader";
 import CreativeRow from "@/components/page/ad/projects/[projectId]/components/CreativeRow";
 import AdLightboxModal from "@/components/page/ad/projects/[projectId]/components/AdLightboxModal";
+import { downloadCompositedImage } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
+import { fontMap } from "@/lib/fonts";
 import { adProjectClientAPI, getProjectProgress } from "@/lib/api/client/ad/adProjectClientAPI";
 import { AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { AdDesignLayout } from "@/lib/api/client/ad/adClientAPI";
 import { supabase } from "@/lib/supabase/supabaseClient";
 
 type DetailStatus = 'loading' | 'ready' | 'error';
+
+function parseTileKey(tileKey: string): { creativeIndex: number; ratioKey: string } {
+    const sep = tileKey.indexOf('_');
+    if (sep === -1) return { creativeIndex: Number.NaN, ratioKey: '' };
+    return { creativeIndex: parseInt(tileKey.slice(0, sep), 10), ratioKey: tileKey.slice(sep + 1) };
+}
 
 export default function ProjectDetailPageClient({ projectId }: { projectId: string }) {
     const router = useRouter();
@@ -24,32 +32,43 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
     const [isPolling, setIsPolling] = useState(false);
     const [selectedKey, setSelectedKey] = useState<string | null>(null);
     const [lightboxKey, setLightboxKey] = useState<string | null>(null);
+    const [isDownloadingSelected, setIsDownloadingSelected] = useState(false);
 
-    const fetchProject = useCallback(async (showPolling = false) => {
+    // 겹친 fetch는 마지막 것만 반영한다 (StrictMode 이중 마운트·폴링 겹침 대비).
+    // 이전 방식(진행 중이면 새 호출 버리기)은 취소된 호출의 응답까지 버려져
+    // 화면이 영원히 loading에 갇혔음. 버리지 말고 덮어쓴다.
+    const fetchRequestIdRef = useRef(0);
+
+    const fetchProject = useCallback(async (showPolling = false, options?: { isInitial?: boolean; isCancelled?: () => boolean }) => {
+        const requestId = fetchRequestIdRef.current + 1;
+        fetchRequestIdRef.current = requestId;
+        const isStale = () => requestId !== fetchRequestIdRef.current || options?.isCancelled?.() === true;
         if (showPolling) setIsPolling(true);
         try {
             const data = await adProjectClientAPI.getProject(projectId);
+            if (isStale()) return;
             setProject(data.project);
             setSignedUrls(data.signedUrls);
-            setBrandLogoSignedUrl((data as unknown as { brandLogoSignedUrl?: string | null }).brandLogoSignedUrl ?? null);
+            setBrandLogoSignedUrl(data.brandLogoSignedUrl ?? null);
             setStatus('ready');
             setError(null);
         } catch (err) {
+            if (isStale()) return;
             setError(err instanceof Error ? err.message : 'Failed to load project');
-            setStatus('error');
+            if (options?.isInitial) setStatus('error');
         } finally {
-            setIsPolling(false);
+            if (!isStale()) setIsPolling(false);
         }
     }, [projectId]);
 
     useEffect(() => {
         let cancelled = false;
-        const run = async () => {
+        // 동기 setState는 lint(react-hooks/set-state-in-effect) 위반이라 콜백 안으로
+        void Promise.resolve().then(() => {
             if (cancelled) return;
             setStatus('loading');
-            await fetchProject(false);
-        };
-        void run();
+            void fetchProject(false, { isInitial: true, isCancelled: () => cancelled });
+        });
         return () => {
             cancelled = true;
         };
@@ -65,11 +84,12 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
     useEffect(() => {
         if (status !== 'ready') return;
 
+        let cancelled = false;
         let channel: ReturnType<typeof supabase.channel> | null = null;
 
         (async () => {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+            if (cancelled || !user) return;
 
             channel = supabase
                 .channel(`ad-batch-${projectId}-${Math.random().toString(36).slice(2, 6)}`)
@@ -85,18 +105,10 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
         })();
 
         return () => {
+            cancelled = true;
             if (channel) supabase.removeChannel(channel);
         };
     }, [projectId, status, fetchProject]);
-
-    // Realtime 끊김 대비 폴링 안전망 — running일 때만 4초 간격
-    useEffect(() => {
-        if (!isRunning || status !== 'ready') return;
-        const intervalId = window.setInterval(() => {
-            fetchProject(true);
-        }, 4000);
-        return () => window.clearInterval(intervalId);
-    }, [isRunning, status, fetchProject]);
 
     const progress = useMemo(() => {
         if (!project) return null;
@@ -119,7 +131,7 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
         const withScores = indices.map((idx) => {
             const r = mapResult.get(idx);
             let best: number | null = null;
-            if (r) {
+            if (r?.imageResults) {
                 for (const rk of project.aspect_ratios) {
                     const ir = (r.imageResults as Record<string, { score?: number | null }>)[rk as string];
                     if (ir?.score != null && (best == null || ir.score > best)) best = ir.score;
@@ -153,11 +165,67 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
         setLightboxKey(null);
     }, []);
 
-    const totalAssets = project ? project.concept_count * project.aspect_ratios.length : 0;
-
     const onClickBack = useCallback(() => {
         router.push('/projects');
     }, [router]);
+
+    const onClickRefresh = useCallback(() => {
+        fetchProject(true);
+    }, [fetchProject]);
+
+    // 선택바 다운로드 — 타일 프리뷰와 동일한 입력으로 합성 (CreativeRow의 전달값과 일치)
+    const onClickDownloadSelected = useCallback(async () => {
+        if (!selectedKey) return;
+        const { creativeIndex: cIdx, ratioKey } = parseTileKey(selectedKey);
+        const url = signedUrls[selectedKey];
+        if (Number.isNaN(cIdx) || !url) return;
+        const creative = sortedCreatives.find((c) => c.creativeIndex === cIdx);
+        const design = (creative?.result?.imageResults?.[ratioKey as AdRatioKey] as unknown as { design?: AdDesignLayout | null } | undefined)?.design ?? null;
+        if (!design) {
+            window.open(url, '_blank');
+            return;
+        }
+        const copy = creative?.result?.copy as unknown as { fontFamily?: string | null; fontWeight?: number | null; headlineColor?: 'white' | 'black' | null } | undefined;
+        const rawName = copy?.fontFamily as string | undefined;
+        const resolved = rawName ? (fontMap as Record<string, { style: { fontFamily: string } }>)[rawName] : undefined;
+        const designColor = (design.headline as unknown as { color?: string } | null)?.color;
+        setIsDownloadingSelected(true);
+        try {
+            await downloadCompositedImage({
+                imageUrl: url,
+                design,
+                ratioKey,
+                creativeIndex: cIdx,
+                headlineFontFamily: resolved ? resolved.style.fontFamily : null,
+                headlineFontWeight: typeof copy?.fontWeight === 'number' ? copy.fontWeight : null,
+                headlineColor: designColor === 'white' || designColor === 'black'
+                    ? designColor
+                    : copy?.headlineColor === 'white' || copy?.headlineColor === 'black'
+                        ? copy.headlineColor
+                        : 'white',
+                brandLogoUrl: brandLogoSignedUrl,
+            });
+        } catch (err) {
+            console.error('download failed', err);
+            window.open(url, '_blank');
+        } finally {
+            setIsDownloadingSelected(false);
+        }
+    }, [selectedKey, signedUrls, sortedCreatives, brandLogoSignedUrl]);
+
+    const totalAssets = useMemo(() => {
+        if (!project) return 0;
+        return project.concept_count * project.aspect_ratios.length;
+    }, [project]);
+
+    const hasFailure = useMemo(() => {
+        return (progress?.failed ?? 0) > 0;
+    }, [progress]);
+
+    const isCompleted = useMemo(() => {
+        if (!project) return false;
+        return project.status === 'completed';
+    }, [project]);
 
     if (status === 'loading') {
         return (
@@ -197,9 +265,6 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
             </>
         );
     }
-
-    const hasFailure = progress.failed > 0;
-    const isCompleted = project.status === 'completed';
 
     return (
         <>
@@ -272,7 +337,7 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
                         <div className="flex shrink-0 items-center gap-2">
                             <button
                                 type="button"
-                                onClick={() => fetchProject(true)}
+                                onClick={onClickRefresh}
                                 disabled={isPolling}
                                 className="inline-flex items-center gap-2 rounded-full border border-hairline bg-canvas px-4 py-2 text-[13px] font-medium text-text1 hover:bg-surface disabled:opacity-50"
                             >
@@ -281,6 +346,12 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
                             </button>
                         </div>
                     </div>
+
+                    {error && (
+                        <div className="border-t border-hairline bg-amber-500/10 px-6 py-2.5 text-[12px] text-amber-700 dark:text-amber-300">
+                            Refresh failed: {error} · showing last loaded data.
+                        </div>
+                    )}
 
                     {/* 진행 바 */}
                     <div className="h-1.5 w-full bg-canvas">
@@ -324,27 +395,25 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
 
                 {/* 선택된 타일 디테일 — 간단 다운로드 바 */}
                 {selectedKey && (() => {
-                    const sep = selectedKey.indexOf('_');
-                    const cIdxStr = sep === -1 ? selectedKey : selectedKey.slice(0, sep);
-                    const ratioKey = sep === -1 ? '' : selectedKey.slice(sep + 1);
-                    const cIdx = parseInt(cIdxStr, 10);
+                    const { creativeIndex: cIdx, ratioKey } = parseTileKey(selectedKey);
                     const url = signedUrls[selectedKey];
-                    if (!url) return null;
-                    const ratioLabel = (ratioKey as string).replace('_', ':');
+                    if (!url || Number.isNaN(cIdx)) return null;
+                    const ratioLabel = ratioKey.replace('_', ':');
                     return (
                         <div className="mt-6 flex items-center justify-between gap-4 rounded-[1.25rem] border border-hairline bg-surface px-5 py-4">
                             <div>
                                 <p className="text-[13px] font-medium text-text1">Creative {String(cIdx + 1).padStart(2, '0')} · {ratioLabel} selected</p>
                                 <p className="mt-0.5 font-mono text-[11px] text-text2">Signed URL expires in 24h · downloads unlimited</p>
                             </div>
-                            <a
-                                href={url}
-                                download={`tailorad-project-${project.id.slice(0, 6)}-c${cIdx + 1}-${ratioLabel}.png`}
-                                className="inline-flex items-center gap-2 rounded-full bg-text1 px-5 py-2.5 text-[13px] font-semibold text-canvas hover:scale-[1.02] active:scale-[0.98] transition-transform"
+                            <button
+                                type="button"
+                                onClick={onClickDownloadSelected}
+                                disabled={isDownloadingSelected}
+                                className="inline-flex items-center gap-2 rounded-full bg-text1 px-5 py-2.5 text-[13px] font-semibold text-canvas hover:scale-[1.02] active:scale-[0.98] transition-transform disabled:opacity-50"
                             >
-                                <Download className="h-4 w-4" strokeWidth={1.8} />
+                                {isDownloadingSelected ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.8} /> : <Download className="h-4 w-4" strokeWidth={1.8} />}
                                 Download {ratioLabel}
-                            </a>
+                            </button>
                         </div>
                     );
                 })()}
@@ -353,11 +422,9 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
                 {lightboxKey && (() => {
                     const url = signedUrls[lightboxKey];
                     if (!url) return null;
-                    const sep2 = lightboxKey.indexOf('_');
-                    const cIdxStr = sep2 === -1 ? lightboxKey : lightboxKey.slice(0, sep2);
-                    const ratioKey = sep2 === -1 ? '' : lightboxKey.slice(sep2 + 1);
-                    const cIdx = parseInt(cIdxStr, 10);
-                    const ratioLabel = (ratioKey as string).replace('_', ':');
+                    const { creativeIndex: cIdx, ratioKey } = parseTileKey(lightboxKey);
+                    if (Number.isNaN(cIdx)) return null;
+                    const ratioLabel = ratioKey.replace('_', ':');
                     const creative = sortedCreatives.find((c) => c.creativeIndex === cIdx);
                     const ir = creative?.result?.imageResults?.[ratioKey as AdRatioKey] as { design?: import("@/lib/api/types/supabase/ad/AdGenerationBatch").AdImageResult['design']; score?: number | null } | undefined;
                     const copyForLightbox = creative?.result?.copy as unknown as { fontFamily?: string | null; fontWeight?: number | null; headlineColor?: 'white' | 'black' | null } | undefined;
@@ -365,6 +432,7 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
                     return (
                         <AdLightboxModal
                             imageUrl={url}
+                            ratioKey={ratioKey}
                             ratioLabel={ratioLabel}
                             creativeIndex={cIdx}
                             design={(ir?.design as AdDesignLayout) ?? null}

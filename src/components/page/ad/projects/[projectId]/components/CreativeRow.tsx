@@ -185,9 +185,8 @@ function CreativeRow({ creativeIndex, spec, result, batch, signedUrls, brandLogo
                             <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin">
                                 {batch.aspect_ratios.map((ratioKey) => {
                                     const ir = imageResults?.[ratioKey] as import("@/lib/api/types/supabase/ad/AdGenerationBatch").AdImageResult | undefined;
-                                    const key = `${creativeIndex}_${ratioKey}`;
-                                    const signedUrl = signedUrls[key] ?? null;
                                     const tileKey = `${creativeIndex}_${ratioKey}`;
+                                    const signedUrl = signedUrls[tileKey] ?? null;
                                     return (
                                         <FormatTile
                                             key={ratioKey}
