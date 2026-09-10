@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
+import { internalFireAndForgetFetch } from "@/lib/utils/internalFetch";
 import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatchServerAPI";
 import { adImageServerAPI } from "@/lib/api/server/ad/imageServerAPI";
 import { selectBaseRatio } from "@/lib/api/server/ad/creativeCombinationSampler";
@@ -51,6 +52,9 @@ export async function POST(request: NextRequest) {
     }
 
     const attempt = attemptParam ? Number.parseInt(attemptParam, 10) : 1;
+
+    // 제출을 시도한 비율 (catch에서 error 마킹용 — 제출 전 throw는 null 유지)
+    let submittedRatio: AdRatioKey | null = null;
 
     try {
         const batch = await adGenerationBatchServerAPI.getAdGenerationBatchById(batchId);
@@ -106,6 +110,7 @@ export async function POST(request: NextRequest) {
         const webhookUrl = `${baseUrl}/webhook/replicate/image/base?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}&ratioKey=${encodeURIComponent(baseRatio)}&attempt=${encodeURIComponent(String(attempt))}`;
 
         const wrappedCaption = `INSTRUCTION: Use the input image ONLY to preserve the product/person identity (shape, color, material, lace, perforations, stitching). Do NOT copy its background, floor, shadows or wall — recreate the product with pixel-perfect edges on the new scene described below.\n\nSCENE: ${caption}`;
+        submittedRatio = baseRatio;
         await replicateClient.postAdImageEditPrediction({
             model: ReplicateImageModelId.NANO_BANANA,
             prompt: wrappedCaption,
@@ -121,6 +126,23 @@ export async function POST(request: NextRequest) {
         });
     } catch (error) {
         console.error(`Error in POST /api/image/generation/base (batch=${batchId}, creative=${creativeIndex}):`, error);
+
+        // 제출 실패 가시화: 해당 base 타일을 error로 마킹하고 원본만으로 ratios 폴백.
+        // (그대로 두면 prediction이 없어 웹훅이 안 오고 영구 pending 유령이 됨)
+        if (submittedRatio && batchId) {
+            const message = error instanceof Error ? error.message : "Failed to submit base image generation";
+            await adGenerationBatchServerAPI.updateCreativeImageByRatioGenerationCompleted(
+                batchId,
+                creativeIndex,
+                submittedRatio,
+                null,
+                { code: 'SUBMISSION_FAILED', message },
+            ).catch(() => {});
+            internalFireAndForgetFetch(
+                `${process.env.BASE_URL}/api/image/generation/ratios?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}`,
+                { method: "POST" },
+            );
+        }
 
         // fail-soft: base 제출 실패도 배치 전체 failed로 전이하지 않음
         return getNextBaseResponse({

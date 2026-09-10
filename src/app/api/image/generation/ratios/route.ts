@@ -11,6 +11,21 @@ import {
 import { AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 
 /**
+ * 제출 실패 가시화 — prediction이 없으면 웹훅이 안 와 영구 pending 유령이 되므로
+ * 해당 비율 타일을 error로 마킹한다 (호출자는 그대로 500 또는 다음 비율 계속).
+ */
+async function markSubmissionFailed(batchId: string, creativeIndex: number, ratioKey: AdRatioKey, error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to submit ratio image generation";
+    await adGenerationBatchServerAPI.updateCreativeImageByRatioGenerationCompleted(
+        batchId,
+        creativeIndex,
+        ratioKey,
+        null,
+        { code: 'SUBMISSION_FAILED', message },
+    ).catch(() => {});
+}
+
+/**
  * 파생(ratios) 이미지 제출 단계 — 중립 실행자.
  * 호출처가 두 곳이지만(프롬프트 직통 / process-base 뒤따름) 이 라우트는 그 차이를 모른다.
  * 배치의 aspect_ratios length만으로 모드를 판별한다:
@@ -124,13 +139,18 @@ export async function POST(request: NextRequest) {
             }
             const webhookUrl = `${baseUrl}/webhook/replicate/image/ratios?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}&ratioKey=${encodeURIComponent(retryRatioKey)}&attempt=${encodeURIComponent(String(attempt))}`;
             const wrappedCaptionForRetry = `INSTRUCTION: Use the input image ONLY to preserve the product/person identity (shape, color, material, lace, perforations, stitching). Do NOT copy its background, floor, shadows or wall — recreate the product with pixel-perfect edges on the new scene described below.\n\nSCENE: ${caption}`;
-            await replicateClient.postAdImageEditPrediction({
-                model: ReplicateImageModelId.NANO_BANANA,
-                prompt: wrappedCaptionForRetry,
-                imageUrls: referenceUrlsForRetry,
-                aspectRatio: retryRatioKey,
-                webhookUrl,
-            });
+            try {
+                await replicateClient.postAdImageEditPrediction({
+                    model: ReplicateImageModelId.NANO_BANANA,
+                    prompt: wrappedCaptionForRetry,
+                    imageUrls: referenceUrlsForRetry,
+                    aspectRatio: retryRatioKey,
+                    webhookUrl,
+                });
+            } catch (submitError) {
+                await markSubmissionFailed(batchId, creativeIndex, retryRatioKey, submitError);
+                throw submitError;
+            }
             return getNextBaseResponse({
                 success: true,
                 status: 200,
@@ -159,13 +179,18 @@ export async function POST(request: NextRequest) {
             }
             const webhookUrl = `${baseUrl}/webhook/replicate/image/ratios?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}&ratioKey=${encodeURIComponent(singleRatio)}&attempt=${encodeURIComponent(String(attempt))}`;
             const wrappedCaptionForSingle = `INSTRUCTION: Use the input image ONLY to preserve the product/person identity (shape, color, material, lace, perforations, stitching). Do NOT copy its background, floor, shadows or wall — recreate the product with pixel-perfect edges on the new scene described below.\n\nSCENE: ${caption}`;
-            await replicateClient.postAdImageEditPrediction({
-                model: ReplicateImageModelId.NANO_BANANA,
-                prompt: wrappedCaptionForSingle,
-                imageUrls: originalImageUrls,
-                aspectRatio: singleRatio,
-                webhookUrl,
-            });
+            try {
+                await replicateClient.postAdImageEditPrediction({
+                    model: ReplicateImageModelId.NANO_BANANA,
+                    prompt: wrappedCaptionForSingle,
+                    imageUrls: originalImageUrls,
+                    aspectRatio: singleRatio,
+                    webhookUrl,
+                });
+            } catch (submitError) {
+                await markSubmissionFailed(batchId, creativeIndex, singleRatio, submitError);
+                throw submitError;
+            }
 
             return getNextBaseResponse({
                 success: true,
@@ -226,13 +251,19 @@ export async function POST(request: NextRequest) {
 
             const webhookUrl = `${baseUrl}/webhook/replicate/image/ratios?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}&ratioKey=${encodeURIComponent(ratioKey)}&attempt=${encodeURIComponent(String(attempt))}`;
             const wrappedCaptionForRatio = `INSTRUCTION: Use the input image ONLY to preserve the product/person identity (shape, color, material, lace, perforations, stitching). Do NOT copy its background, floor, shadows or wall — recreate the product with pixel-perfect edges on the new scene described below.\n\nSCENE: ${caption}`;
-            await replicateClient.postAdImageEditPrediction({
-                model: ReplicateImageModelId.NANO_BANANA,
-                prompt: wrappedCaptionForRatio,
-                imageUrls: referenceUrlsWithBase,
-                aspectRatio: ratioKey,
-                webhookUrl,
-            });
+            try {
+                await replicateClient.postAdImageEditPrediction({
+                    model: ReplicateImageModelId.NANO_BANANA,
+                    prompt: wrappedCaptionForRatio,
+                    imageUrls: referenceUrlsWithBase,
+                    aspectRatio: ratioKey,
+                    webhookUrl,
+                });
+            } catch (submitError) {
+                // 해당 비율만 error 마킹하고 나머지 비율은 계속 제출 (fail-soft)
+                console.error(`[generation/ratios] submit failed (batch=${batchId}, creative=${creativeIndex}, ratio=${ratioKey}):`, submitError);
+                await markSubmissionFailed(batchId, creativeIndex, ratioKey, submitError);
+            }
         }
 
         return getNextBaseResponse({
