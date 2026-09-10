@@ -1,9 +1,10 @@
 'use client'
 
-import { memo, useMemo, useState } from 'react';
-import { ChevronDown, Eye, Layers, Sparkles, Target, Wand2 } from 'lucide-react';
+import { memo, useCallback, useMemo, useState } from 'react';
+import { ChevronDown, Download, Eye, Layers, Loader2, Sparkles, Target, Wand2 } from 'lucide-react';
 import FormatTile from "@/components/page/ad/projects/[projectId]/components/FormatTile";
-import { AdCreativeSpec, AdCreativeResult, AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+import { downloadItemsAsZip } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
+import { AdCreativeSpec, AdCreativeResult, AdGenerationBatch, AdImageResult, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { fontMap } from "@/lib/fonts";
 
 function formatAxisLabel(value: string): string {
@@ -28,6 +29,11 @@ interface CreativeRowProps {
 
 function CreativeRow({ creativeIndex, spec, result, batch, signedUrls, brandLogoUrl, isProjectRunning, selectedKey, onSelectTile, onExpandTile }: CreativeRowProps) {
     const [expanded, setExpanded] = useState(true);
+    const [isDownloadingRow, setIsDownloadingRow] = useState(false);
+
+    const onClickToggleExpand = useCallback(() => {
+        setExpanded((v) => !v);
+    }, []);
 
     const copy = result?.copy;
     const imageResults = result?.imageResults as Partial<Record<AdRatioKey, unknown>> | undefined;
@@ -80,6 +86,36 @@ function CreativeRow({ creativeIndex, spec, result, batch, signedUrls, brandLogo
         return best;
     }, [imageResults, batch.aspect_ratios]);
 
+    const onClickDownloadRow = useCallback(async () => {
+        // 이 줄의 완성 타일만 ZIP (타일 프리뷰와 동일한 입력)
+        const items: Parameters<typeof downloadItemsAsZip>[0] = [];
+        for (const ratioKey of batch.aspect_ratios) {
+            const ir = imageResults?.[ratioKey] as AdImageResult | undefined;
+            const signedUrl = signedUrls[`${creativeIndex}_${ratioKey}`] ?? null;
+            if (!signedUrl || !ir || ir.error || !ir.design) continue;
+            const designColor = (ir.design.headline as unknown as { color?: string } | null)?.color;
+            items.push({
+                imageUrl: signedUrl,
+                design: ir.design,
+                ratioKey,
+                creativeIndex,
+                headlineFontFamily: headlineFontFamily ?? null,
+                headlineFontWeight: headlineFontWeight ?? null,
+                headlineColor: designColor === 'white' || designColor === 'black' ? designColor : headlineColor,
+                brandLogoUrl: brandLogoUrl ?? null,
+            });
+        }
+        if (items.length === 0) return;
+        setIsDownloadingRow(true);
+        try {
+            await downloadItemsAsZip(items, `tailorad-c${String(creativeIndex + 1).padStart(2, '0')}-all.zip`);
+        } catch (err) {
+            console.error('row download failed', err);
+        } finally {
+            setIsDownloadingRow(false);
+        }
+    }, [batch.aspect_ratios, imageResults, signedUrls, creativeIndex, headlineFontFamily, headlineFontWeight, headlineColor, brandLogoUrl]);
+
     const isSpecPending = !spec && isProjectRunning;
     const statusLabel = isSpecPending
         ? 'Preparing'
@@ -106,12 +142,14 @@ function CreativeRow({ creativeIndex, spec, result, batch, signedUrls, brandLogo
 
     return (
         <section className="overflow-hidden rounded-[1.5rem] border border-hairline bg-surface">
-            {/* 헤더 */}
-            <button
-                type="button"
-                onClick={() => setExpanded((v) => !v)}
-                className="flex w-full items-center gap-4 px-5 py-4 text-left hover:bg-canvas/50 transition-colors"
-            >
+            {/* 헤더 — 토글 버튼 안에 다운로드 버튼을 넣을 수 없어 div로 분리 */}
+            <div className="flex items-center gap-3 px-5 py-4 transition-colors hover:bg-canvas/50">
+                <button
+                    type="button"
+                    onClick={onClickToggleExpand}
+                    aria-expanded={expanded}
+                    className="flex min-w-0 flex-1 items-center gap-4 text-left"
+                >
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-canvas font-mono text-[12px] font-semibold text-text1 border border-hairline">
                     {String(creativeIndex + 1).padStart(2, '0')}
                 </span>
@@ -141,10 +179,26 @@ function CreativeRow({ creativeIndex, spec, result, batch, signedUrls, brandLogo
                     )}
                 </div>
 
-                <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-hairline bg-canvas text-text2 transition-transform ${expanded ? 'rotate-180' : ''}`}>
+                </button>
+                <button
+                    type="button"
+                    onClick={onClickDownloadRow}
+                    disabled={stats.completed === 0 || isDownloadingRow}
+                    title={stats.completed === 0 ? 'No completed formats yet' : `Download ${stats.completed} formats as zip`}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-hairline bg-canvas px-3 py-1.5 font-mono text-[11px] text-text1 hover:bg-surface disabled:opacity-40"
+                >
+                    {isDownloadingRow ? <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.8} /> : <Download className="h-3.5 w-3.5" strokeWidth={1.8} />}
+                    {stats.completed}/{stats.total}
+                </button>
+                <button
+                    type="button"
+                    onClick={onClickToggleExpand}
+                    aria-label={expanded ? 'Collapse creative' : 'Expand creative'}
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-hairline bg-canvas text-text2 transition-transform ${expanded ? 'rotate-180' : ''}`}
+                >
                     <ChevronDown className="h-4 w-4" strokeWidth={1.8} />
-                </span>
-            </button>
+                </button>
+            </div>
 
             {expanded && (
                 <div className="border-t border-hairline">

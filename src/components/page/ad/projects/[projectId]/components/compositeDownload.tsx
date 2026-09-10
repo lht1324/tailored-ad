@@ -2,7 +2,8 @@
 
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
-import { toPng } from 'html-to-image';
+import { toBlob } from 'html-to-image';
+import JSZip from 'jszip';
 import AdOverlay from "@/components/page/ad/results/components/AdOverlay";
 import type { AdDesignLayout } from "@/lib/api/client/ad/adClientAPI";
 
@@ -29,7 +30,7 @@ export function buildDownloadFileName(creativeIndex: number, ratioKey: string): 
     return `tailorad-c${String(creativeIndex + 1).padStart(2, '0')}-${ratioKey}.png`;
 }
 
-interface CompositeDownloadOptions {
+export interface CompositeDownloadOptions {
     imageUrl: string;
     design: AdDesignLayout;
     ratioKey: string;
@@ -99,7 +100,50 @@ async function waitForSnapshotReady(host: HTMLElement, timeoutMs: number): Promi
 
 export async function downloadCompositedImage(opts: CompositeDownloadOptions): Promise<void> {
     const size = COMPOSITE_SIZES[opts.ratioKey] ?? { w: 1080, h: 1350 };
+    const blob = await renderSnapshotBlob(opts, size);
+    triggerBlobDownload(blob, buildDownloadFileName(opts.creativeIndex, opts.ratioKey));
+}
 
+export interface ZipProgress {
+    done: number;
+    total: number;
+    phase: 'render' | 'zip';
+}
+
+// 벌크 ZIP — 순차 합성(메모리 피크 억제) 후 1발로 묶어 저장
+export async function downloadItemsAsZip(
+    items: CompositeDownloadOptions[],
+    zipFileName: string,
+    onProgress?: (p: ZipProgress) => void,
+): Promise<{ saved: number; total: number }> {
+    const zip = new JSZip();
+    let saved = 0;
+    for (const item of items) {
+        const size = COMPOSITE_SIZES[item.ratioKey] ?? { w: 1080, h: 1350 };
+        const blob = await renderSnapshotBlob(item, size);
+        zip.file(buildDownloadFileName(item.creativeIndex, item.ratioKey), blob);
+        saved += 1;
+        onProgress?.({ done: saved, total: items.length, phase: 'render' });
+    }
+    const content = await zip.generateAsync({ type: 'blob' }, () => {
+        onProgress?.({ done: saved, total: items.length, phase: 'zip' });
+    });
+    triggerBlobDownload(content, zipFileName);
+    return { saved, total: items.length };
+}
+
+function triggerBlobDownload(blob: Blob, fileName: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+async function renderSnapshotBlob(opts: CompositeDownloadOptions, size: { w: number; h: number }): Promise<Blob> {
     // 화면 밖 렌더용 호스트 (display:none이면 레이아웃이 안 잡히므로 offscreen 배치)
     const host = document.createElement('div');
     host.style.cssText = `position:fixed;left:-100000px;top:0;width:${size.w}px;height:${size.h}px;overflow:hidden;`;
@@ -125,19 +169,14 @@ export async function downloadCompositedImage(opts: CompositeDownloadOptions): P
         const node = host.firstElementChild as HTMLElement | null;
         if (!node) throw new Error('snapshot node missing');
 
-        const dataUrl = await toPng(node, {
+        const blob = await toBlob(node, {
             canvasWidth: size.w,
             canvasHeight: size.h,
             pixelRatio: 1,
             cacheBust: false,
         });
-
-        const a = document.createElement('a');
-        a.href = dataUrl;
-        a.download = buildDownloadFileName(opts.creativeIndex, opts.ratioKey);
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        if (!blob) throw new Error('snapshot render failed');
+        return blob;
     } finally {
         root.unmount();
         host.remove();

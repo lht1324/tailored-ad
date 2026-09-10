@@ -7,10 +7,10 @@ import { ArrowLeft, AlertTriangle, CheckCircle2, Clock, Download, Layers, Loader
 import AppHeader from "@/components/page/ad/app-header/AppHeader";
 import CreativeRow from "@/components/page/ad/projects/[projectId]/components/CreativeRow";
 import AdLightboxModal from "@/components/page/ad/projects/[projectId]/components/AdLightboxModal";
-import { downloadCompositedImage } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
+import { downloadCompositedImage, downloadItemsAsZip, type CompositeDownloadOptions } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
 import { fontMap } from "@/lib/fonts";
 import { adProjectClientAPI, getProjectProgress } from "@/lib/api/client/ad/adProjectClientAPI";
-import { AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+import { AdCreativeResult, AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { AdDesignLayout } from "@/lib/api/client/ad/adClientAPI";
 import { supabase } from "@/lib/supabase/supabaseClient";
 
@@ -20,6 +20,38 @@ function parseTileKey(tileKey: string): { creativeIndex: number; ratioKey: strin
     const sep = tileKey.indexOf('_');
     if (sep === -1) return { creativeIndex: Number.NaN, ratioKey: '' };
     return { creativeIndex: parseInt(tileKey.slice(0, sep), 10), ratioKey: tileKey.slice(sep + 1) };
+}
+
+// 타일 프리뷰와 동일한 입력으로 합성 아이템 조립 (완성 타일이 아니면 null)
+// — 선택바·전체 다운로드가 같은 기준으로 묶이도록 공용화
+function buildCompositeItem(
+    creativeIndex: number,
+    ratioKey: string,
+    result: AdCreativeResult | null | undefined,
+    imageUrl: string,
+    brandLogoUrl: string | null,
+): CompositeDownloadOptions | null {
+    const ir = result?.imageResults?.[ratioKey as AdRatioKey] as unknown as { design?: AdDesignLayout | null; error?: unknown } | undefined;
+    const design = (ir?.design as AdDesignLayout) ?? null;
+    if (!design || ir?.error) return null;
+    const copy = result?.copy as unknown as { fontFamily?: string | null; fontWeight?: number | null; headlineColor?: 'white' | 'black' | null } | undefined;
+    const rawName = copy?.fontFamily as string | undefined;
+    const resolved = rawName ? (fontMap as Record<string, { style: { fontFamily: string } }>)[rawName] : undefined;
+    const designColor = (design.headline as unknown as { color?: string } | null)?.color;
+    return {
+        imageUrl,
+        design,
+        ratioKey,
+        creativeIndex,
+        headlineFontFamily: resolved ? resolved.style.fontFamily : null,
+        headlineFontWeight: typeof copy?.fontWeight === 'number' ? copy.fontWeight : null,
+        headlineColor: designColor === 'white' || designColor === 'black'
+            ? designColor
+            : copy?.headlineColor === 'white' || copy?.headlineColor === 'black'
+                ? copy.headlineColor
+                : 'white',
+        brandLogoUrl,
+    };
 }
 
 export default function ProjectDetailPageClient({ projectId }: { projectId: string }) {
@@ -33,6 +65,9 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
     const [selectedKey, setSelectedKey] = useState<string | null>(null);
     const [lightboxKey, setLightboxKey] = useState<string | null>(null);
     const [isDownloadingSelected, setIsDownloadingSelected] = useState(false);
+    const [isPreparingAll, setIsPreparingAll] = useState(false);
+    const [allProgress, setAllProgress] = useState<{ done: number; total: number; phase: 'render' | 'zip' } | null>(null);
+    const [allResult, setAllResult] = useState<string | null>(null);
 
     // 겹친 fetch는 마지막 것만 반영한다 (StrictMode 이중 마운트·폴링 겹침 대비).
     // 이전 방식(진행 중이면 새 호출 버리기)은 취소된 호출의 응답까지 버려져
@@ -173,38 +208,21 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
         fetchProject(true);
     }, [fetchProject]);
 
-    // 선택바 다운로드 — 타일 프리뷰와 동일한 입력으로 합성 (CreativeRow의 전달값과 일치)
+    // 선택바 다운로드 — buildCompositeItem으로 타일 프리뷰와 동일한 입력 보장
     const onClickDownloadSelected = useCallback(async () => {
         if (!selectedKey) return;
         const { creativeIndex: cIdx, ratioKey } = parseTileKey(selectedKey);
         const url = signedUrls[selectedKey];
         if (Number.isNaN(cIdx) || !url) return;
         const creative = sortedCreatives.find((c) => c.creativeIndex === cIdx);
-        const design = (creative?.result?.imageResults?.[ratioKey as AdRatioKey] as unknown as { design?: AdDesignLayout | null } | undefined)?.design ?? null;
-        if (!design) {
+        const item = buildCompositeItem(cIdx, ratioKey, creative?.result ?? null, url, brandLogoSignedUrl);
+        if (!item) {
             window.open(url, '_blank');
             return;
         }
-        const copy = creative?.result?.copy as unknown as { fontFamily?: string | null; fontWeight?: number | null; headlineColor?: 'white' | 'black' | null } | undefined;
-        const rawName = copy?.fontFamily as string | undefined;
-        const resolved = rawName ? (fontMap as Record<string, { style: { fontFamily: string } }>)[rawName] : undefined;
-        const designColor = (design.headline as unknown as { color?: string } | null)?.color;
         setIsDownloadingSelected(true);
         try {
-            await downloadCompositedImage({
-                imageUrl: url,
-                design,
-                ratioKey,
-                creativeIndex: cIdx,
-                headlineFontFamily: resolved ? resolved.style.fontFamily : null,
-                headlineFontWeight: typeof copy?.fontWeight === 'number' ? copy.fontWeight : null,
-                headlineColor: designColor === 'white' || designColor === 'black'
-                    ? designColor
-                    : copy?.headlineColor === 'white' || copy?.headlineColor === 'black'
-                        ? copy.headlineColor
-                        : 'white',
-                brandLogoUrl: brandLogoSignedUrl,
-            });
+            await downloadCompositedImage(item);
         } catch (err) {
             console.error('download failed', err);
             window.open(url, '_blank');
@@ -212,6 +230,41 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
             setIsDownloadingSelected(false);
         }
     }, [selectedKey, signedUrls, sortedCreatives, brandLogoSignedUrl]);
+
+    // 전체 다운로드 — 완성 타일만 ZIP
+    const allCompletedItems = useMemo(() => {
+        if (!project) return [];
+        const items: CompositeDownloadOptions[] = [];
+        for (const { creativeIndex, result } of sortedCreatives) {
+            for (const rk of project.aspect_ratios) {
+                const url = signedUrls[`${creativeIndex}_${rk}`];
+                if (!url) continue;
+                const item = buildCompositeItem(creativeIndex, rk, result, url, brandLogoSignedUrl);
+                if (item) items.push(item);
+            }
+        }
+        return items;
+    }, [project, sortedCreatives, signedUrls, brandLogoSignedUrl]);
+
+    const onClickDownloadAll = useCallback(async () => {
+        if (allCompletedItems.length === 0 || isPreparingAll) return;
+        setIsPreparingAll(true);
+        setAllResult(null);
+        setAllProgress({ done: 0, total: allCompletedItems.length, phase: 'render' });
+        try {
+            const { saved, total } = await downloadItemsAsZip(
+                allCompletedItems,
+                `tailorad-${project?.id.slice(0, 6) ?? 'project'}-all.zip`,
+                (p) => setAllProgress({ done: p.done, total: p.total, phase: p.phase }),
+            );
+            setAllResult(`Saved ${saved}/${total}`);
+        } catch (err) {
+            console.error('download all failed', err);
+            setAllResult('Download failed');
+        } finally {
+            setIsPreparingAll(false);
+        }
+    }, [allCompletedItems, isPreparingAll, project]);
 
     const totalAssets = useMemo(() => {
         if (!project) return 0;
@@ -335,6 +388,23 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
                         </div>
 
                         <div className="flex shrink-0 items-center gap-2">
+                            {allResult && !isPreparingAll && (
+                                <span className="font-mono text-[11px] text-text2">{allResult}</span>
+                            )}
+                            <button
+                                type="button"
+                                onClick={onClickDownloadAll}
+                                disabled={isPreparingAll || allCompletedItems.length === 0}
+                                title={allCompletedItems.length === 0 ? 'No completed images yet' : `Download ${allCompletedItems.length} images as zip`}
+                                className="inline-flex items-center gap-2 rounded-full bg-text1 px-4 py-2 text-[13px] font-semibold text-canvas transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                            >
+                                {isPreparingAll ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.8} /> : <Download className="h-4 w-4" strokeWidth={1.8} />}
+                                {isPreparingAll
+                                    ? allProgress?.phase === 'zip'
+                                        ? 'Compressing…'
+                                        : `Preparing ${allProgress?.done ?? 0}/${allProgress?.total ?? allCompletedItems.length}…`
+                                    : 'Download all'}
+                            </button>
                             <button
                                 type="button"
                                 onClick={onClickRefresh}
