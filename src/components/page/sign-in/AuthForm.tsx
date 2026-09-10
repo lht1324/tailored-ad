@@ -24,32 +24,32 @@ function AuthForm({
     oAuthSignIn,
 }: AuthFormProps) {
     return (
-        <div className="w-full h-fit max-w-[400px] mx-auto bg-zinc-900/40 border border-white/5 rounded-2xl shadow-2xl p-8 backdrop-blur-md">
-            <div className="text-center mb-10">
+        <div className="w-full rounded-[1.5rem] border border-hairline bg-surface p-8 shadow-[0_24px_64px_-32px_rgba(0,0,0,0.45)]">
+            <div className="mb-8 text-center">
                 <Image
                     src="/logo/logo-64.png"
                     alt="TailorAd"
                     width={56}
                     height={56}
-                    className="mx-auto mb-6"
+                    className="mx-auto mb-6 rounded-2xl"
                 />
-                <h1 className="text-3xl font-bold text-zinc-100 mb-2">
+                <h1 className="text-[28px] font-bold tracking-tight text-text1">
                     {title}
                 </h1>
-                <p className="text-zinc-500 text-sm font-medium">
+                <p className="mt-2 text-sm font-medium text-text2">
                     {subtitle}
                 </p>
             </div>
 
             {/* Error Message */}
             {error && (
-                <div className="mb-6 p-4 bg-red-500/5 border border-red-500/20 rounded-xl">
-                    <p className="text-red-400 text-xs font-medium text-center">{error}</p>
+                <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+                    <p className="text-center text-xs font-medium text-red-400">{error}</p>
                 </div>
             )}
 
             {/* OAuth Buttons */}
-            <div className="space-y-3 mb-8 flex flex-col w-full">
+            <div className="mb-6 flex w-full flex-col space-y-3">
                 <GoogleSignInButton
                     text="Continue with Google"
                     onClick={() => oAuthSignIn(OAuthProvider.Google)}
@@ -64,25 +64,25 @@ function AuthForm({
             </div>
 
             {/* Footer */}
-            <div className="text-center mb-8">
-                <p className="text-xs text-zinc-600 font-medium">
+            <div className="mb-6 text-center">
+                <p className="text-xs font-medium text-text2">
                     {footerText}
                 </p>
             </div>
 
             {/* Legal Disclaimer (Click-wrap) */}
-            <div className="pt-6 border-t border-white/5 text-center space-y-3">
-                <p className="text-[11px] text-zinc-600 leading-relaxed px-4">
+            <div className="space-y-3 border-t border-hairline pt-6 text-center">
+                <p className="px-4 text-[11px] leading-relaxed text-text2">
                     By continuing, you agree to our{' '}
-                    <a href="/legal/terms" target="_blank" className="text-zinc-400 hover:text-zinc-200 transition-colors font-semibold">
+                    <a href="/legal/terms" target="_blank" className="font-semibold text-text1 hover:text-accent transition-colors">
                         Terms
                     </a>{' '}
                     and{' '}
-                    <a href="/legal/privacy" target="_blank" className="text-zinc-400 hover:text-zinc-200 transition-colors font-semibold">
+                    <a href="/legal/privacy" target="_blank" className="font-semibold text-text1 hover:text-accent transition-colors">
                         Privacy Policy
                     </a>.
                 </p>
-                <p className="text-[10px] text-zinc-700 font-medium leading-tight">
+                <p className="text-[10px] font-medium leading-tight text-text2">
                     * You acknowledge that the service begins immediately and waive the right of withdrawal.
                 </p>
             </div>

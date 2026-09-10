@@ -45,17 +45,11 @@ function SignInPageClient() {
     }, [signInWithOAuth, redirectTo]);
 
     return (
-        <div className="min-h-screen bg-zinc-950 relative overflow-hidden">
-            {/* Background Effects - Toned down significantly */}
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-0">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-500 rounded-full blur-[120px]"></div>
-            </div>
-
-            {/* Content */}
-            <div className="relative z-10 flex items-start justify-center min-h-screen py-12 px-4 sm:px-6 lg:px-8" style={{paddingTop: 'calc(45vh - 16rem)'}}>
+        <div className="relative min-h-screen overflow-hidden bg-canvas">
+            <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[28rem] flex-col justify-center px-4 py-16 sm:px-6">
                 <AuthForm
                     title="Welcome to TailorAd"
-                    subtitle="Sign in. Create short. Keep it real."
+                    subtitle="Sign in. Create tailored ads."
                     footerText="New here? No problem - just pick any option above!"
                     loading={isLoading}
                     error={error}

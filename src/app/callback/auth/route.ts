@@ -1,7 +1,7 @@
 import {NextRequest, NextResponse} from 'next/server'
 import {usersServerAPI} from '@/lib/api/server/usersServerAPI'
 import {createSupabaseServer} from "@/lib/supabase/supabaseServer";
-import {SubscriptionPlan, User} from "@/lib/api/types/supabase/Users";
+import {User} from "@/lib/api/types/supabase/Users";
 
 export async function GET(request: NextRequest) {
     const supabase = await createSupabaseServer("mutate");
@@ -57,13 +57,11 @@ export async function GET(request: NextRequest) {
             throw Error("User is invalid");
         }
 
-        const redirectPath = redirectTo
-            ? redirectTo === "pricing"
-                ? "/#pricing"
-                : "/profile"
-            : user.plan === SubscriptionPlan.NONE
-                ? "/profile"
-                : "/workspace/dashboard"
+        // TailorAd에는 /profile, /workspace가 없음 — 기본 행선지는 /projects.
+        // redirectTo는 / 로 시작하는 내부 경로만 허용 (open-redirect 방지).
+        const redirectPath = redirectTo && redirectTo.startsWith("/")
+            ? redirectTo
+            : "/projects"
 
         return NextResponse.redirect(new URL(redirectPath, process.env.NODE_ENV === 'production' ? request.url : "http://localhost:3000"))
     } catch (error) {

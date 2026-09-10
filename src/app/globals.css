@@ -5,8 +5,8 @@
 @plugin "@tailwindcss/typography";
 
 /*
- * ShortReal Ad — 컬러 팔레트 (lib/theme.ts와 동기화 필수)
- * 다크가 기본. html에 .theme-light 클래스가 붙으면 라이트 팔레트로 전환됨.
+ * TailorAd — 컬러 팔레트
+ * 라이트가 기본. html에서 .theme-light 클래스를 제거하면 다크 팔레트로 전환됨.
  */
 :root {
   --background: #0A0A0B;
@@ -41,7 +41,7 @@
   /* tailwind.config.js에서 이관된 커스텀 테마 설정 */
   --font-roboto: "Roboto", sans-serif;
 
-  /* ShortReal Ad — Dark Gallery 팔레트 (SHORTREAL-AD.md 11-2) */
+  /* TailorAd 팔레트 */
   --color-canvas: var(--ad-canvas);
   --color-surface: var(--ad-surface);
   --color-hairline: var(--ad-hairline);

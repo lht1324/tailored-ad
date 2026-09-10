@@ -24,7 +24,7 @@ export default function RootLayout({
   children: ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="theme-light">
       <body className="antialiased">
         <AuthProvider>
           <div className="min-h-screen bg-canvas text-text1 font-satoshi">

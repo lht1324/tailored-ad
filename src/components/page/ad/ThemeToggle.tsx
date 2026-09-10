@@ -7,29 +7,35 @@ const STORAGE_KEY = "ad-theme-preview";
 
 export default function ThemeToggle() {
     // Lazy initializer keeps the icon and the document class in sync from the
-    // first client render. A transient mismatch is harmless here (preview UI).
+    // first client render. Light is the default; only an explicit stored
+    // "dark" starts dark. A transient mismatch is harmless here (preview UI).
     const [isLight, setIsLight] = useState<boolean>(() => {
-        if (typeof window === "undefined") return false;
+        if (typeof window === "undefined") return true;
         try {
-            if (window.localStorage.getItem(STORAGE_KEY) === "light") {
-                document.documentElement.classList.add("theme-light");
-                return true;
+            if (window.localStorage.getItem(STORAGE_KEY) === "dark") {
+                document.documentElement.classList.remove("theme-light");
+                return false;
             }
         } catch {
             /* storage unavailable */
         }
-        return false;
+        document.documentElement.classList.add("theme-light");
+        return true;
     });
 
     const onClickToggle = () => {
         const next = !isLight;
         setIsLight(next);
-        if (next) {
-            document.documentElement.classList.add("theme-light");
-            localStorage.setItem(STORAGE_KEY, "light");
-        } else {
-            document.documentElement.classList.remove("theme-light");
-            localStorage.setItem(STORAGE_KEY, "dark");
+        try {
+            if (next) {
+                document.documentElement.classList.add("theme-light");
+                localStorage.setItem(STORAGE_KEY, "light");
+            } else {
+                document.documentElement.classList.remove("theme-light");
+                localStorage.setItem(STORAGE_KEY, "dark");
+            }
+        } catch {
+            /* storage unavailable */
         }
     };
 
