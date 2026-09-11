@@ -115,6 +115,10 @@ export default function ProjectsPageClient() {
         router.push(`/projects/${projectId}`);
     }, [router]);
 
+    const onClickEditProject = useCallback((projectId: string) => {
+        router.push(`/projects/${projectId}/edit`);
+    }, [router]);
+
     const filtered = useMemo(() => {
         if (filter === 'all') return projects;
         if (filter === 'running') return projects.filter((p) => isRunningStatus(p.status));
@@ -261,6 +265,7 @@ export default function ProjectsPageClient() {
                                     thumbnailUrl={thumbnailSignedUrls[project.id] ?? null}
                                     thumbnailRatio={thumbnailRatioKeys[project.id] ?? null}
                                     onClick={() => onClickProject(project.id)}
+                                    onEdit={() => onClickEditProject(project.id)}
                                 />
                             ))}
                         </div>

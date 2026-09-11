@@ -22,12 +22,10 @@ interface CreativeRowProps {
     signedUrls: Record<string, string>;
     brandLogoUrl?: string | null;
     isProjectRunning: boolean;
-    selectedKey: string | null;
-    onSelectTile: (key: string) => void;
     onExpandTile?: (key: string) => void;
 }
 
-function CreativeRow({ creativeIndex, spec, result, batch, signedUrls, brandLogoUrl, isProjectRunning, selectedKey, onSelectTile, onExpandTile }: CreativeRowProps) {
+function CreativeRow({ creativeIndex, spec, result, batch, signedUrls, brandLogoUrl, isProjectRunning, onExpandTile }: CreativeRowProps) {
     const [expanded, setExpanded] = useState(true);
     const [isDownloadingRow, setIsDownloadingRow] = useState(false);
 
@@ -50,8 +48,8 @@ function CreativeRow({ creativeIndex, spec, result, batch, signedUrls, brandLogo
         return typeof w === 'number' ? w : undefined;
     }, [copy?.fontWeight]);
     const headlineColor = useMemo(() => {
-        const c = copy?.headlineColor as 'white' | 'black' | undefined;
-        return c === 'white' || c === 'black' ? c : null;
+        const c = copy?.headlineColor;
+        return typeof c === 'string' ? c : null;
     }, [copy?.headlineColor]);
 
     const stats = useMemo(() => {
@@ -101,7 +99,7 @@ function CreativeRow({ creativeIndex, spec, result, batch, signedUrls, brandLogo
                 creativeIndex,
                 headlineFontFamily: headlineFontFamily ?? null,
                 headlineFontWeight: headlineFontWeight ?? null,
-                headlineColor: designColor === 'white' || designColor === 'black' ? designColor : headlineColor,
+                headlineColor: designColor ?? headlineColor ?? null,
                 brandLogoUrl: brandLogoUrl ?? null,
             });
         }
@@ -250,8 +248,6 @@ function CreativeRow({ creativeIndex, spec, result, batch, signedUrls, brandLogo
                                             brandLogoUrl={brandLogoUrl ?? null}
                                             isProjectRunning={isProjectRunning}
                                             creativeIndex={creativeIndex}
-                                            selected={selectedKey === tileKey}
-                                            onSelect={() => onSelectTile(tileKey)}
                                             onExpand={() => onExpandTile?.(tileKey)}
                                             headlineFontFamily={headlineFontFamily ?? null}
                                             headlineFontWeight={headlineFontWeight ?? null}

@@ -31,15 +31,13 @@ interface FormatTileProps {
     brandLogoUrl?: string | null;
     isProjectRunning: boolean;
     creativeIndex: number;
-    onSelect?: () => void;
     onExpand?: () => void;
-    selected?: boolean;
     headlineFontFamily?: string | null;
     headlineFontWeight?: number | null;
-    headlineColor?: 'white' | 'black' | null;
+    headlineColor?: string | null;
 }
 
-function FormatTile({ ratioKey, imageResult, signedUrl, brandLogoUrl, isProjectRunning, creativeIndex, onSelect, onExpand, selected, headlineFontFamily, headlineFontWeight, headlineColor }: FormatTileProps) {
+function FormatTile({ ratioKey, imageResult, signedUrl, brandLogoUrl, isProjectRunning, creativeIndex, onExpand, headlineFontFamily, headlineFontWeight, headlineColor }: FormatTileProps) {
     const ratioLabel = RATIO_LABEL[ratioKey] ?? ratioKey;
     const factor = RATIO_FACTOR[ratioKey] ?? 1;
 
@@ -49,8 +47,8 @@ function FormatTile({ ratioKey, imageResult, signedUrl, brandLogoUrl, isProjectR
     const isPending = !imageResult && !isProjectRunning;
 
     const onClickTile = useCallback(() => {
-        if (isCompleted && onSelect) onSelect();
-    }, [isCompleted, onSelect]);
+        if (isCompleted && onExpand) onExpand();
+    }, [isCompleted, onExpand]);
 
     const onClickRetry = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
@@ -149,7 +147,8 @@ function FormatTile({ ratioKey, imageResult, signedUrl, brandLogoUrl, isProjectR
     // 완료 타일 — 이미지 + 오버레이
     const design: AdDesignLayout = (imageResult.design as AdDesignLayout) ?? { headline: null, cta: null, logo: null, scrim: false };
     const score = imageResult.score;
-    const overlayHeadlineColor = (design.headline as unknown as { color?: string })?.color === 'black' || (design.headline as unknown as { color?: string })?.color === 'white' ? (design.headline as unknown as { color: 'white' | 'black' }).color : headlineColor ?? 'white';
+    const designColor = (design.headline as unknown as { color?: string } | null)?.color;
+    const overlayHeadlineColor = designColor ?? headlineColor ?? null;
 
     return (
         <div
@@ -158,12 +157,7 @@ function FormatTile({ ratioKey, imageResult, signedUrl, brandLogoUrl, isProjectR
             onClick={onClickTile}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClickTile(); } }}
             style={{ aspectRatio: factor, height: 'min(18rem, 34vw)' }}
-            className={`group relative shrink-0 cursor-pointer overflow-hidden rounded-[1.25rem] border text-left transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                selected
-                    ? 'border-accent ring-1 ring-accent/30'
-                    : 'border-hairline hover:border-text2/30 hover:shadow-lg hover:shadow-black/5'
-            }`}
-            aria-pressed={selected}
+            className="group relative shrink-0 cursor-pointer overflow-hidden rounded-[1.25rem] border border-hairline text-left transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-text2/30 hover:shadow-lg hover:shadow-black/5"
         >
             <Image
                 src={signedUrl ?? ''}

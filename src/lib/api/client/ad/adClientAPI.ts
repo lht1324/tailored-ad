@@ -59,8 +59,8 @@ export interface AdHeadlineSpec {
     maxWidth: number;
     align: 'left' | 'center' | 'right';
     fontSizePct: number;
-    /** 헤드라인 색 — white/black 2택, Vision이 비율별 최종 결정 (AdCopySpec.headlineColor 제안 기반) */
-    color?: 'white' | 'black' | null;
+    /** 헤드라인 색 — LLM은 white/black 출력, 에디터는 hex 저장 가능. 렌더·저장 시 정규화 */
+    color?: string | null;
 }
 
 export interface AdCtaSpec {
@@ -84,6 +84,8 @@ export interface AdDesignLayout {
     cta: AdCtaSpec | null;
     logo: AdLogoSpec | null;
     scrim: boolean;
+    /** scrim 농도 0-100 — 에디터 전용 확장 (LLM은 출력 안 함). 미지정 시 글자색 기준 기본값 */
+    scrimStrength?: number | null;
 }
 
 export interface AdCandidate {

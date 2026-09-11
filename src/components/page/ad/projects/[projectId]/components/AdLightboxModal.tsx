@@ -2,7 +2,7 @@
 
 import { memo, useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
-import { X, Download, Loader2 } from 'lucide-react';
+import { X, Download, Loader2, Pencil } from 'lucide-react';
 import AdOverlay from "@/components/page/ad/results/components/AdOverlay";
 import { downloadCompositedImage } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
 import { AdDesignLayout } from "@/lib/api/client/ad/adClientAPI";
@@ -17,12 +17,13 @@ interface AdLightboxModalProps {
     headline?: string | null;
     headlineFontFamily?: string | null;
     headlineFontWeight?: number | null;
-    headlineColor?: 'white' | 'black' | null;
+    headlineColor?: string | null;
     brandLogoUrl?: string | null;
     onClose: () => void;
+    onEdit: (() => void) | null;
 }
 
-function AdLightboxModal({ imageUrl, ratioKey, ratioLabel, creativeIndex, design, score, headline, headlineFontFamily, headlineFontWeight, headlineColor, brandLogoUrl, onClose }: AdLightboxModalProps) {
+function AdLightboxModal({ imageUrl, ratioKey, ratioLabel, creativeIndex, design, score, headline, headlineFontFamily, headlineFontWeight, headlineColor, brandLogoUrl, onClose, onEdit }: AdLightboxModalProps) {
     const onClickBackdrop = useCallback((e: React.MouseEvent) => {
         if (e.target === e.currentTarget) onClose();
     }, [onClose]);
@@ -92,6 +93,16 @@ function AdLightboxModal({ imageUrl, ratioKey, ratioLabel, creativeIndex, design
                             {isDownloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.8} /> : <Download className="h-3.5 w-3.5" strokeWidth={1.8} />}
                             Download
                         </button>
+                        {onEdit && (
+                            <button
+                                type="button"
+                                onClick={onEdit}
+                                className="inline-flex items-center gap-2 rounded-full border border-hairline bg-canvas px-4 py-1.5 text-[12px] font-medium text-text1 hover:bg-surface"
+                            >
+                                <Pencil className="h-3.5 w-3.5" strokeWidth={1.8} />
+                                Edit
+                            </button>
+                        )}
                         <button
                             type="button"
                             onClick={onClose}

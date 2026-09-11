@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, AlertTriangle, CheckCircle2, Clock, Download, Layers, Loader2, Palette, RefreshCw } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, CheckCircle2, Clock, Download, Layers, Loader2, Palette, Pencil, RefreshCw } from 'lucide-react';
 import AppHeader from "@/components/page/ad/app-header/AppHeader";
 import CreativeRow from "@/components/page/ad/projects/[projectId]/components/CreativeRow";
 import AdLightboxModal from "@/components/page/ad/projects/[projectId]/components/AdLightboxModal";
-import { downloadCompositedImage, downloadItemsAsZip, type CompositeDownloadOptions } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
+import { downloadItemsAsZip, type CompositeDownloadOptions } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
 import { fontMap } from "@/lib/fonts";
 import { adProjectClientAPI, getProjectProgress } from "@/lib/api/client/ad/adProjectClientAPI";
 import { AdCreativeResult, AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
@@ -34,7 +34,7 @@ function buildCompositeItem(
     const ir = result?.imageResults?.[ratioKey as AdRatioKey] as unknown as { design?: AdDesignLayout | null; error?: unknown } | undefined;
     const design = (ir?.design as AdDesignLayout) ?? null;
     if (!design || ir?.error) return null;
-    const copy = result?.copy as unknown as { fontFamily?: string | null; fontWeight?: number | null; headlineColor?: 'white' | 'black' | null } | undefined;
+    const copy = result?.copy as unknown as { fontFamily?: string | null; fontWeight?: number | null; headlineColor?: string | null } | undefined;
     const rawName = copy?.fontFamily as string | undefined;
     const resolved = rawName ? (fontMap as Record<string, { style: { fontFamily: string } }>)[rawName] : undefined;
     const designColor = (design.headline as unknown as { color?: string } | null)?.color;
@@ -45,11 +45,7 @@ function buildCompositeItem(
         creativeIndex,
         headlineFontFamily: resolved ? resolved.style.fontFamily : null,
         headlineFontWeight: typeof copy?.fontWeight === 'number' ? copy.fontWeight : null,
-        headlineColor: designColor === 'white' || designColor === 'black'
-            ? designColor
-            : copy?.headlineColor === 'white' || copy?.headlineColor === 'black'
-                ? copy.headlineColor
-                : 'white',
+        headlineColor: designColor ?? copy?.headlineColor ?? null,
         brandLogoUrl,
     };
 }
@@ -62,9 +58,7 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
     const [status, setStatus] = useState<DetailStatus>('loading');
     const [error, setError] = useState<string | null>(null);
     const [isPolling, setIsPolling] = useState(false);
-    const [selectedKey, setSelectedKey] = useState<string | null>(null);
     const [lightboxKey, setLightboxKey] = useState<string | null>(null);
-    const [isDownloadingSelected, setIsDownloadingSelected] = useState(false);
     const [isPreparingAll, setIsPreparingAll] = useState(false);
     const [allProgress, setAllProgress] = useState<{ done: number; total: number; phase: 'render' | 'zip' } | null>(null);
     const [allResult, setAllResult] = useState<string | null>(null);
@@ -187,18 +181,20 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
         }));
     }, [project, isRunning]);
 
-    const onSelectTile = useCallback((key: string) => {
-        setSelectedKey(key);
-    }, []);
-
     const onExpandTile = useCallback((key: string) => {
         setLightboxKey(key);
-        setSelectedKey(key);
     }, []);
 
     const onCloseLightbox = useCallback(() => {
         setLightboxKey(null);
     }, []);
+
+    const onClickEditFromLightbox = useCallback(() => {
+        if (!lightboxKey) return;
+        const { creativeIndex: cIdx, ratioKey } = parseTileKey(lightboxKey);
+        if (Number.isNaN(cIdx)) return;
+        router.push(`/projects/${projectId}/edit?creative=${cIdx}&ratio=${encodeURIComponent(ratioKey)}`);
+    }, [lightboxKey, router, projectId]);
 
     const onClickBack = useCallback(() => {
         router.push('/projects');
@@ -208,28 +204,9 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
         fetchProject(true);
     }, [fetchProject]);
 
-    // 선택바 다운로드 — buildCompositeItem으로 타일 프리뷰와 동일한 입력 보장
-    const onClickDownloadSelected = useCallback(async () => {
-        if (!selectedKey) return;
-        const { creativeIndex: cIdx, ratioKey } = parseTileKey(selectedKey);
-        const url = signedUrls[selectedKey];
-        if (Number.isNaN(cIdx) || !url) return;
-        const creative = sortedCreatives.find((c) => c.creativeIndex === cIdx);
-        const item = buildCompositeItem(cIdx, ratioKey, creative?.result ?? null, url, brandLogoSignedUrl);
-        if (!item) {
-            window.open(url, '_blank');
-            return;
-        }
-        setIsDownloadingSelected(true);
-        try {
-            await downloadCompositedImage(item);
-        } catch (err) {
-            console.error('download failed', err);
-            window.open(url, '_blank');
-        } finally {
-            setIsDownloadingSelected(false);
-        }
-    }, [selectedKey, signedUrls, sortedCreatives, brandLogoSignedUrl]);
+    const onClickOpenEditor = useCallback(() => {
+        router.push(`/projects/${projectId}/edit`);
+    }, [router, projectId]);
 
     // 전체 다운로드 — 완성 타일만 ZIP
     const allCompletedItems = useMemo(() => {
@@ -414,6 +391,14 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
                                 <RefreshCw className={`h-4 w-4 ${isPolling ? 'animate-spin' : ''}`} strokeWidth={1.8} />
                                 Refresh
                             </button>
+                            <button
+                                type="button"
+                                onClick={onClickOpenEditor}
+                                className="inline-flex items-center gap-2 rounded-full border border-hairline bg-canvas px-4 py-2 text-[13px] font-medium text-text1 hover:bg-surface"
+                            >
+                                <Pencil className="h-4 w-4" strokeWidth={1.8} />
+                                Editor
+                            </button>
                         </div>
                     </div>
 
@@ -456,37 +441,10 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
                             signedUrls={signedUrls}
                             brandLogoUrl={brandLogoSignedUrl}
                             isProjectRunning={isRunning}
-                            selectedKey={selectedKey}
-                            onSelectTile={onSelectTile}
                             onExpandTile={onExpandTile}
                         />
                     ))}
                 </div>
-
-                {/* 선택된 타일 디테일 — 간단 다운로드 바 */}
-                {selectedKey && (() => {
-                    const { creativeIndex: cIdx, ratioKey } = parseTileKey(selectedKey);
-                    const url = signedUrls[selectedKey];
-                    if (!url || Number.isNaN(cIdx)) return null;
-                    const ratioLabel = ratioKey.replace('_', ':');
-                    return (
-                        <div className="mt-6 flex items-center justify-between gap-4 rounded-[1.25rem] border border-hairline bg-surface px-5 py-4">
-                            <div>
-                                <p className="text-[13px] font-medium text-text1">Creative {String(cIdx + 1).padStart(2, '0')} · {ratioLabel} selected</p>
-                                <p className="mt-0.5 font-mono text-[11px] text-text2">Signed URL expires in 24h · downloads unlimited</p>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={onClickDownloadSelected}
-                                disabled={isDownloadingSelected}
-                                className="inline-flex items-center gap-2 rounded-full bg-text1 px-5 py-2.5 text-[13px] font-semibold text-canvas hover:scale-[1.02] active:scale-[0.98] transition-transform disabled:opacity-50"
-                            >
-                                {isDownloadingSelected ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.8} /> : <Download className="h-4 w-4" strokeWidth={1.8} />}
-                                Download {ratioLabel}
-                            </button>
-                        </div>
-                    );
-                })()}
 
                 {/* 라이트박스 — WorkspaceEditor와 동일 패턴 */}
                 {lightboxKey && (() => {
@@ -497,8 +455,8 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
                     const ratioLabel = ratioKey.replace('_', ':');
                     const creative = sortedCreatives.find((c) => c.creativeIndex === cIdx);
                     const ir = creative?.result?.imageResults?.[ratioKey as AdRatioKey] as { design?: import("@/lib/api/types/supabase/ad/AdGenerationBatch").AdImageResult['design']; score?: number | null } | undefined;
-                    const copyForLightbox = creative?.result?.copy as unknown as { fontFamily?: string | null; fontWeight?: number | null; headlineColor?: 'white' | 'black' | null } | undefined;
-                    const designHeadlineColor = (ir as unknown as { design?: { headline?: { color?: string | null } } })?.design?.headline?.color as 'white' | 'black' | null | undefined;
+                    const copyForLightbox = creative?.result?.copy as unknown as { fontFamily?: string | null; fontWeight?: number | null; headlineColor?: string | null } | undefined;
+                    const designHeadlineColor = (ir as unknown as { design?: { headline?: { color?: string | null } } })?.design?.headline?.color as string | null | undefined;
                     return (
                         <AdLightboxModal
                             imageUrl={url}
@@ -510,9 +468,10 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
                             headline={creative?.result?.copy?.headline ?? null}
                             headlineFontFamily={copyForLightbox?.fontFamily ?? null}
                             headlineFontWeight={copyForLightbox?.fontWeight ?? null}
-                            headlineColor={designHeadlineColor ?? copyForLightbox?.headlineColor ?? 'white'}
+                            headlineColor={designHeadlineColor ?? copyForLightbox?.headlineColor ?? null}
                             brandLogoUrl={brandLogoSignedUrl}
                             onClose={onCloseLightbox}
+                            onEdit={onClickEditFromLightbox}
                         />
                     );
                 })()}

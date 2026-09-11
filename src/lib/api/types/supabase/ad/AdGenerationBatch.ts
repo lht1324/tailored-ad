@@ -76,8 +76,8 @@ export interface AdCopySpec {
     fontFamily?: string | null;
     /** 헤드라인용 웨이트 — 해당 fontFamily의 weightList 중 하나, 미지원 시 400으로 교정 */
     fontWeight?: number | null;
-    /** 헤드라인 색 — white/black 2택, 대비 안전값. 브랜드 hex는 highlight에만 사용 */
-    headlineColor?: 'white' | 'black' | null;
+    /** 헤드라인 색 — LLM은 white/black 2택으로 출력. 에디터는 임의 hex(#RRGGBB) 저장 가능. 렌더·저장 시 정규화 */
+    headlineColor?: string | null;
 }
 
 /** 비율(이미지) 1장의 산출물 — 이미지 생성 후 Qwen Vision이 확정. fail-soft: error가 있으면 해당 비율만 실패로 격리 */
