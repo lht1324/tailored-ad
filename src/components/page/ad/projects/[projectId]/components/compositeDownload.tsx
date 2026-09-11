@@ -37,7 +37,7 @@ export interface CompositeDownloadOptions {
     creativeIndex: number;
     headlineFontFamily?: string | null;
     headlineFontWeight?: number | null;
-    headlineColor?: 'white' | 'black' | null;
+    headlineColor?: string | null;
     brandLogoUrl?: string | null;
 }
 
@@ -47,7 +47,7 @@ function SnapshotView({ imageUrl, design, size, headlineFontFamily, headlineFont
     size: { w: number; h: number };
     headlineFontFamily?: string | null;
     headlineFontWeight?: number | null;
-    headlineColor?: 'white' | 'black' | null;
+    headlineColor?: string | null;
     brandLogoUrl?: string | null;
 }) {
     return (
