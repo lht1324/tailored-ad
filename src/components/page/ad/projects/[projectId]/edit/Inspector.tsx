@@ -1,8 +1,9 @@
 'use client';
 
 import { memo, useCallback, useMemo, useState } from 'react';
-import { Check, Pipette } from 'lucide-react';
+import { Check, ChevronDown, Pipette } from 'lucide-react';
 import { HexColorPicker } from "react-colorful";
+import FontPicker from "@/components/page/ad/projects/[projectId]/edit/FontPicker";
 import { fontMap } from "@/lib/fonts";
 import FONT_FAMILY_LIST from "@/lib/FontFamilyList";
 import { normalizeHeadlineColor, defaultScrimStrength } from "@/lib/colorUtils";
@@ -36,6 +37,46 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
             {children}
         </h3>
     );
+}
+
+function Collapsible({ title, summary, defaultOpen, headerExtra, children }: {
+    title: string;
+    summary?: string;
+    defaultOpen?: boolean;
+    headerExtra?: React.ReactNode;
+    children: React.ReactNode;
+}) {
+    const [open, setOpen] = useState(defaultOpen ?? true);
+    const onClickToggle = useCallback(() => {
+        setOpen((v) => !v);
+    }, []);
+    return (
+        <section>
+            <div className="flex items-center justify-between gap-2">
+                <button
+                    type="button"
+                    onClick={onClickToggle}
+                    aria-expanded={open}
+                    className="flex min-w-0 flex-1 items-center gap-2.5 py-1.5 text-left"
+                >
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-hairline bg-canvas text-text2">
+                        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-180' : ''}`} strokeWidth={2} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                        <span className="block text-[13px] font-semibold text-text1">{title}</span>
+                        {summary && <span className="mt-0.5 block truncate text-[11px] text-text2">{summary}</span>}
+                    </span>
+                </button>
+                {headerExtra}
+            </div>
+            {open && <div className="mt-3 space-y-3">{children}</div>}
+        </section>
+    );
+}
+
+function truncateSummary(text: string | null | undefined, max: number): string {
+    if (!text) return '';
+    return text.length > max ? `${text.slice(0, max)}…` : text;
 }
 
 function SliderRow({ label, value, display, min, max, step, disabled, onChange }: {
@@ -177,8 +218,7 @@ function Inspector({ design, copy, score, disabled, aspectRatio, brandPalette, o
         onChangeDesign({ ...design, scrim: !design.scrim });
     }, [design, onChangeDesign]);
 
-    const onChangeFamily = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-        const name = e.target.value;
+    const onChangeFontName = useCallback((name: string) => {
         const entry = FONT_FAMILY_LIST.find((f) => f.name === name);
         const weights = entry ? entry.weightList.map((v) => v.weight) : [400];
         const fallback = weights.includes(400) ? 400 : weights[0] ?? 400;
@@ -199,8 +239,7 @@ function Inspector({ design, copy, score, disabled, aspectRatio, brandPalette, o
         }
     }, [copy, headline, design, aspectRatio, onChangeCopy, onChangeDesign]);
 
-    const onChangeWeight = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-        const weight = Number(e.target.value);
+    const onClickWeight = useCallback((weight: number) => {
         onChangeCopy({ ...copy, fontWeight: weight });
         if (headline) {
             const yMax = computeHeadlineYMax({
@@ -231,21 +270,22 @@ function Inspector({ design, copy, score, disabled, aspectRatio, brandPalette, o
                 </p>
             )}
 
-            <fieldset disabled={disabled} className="space-y-6 disabled:opacity-60">
+            <fieldset disabled={disabled} className="min-w-0 space-y-6 disabled:opacity-60">
                 {/* Headline */}
-                <section className="space-y-3">
-                    <div className="flex items-center justify-between">
-                        <SectionTitle>Headline</SectionTitle>
-                        {headline ? (
-                            <button type="button" onClick={onClickRemoveHeadline} className="text-[12px] font-medium text-text2 hover:text-[#F87171]">
-                                Remove
-                            </button>
-                        ) : (
-                            <button type="button" onClick={onClickAddHeadline} className="text-[12px] font-medium text-accent hover:opacity-80">
-                                Add headline
-                            </button>
-                        )}
-                    </div>
+                <Collapsible
+                    title="Headline"
+                    summary={headline ? `${truncateSummary(copy.headline, 22)} · ${copy.fontFamily ?? ''} ${copy.fontWeight ?? ''}`.trim() : 'No headline'}
+                    defaultOpen
+                    headerExtra={headline ? (
+                        <button type="button" onClick={onClickRemoveHeadline} className="shrink-0 text-[12px] font-medium text-text2 hover:text-[#F87171]">
+                            Remove
+                        </button>
+                    ) : (
+                        <button type="button" onClick={onClickAddHeadline} className="shrink-0 text-[12px] font-medium text-accent hover:opacity-80">
+                            Add headline
+                        </button>
+                    )}
+                >
                     {headline ? (
                         <>
                             <label className="block">
@@ -296,31 +336,32 @@ function Inspector({ design, copy, score, disabled, aspectRatio, brandPalette, o
                                     ))}
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <label className="block">
+                            <div className="space-y-3">
+                                <div>
                                     <span className="mb-1.5 block text-[12px] font-medium text-text2">Font</span>
-                                    <select
-                                        value={copy.fontFamily ?? ''}
-                                        onChange={onChangeFamily}
-                                        className="w-full rounded-xl border border-hairline bg-canvas px-3 py-2.5 text-[13px] text-text1 outline-none focus:border-accent"
-                                    >
-                                        {Object.keys(fontMap).map((name) => (
-                                            <option key={name} value={name}>{name}</option>
-                                        ))}
-                                    </select>
-                                </label>
-                                <label className="block">
+                                    <FontPicker value={copy.fontFamily ?? null} disabled={disabled} onChange={onChangeFontName} />
+                                </div>
+                                <div>
                                     <span className="mb-1.5 block text-[12px] font-medium text-text2">Weight</span>
-                                    <select
-                                        value={copy.fontWeight ?? 400}
-                                        onChange={onChangeWeight}
-                                        className="w-full rounded-xl border border-hairline bg-canvas px-3 py-2.5 text-[13px] text-text1 outline-none focus:border-accent"
-                                    >
-                                        {availableWeights.map((w) => (
-                                            <option key={w} value={w}>{w}</option>
-                                        ))}
-                                    </select>
-                                </label>
+                                    <div className="grid grid-cols-4 gap-1.5">
+                                        {availableWeights.map((w) => {
+                                            const selected = (copy.fontWeight ?? 400) === w;
+                                            return (
+                                                <button
+                                                    key={w}
+                                                    type="button"
+                                                    onClick={() => onClickWeight(w)}
+                                                    aria-pressed={selected}
+                                                    className={`rounded-lg border px-2 py-2 text-center font-mono text-[12px] transition-colors ${
+                                                        selected ? 'border-text1 bg-text1 text-canvas' : 'border-hairline bg-canvas text-text2 hover:text-text1'
+                                                    }`}
+                                                >
+                                                    {w}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
                             </div>
                             <div>
                                 <span className="mb-1.5 block text-[12px] font-medium text-text2">Color</span>
@@ -390,7 +431,7 @@ function Inspector({ design, copy, score, disabled, aspectRatio, brandPalette, o
                                                         onClickHeadlineColor(`#${val.toUpperCase()}`);
                                                     }
                                                 }}
-                                                className="w-full bg-transparent font-mono text-[12px] uppercase text-text1 outline-none"
+                                                className="w-full min-w-0 bg-transparent font-mono text-[12px] uppercase text-text1 outline-none"
                                             />
                                             <span className="h-5 w-5 shrink-0 rounded-full border border-black/10" style={{ backgroundColor: currentHex }} />
                                         </label>
@@ -401,12 +442,14 @@ function Inspector({ design, copy, score, disabled, aspectRatio, brandPalette, o
                     ) : (
                         <p className="text-[12px] text-text2">No headline on this asset.</p>
                     )}
-                </section>
+                </Collapsible>
 
                 {/* CTA */}
-                <section className="space-y-3">
-                    <div className="flex items-center justify-between">
-                        <SectionTitle>Call to action</SectionTitle>
+                <Collapsible
+                    title="Call to action"
+                    summary={cta ? truncateSummary(cta.text, 26) : 'Off'}
+                    defaultOpen
+                    headerExtra={(
                         <button
                             type="button"
                             onClick={onClickToggleCta}
@@ -415,7 +458,8 @@ function Inspector({ design, copy, score, disabled, aspectRatio, brandPalette, o
                         >
                             <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${cta ? 'left-[1.375rem]' : 'left-0.5'}`} />
                         </button>
-                    </div>
+                    )}
+                >
                     {cta ? (
                         <>
                             <label className="block">
@@ -446,7 +490,7 @@ function Inspector({ design, copy, score, disabled, aspectRatio, brandPalette, o
                     ) : (
                         <p className="text-[12px] text-text2">No CTA pill on this asset.</p>
                     )}
-                </section>
+                </Collapsible>
 
                 {/* Scrim */}
                 <section className="space-y-3">

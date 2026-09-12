@@ -4,12 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, Check, Download, Loader2 } from 'lucide-react';
 import AppHeader from "@/components/page/ad/app-header/AppHeader";
 import AssetTree, { type AssetTreeCreative } from "@/components/page/ad/projects/[projectId]/edit/AssetTree";
 import Inspector, { type EditorCopy } from "@/components/page/ad/projects/[projectId]/edit/Inspector";
 import type { AdStillInput } from "@/components/page/ad/projects/[projectId]/edit/AdStillComposition";
 import { COMPOSITE_SIZES } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
+import { downloadCompositedImage } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
 import { fontMap } from "@/lib/fonts";
 import { adProjectClientAPI } from "@/lib/api/client/ad/adProjectClientAPI";
 import { patchFetch } from "@/lib/api/client/baseFetch";
@@ -76,6 +77,7 @@ export default function EditorPageClient() {
     const [baseline, setBaseline] = useState<string | null>(null);
     const [activeKey, setActiveKey] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [isDownloadingCanvas, setIsDownloadingCanvas] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [savedAt, setSavedAt] = useState<string | null>(null);
 
@@ -160,9 +162,6 @@ export default function EditorPageClient() {
     const resolved = useMemo<ResolvedSelection | null>(() => {
         if (!project) return null;
         const findResult = (ci: number) => (project.ad_creative_results ?? []).find((r) => r.creativeIndex === ci) ?? null;
-        // 에디터 진입 시 scrim은 off에서 시작 (LLM값 유지하되 적용은 유저 결정).
-        // baseline도 off 기준이라 입장 직후 dirty 아님. 다른 걸 고치고 저장하면 off가 함께 저장됨.
-        const killScrim = (d: AdDesignLayout): AdDesignLayout => ({ ...d, scrim: false });
         const pick = (ci: number, rk: string): ResolvedSelection | null => {
             const result = findResult(ci);
             const url = signedUrls[`${ci}_${rk}`];
@@ -170,7 +169,7 @@ export default function EditorPageClient() {
             const ir = result.imageResults?.[rk as AdRatioKey] as unknown as { design?: AdDesignLayout | null } | undefined;
             const designValue = (ir?.design as AdDesignLayout) ?? null;
             if (!designValue) return null;
-            return { creativeIndex: ci, ratioKey: rk, imageUrl: url, design: killScrim(designValue), copy: toEditorCopy(result.copy) };
+            return { creativeIndex: ci, ratioKey: rk, imageUrl: url, design: designValue, copy: toEditorCopy(result.copy) };
         };
         const ci = paramCreative != null ? Number.parseInt(paramCreative, 10) : Number.NaN;
         if (!Number.isNaN(ci) && paramRatio && (project.aspect_ratios as string[]).includes(paramRatio)) {
@@ -285,6 +284,23 @@ export default function EditorPageClient() {
         };
     }, [resolved, design, copy, brandLogoSignedUrl]);
 
+    // 캔버스 다운로드 — Player에 들어가는 inputs와 동일한 객체로 스냅샷 (미저장 포함 현재 화면)
+    const onClickDownloadCanvas = useCallback(async () => {
+        if (!resolved || !design || !canvasInput || isDownloadingCanvas) return;
+        setIsDownloadingCanvas(true);
+        try {
+            await downloadCompositedImage({
+                ...canvasInput,
+                ratioKey: resolved.ratioKey,
+                creativeIndex: resolved.creativeIndex,
+            });
+        } catch (err) {
+            console.error('canvas download failed', err);
+        } finally {
+            setIsDownloadingCanvas(false);
+        }
+    }, [resolved, design, canvasInput, isDownloadingCanvas]);
+
     if (status === 'loading') {
         return (
             <>
@@ -323,9 +339,9 @@ export default function EditorPageClient() {
     return (
         <>
             <AppHeader />
-            <main className="mx-auto max-w-[112rem] px-4 pb-24 pt-28 sm:px-8">
+            <main className="mx-auto max-w-[112rem] px-4 pb-24 pt-28 sm:px-8 lg:flex lg:h-[100dvh] lg:flex-col lg:overflow-hidden lg:pb-6 lg:pt-24">
                 {/* Top bar */}
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex shrink-0 flex-wrap items-center gap-3">
                     <button type="button" onClick={onClickBack} className="inline-flex items-center gap-2 text-[13px] text-text2 hover:text-text1">
                         <ArrowLeft className="h-4 w-4" strokeWidth={1.8} />
                         Back to Project
@@ -356,13 +372,23 @@ export default function EditorPageClient() {
                             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.8} /> : <Check className="h-4 w-4" strokeWidth={2.2} />}
                             {isSaving ? 'Saving…' : 'Save'}
                         </button>
+                        <button
+                            type="button"
+                            onClick={onClickDownloadCanvas}
+                            disabled={isDownloadingCanvas || !resolved || !design}
+                            title="Download current canvas"
+                            className="inline-flex items-center gap-2 rounded-full border border-hairline bg-canvas px-5 py-2.5 text-[13px] font-semibold text-text1 hover:bg-surface disabled:opacity-50"
+                        >
+                            {isDownloadingCanvas ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.8} /> : <Download className="h-4 w-4" strokeWidth={1.8} />}
+                            Download
+                        </button>
                     </div>
                 </div>
 
                 {resolved && design && copy ? (
-                    <div className="mt-6 grid items-start gap-6 lg:grid-cols-[15rem_minmax(0,1fr)_18rem]">
+                    <div className="mt-6 grid gap-6 lg:min-h-0 lg:flex-1 lg:grid-cols-[15rem_minmax(0,1fr)_18rem] lg:overflow-hidden">
                         {/* Tree */}
-                        <div className="order-2 lg:order-1">
+                        <div className="order-2 min-w-0 lg:order-1 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:pr-1">
                             <AssetTree
                                 items={treeItems}
                                 activeCreative={resolved.creativeIndex}
@@ -371,7 +397,7 @@ export default function EditorPageClient() {
                             />
                         </div>
                         {/* Canvas */}
-                        <div className="order-1 lg:order-2">
+                        <div className="order-1 min-w-0 lg:order-2 lg:h-full lg:min-h-0 lg:overflow-y-auto">
                             <div className="flex w-full justify-center">
                                 <EditorCanvas ratioKey={resolved.ratioKey} input={canvasInput ?? {
                                     imageUrl: resolved.imageUrl,
@@ -390,7 +416,7 @@ export default function EditorPageClient() {
                             </p>
                         </div>
                         {/* Inspector */}
-                        <div className="order-3 rounded-[1.5rem] border border-hairline bg-surface p-5">
+                        <div className="order-3 min-w-0 overflow-x-clip rounded-[1.5rem] border border-hairline bg-surface p-5 lg:h-full lg:min-h-0 lg:overflow-y-auto">
                             <Inspector
                                 design={design}
                                 copy={copy}

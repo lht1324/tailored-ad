@@ -153,8 +153,7 @@ function AdOverlay({ design, headlineFontFamily, headlineFontWeight, headlineCol
         ? `rgba(0,0,0,${scrimStrength / 100})`
         : `rgba(255,255,255,${scrimStrength / 100})`;
 
-    // scrim 밴드 — 하단 고정이 아니라 헤드라인 박스 뒤에. 줄 수는 추정
-    // (SSR~hydration 추정 오차는 suppressHydrationWarning으로 흡수, paint 후 일치)
+    // scrim 밴드 — 글자 박스 뒤에만 (전폭 아님). 좌우는 마스크 페이드.
     const scrimGeometry = useMemo(() => {
         if (!headline) return null;
         const aspect = size.w > 0 && size.h > 0 ? size.w / size.h : 1;
@@ -167,11 +166,14 @@ function AdOverlay({ design, headlineFontFamily, headlineFontWeight, headlineCol
             `${weight} ${(headline.fontSizePct / 100) * H}px ${family}`,
             (headline.maxWidth / 100) * W,
         );
-        const pad = headline.fontSizePct * 1.2;
+        const padY = headline.fontSizePct * 1.2;
         const textH = headline.fontSizePct * 1.05 * lines;
-        const top = Math.max(0, headline.y - pad);
-        const bottom = Math.min(100, headline.y + textH + pad);
-        return { top, height: Math.max(0, bottom - top) };
+        const top = Math.max(0, headline.y - padY);
+        const bottom = Math.min(100, headline.y + textH + padY);
+        const padX = 3;
+        const left = Math.max(0, headline.x - padX);
+        const right = Math.min(100, headline.x + headline.maxWidth + padX);
+        return { top, height: Math.max(0, bottom - top), left, width: Math.max(0, right - left) };
     }, [headline, headlineFontFamily, headlineFontWeight, size]);
 
     // 계약(analysis 프롬프트): fontSizePct는 canvas HEIGHT의 %. 너비 기준이 아님.
@@ -184,11 +186,15 @@ function AdOverlay({ design, headlineFontFamily, headlineFontWeight, headlineCol
             {scrim && scrimGeometry && (
                 <div
                     suppressHydrationWarning
-                    className="absolute inset-x-0"
+                    className="absolute"
                     style={{
                         top: `${scrimGeometry.top}%`,
                         height: `${scrimGeometry.height}%`,
+                        left: `${scrimGeometry.left}%`,
+                        width: `${scrimGeometry.width}%`,
                         backgroundImage: `linear-gradient(to bottom, transparent, ${scrimPeak} 50%, transparent)`,
+                        maskImage: 'linear-gradient(to right, transparent, black 18%, black 82%, transparent)',
+                        WebkitMaskImage: 'linear-gradient(to right, transparent, black 18%, black 82%, transparent)',
                     }}
                 />
             )}

@@ -64,28 +64,45 @@ body {
   font-family: var(--font-rajdhani), var(--font-satoshi), var(--font-roboto), sans-serif;
 }
 
-/* High-End Luxury Custom Scrollbar Styles */
+/* High-End Luxury Custom Scrollbar Styles — theme aware (라이트에서 흰 썸이 안 보이던 버그 수정) */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+.theme-light {
+  scrollbar-color: rgba(23, 12, 69, 0.28) transparent;
+}
+
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(11, 11, 21, 0.6);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.22);
   border-radius: 9999px;
   transition: background-color 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 59, 48, 0.6); /* Brand Neon Red Accent on hover */
+  background: var(--ad-accent);
+}
+
+.theme-light ::-webkit-scrollbar-thumb {
+  background: rgba(23, 12, 69, 0.28);
+}
+
+.theme-light ::-webkit-scrollbar-thumb:hover {
+  background: var(--ad-accent);
 }
 
 ::-webkit-scrollbar-corner {
-  background: rgba(11, 11, 21, 0.8);
+  background: transparent;
 }
 
 /* Global button mouse cursor styles */
