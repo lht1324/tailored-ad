@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
             throw Error("User is invalid");
         }
 
-        // TailorAd에는 /profile, /workspace가 없음 — 기본 행선지는 /projects.
+        // TailoredAd에는 /profile, /workspace가 없음 — 기본 행선지는 /projects.
         // redirectTo는 / 로 시작하는 내부 경로만 허용 (open-redirect 방지).
         const redirectPath = redirectTo && redirectTo.startsWith("/")
             ? redirectTo

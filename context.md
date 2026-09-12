@@ -1,11 +1,11 @@
-# TailorAd — 작업 기록 (Last Updated: 2026-09-11 21:40)
+# TailoredAd — 작업 기록 (Last Updated: 2026-09-13 03:49)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
 
 ## 1. 개요
 
-- **브랜드**: TailorAd — "Tailored ads, not templates" (Harnessed AI ad studio)
+- **브랜드**: TailoredAd — "Tailored ads, not templates" (Harnessed AI ad studio)
 - **도메인**: `tailoredad.com` 구매됨. DNS 연결은 실생성 이미지 준비될 때까지 홀딩.
 - **짝꿍 도메인**: `tailorad.com` 미구매. 살 때 같이 사서 리다이렉트 예정.
 - **스택**: Next.js 16 + Tailwind v4 + Supabase + Replicate/OpenRouter + Upstash Redis + Remotion Player, Cloudflare Workers 배포(OpenNext)
@@ -57,6 +57,9 @@
 8. **웹폰트 link 로딩**: globals.css `@import`가 브라우저에 안 먹힘 (CSS 요청 0건 실측) →
    `layout.tsx` `<head>` link + preconnect로 이동. Next 16은 stylesheet link에
    `precedence="default"` 필수 (없으면 콘솔 에러 + 미적용).
+   font CSS 3종(Fontshare 1 + Google 2)은 `crossOrigin="anonymous"` 추가 —
+   html-to-image가 `cssRules` 직접 읽기 가능해져 SecurityError 오버레이 해소
+   (양쪽 폰트 서버 CORS `*` 실측 확인. 폰트 임베딩·개행 parity 영향 없음).
 
 ## 4. 결정 사항
 
@@ -70,7 +73,10 @@
 - **Detail 선택 개념 삭제**: 하단 선택바 제거 (10개 줄에서 도달 불가). 타일 클릭→확대경, 진입은 헤더 Editor + 모달 Edit + 카드 연필.
 - **Replicate 429**: 공식 한도 600/분. Upstash slidingWindow 500/60s + 최대 10초 홀딩 + 429 백오프(Retry-After 존중, 상한 10초, 2회). Redis 장애·키 없음은 fail-open. Upstash Free 시작 → 월 40만 명령 전후로 PAYG (전환 시 budget cap $5).
 - **재시도 상한 버그 수정**: 웹훅이 `attempt`를 process에 안 넘겨 무한 재시도 가능했음 → 전달 추가.
-- **다운로드 어휘 통일**: 합성본 `Final` / 원본 `Original` (광고업계 표준어 확인). 파일명 `tailorad-c01-4_5.png` + 원본 `-raw` 접미. 스플릿 버튼(`DownloadMenuButton`)으로 통합 — 헤더 벌크(ZIP) + 모달 낱장. 타일 호버·줄 pill은 합성 전용 유지. sparkles 아이콘 사용 안 함 (AI 클리셰).
+- **다운로드 어휘 통일**: 합성본 `Final` / 원본 `Original` (광고업계 표준어 확인). 파일명 `tailored-ad-{id6}-c01-4_5.png` + 원본 `-raw` 접미 (배치 구별로 id6 포함. ZIP도 동일 체계 `-all`/`-originals`/`-c01`). 스플릿 버튼(`DownloadMenuButton`)으로 통합 — 헤더 벌크(ZIP) + 모달 낱장. 타일 호버·줄 pill은 합성 전용 유지. sparkles 아이콘 사용 안 함 (AI 클리셰).
+- **Detail 정렬**: best(기본) / avg(완성분 평균, 분모 `n/m` 병기) / index 드롭다운. running 중·점수 없음은 비활성. 행에 `best X · avg Y (n/m)` 병기.
+- **에디터 커스텀 컬러 확정**: live-apply 유지 (패널 문법 일치). 커스텀 패널에 `Done` 버튼(닫기=확정) + 피펫 버튼에 선택색 도트. 스냅샷-취소 불필요 판정 (되돌리기는 스와치 1클릭 + Save 게이트로 충분).
+- **브랜드 표기 통일**: `TailorAd` → `TailoredAd` (문자열 전수 치환, 사장님 직접. 코드 식별자·동작 영향 없음, lint 무결함 확인).
 - **다운로드 엔진**: DOM 스냅샷(html-to-image) — 타일·모달·다운로드·에디터 4곳 픽셀 동일 보장. ZIP(전체/줄단위/원본)은 jszip 클라 처리. 서버 ZIP 안 함 (Workers CPU 한도).
 - **에디터**: `/projects/[id]/edit?creative=&ratio=` deep-link 계약. 좌측 트리(creative→비율, 완성만) + 중앙 Remotion Player(1프레임 스틸, AdOverlay 공유로 parity) + 우측 조절판. 진입 1회 후 내부 이동 (Detail 왕복 없음). Remotion 라이선스: 1인 무료 해당, Player 미리보기는 renders 과금 아님. 팀 3인 초과 시 Company 라이선스 논의.
 - **에디터 편집 범위 v1**: 헤드라인(문구·XY·너비·크기·정렬·폰트·웨이트·색) + CTA(문구·위치·크기·on/off, copy 동기화) + scrim 토글/농도 + 드래그 이동(헤드라인·CTA, 클램프). 로고 읽기전용. copy.headline은 creative 공용이라 전 비율 함께 바뀜 (仕様).

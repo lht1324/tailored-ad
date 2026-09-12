@@ -25,12 +25,13 @@ export const COMPOSITE_SIZES: Record<string, { w: number; h: number }> = {
     '2_3': { w: 1080, h: 1620 },
 };
 
-// 파일명 통일 — 콜론 없음 (1:1 → 1_1 그대로 사용)
-export function buildDownloadFileName(creativeIndex: number, ratioKey: string): string {
-    return `tailorad-c${String(creativeIndex + 1).padStart(2, '0')}-${ratioKey}.png`;
+// 파일명 통일 — tailored-ad-{batch6}-c01-4_5.png (콜론 없음, 배치 구별용 id 포함)
+export function buildDownloadFileName(projectShortId: string, creativeIndex: number, ratioKey: string): string {
+    return `tailored-ad-${projectShortId}-c${String(creativeIndex + 1).padStart(2, '0')}-${ratioKey}.png`;
 }
 
 export interface CompositeDownloadOptions {
+    projectShortId: string;
     imageUrl: string;
     design: AdDesignLayout;
     ratioKey: string;
@@ -101,7 +102,7 @@ async function waitForSnapshotReady(host: HTMLElement, timeoutMs: number): Promi
 export async function downloadCompositedImage(opts: CompositeDownloadOptions): Promise<void> {
     const size = COMPOSITE_SIZES[opts.ratioKey] ?? { w: 1080, h: 1350 };
     const blob = await renderSnapshotBlob(opts, size);
-    triggerBlobDownload(blob, buildDownloadFileName(opts.creativeIndex, opts.ratioKey));
+    triggerBlobDownload(blob, buildDownloadFileName(opts.projectShortId, opts.creativeIndex, opts.ratioKey));
 }
 
 export interface ZipProgress {
@@ -121,7 +122,7 @@ export async function downloadItemsAsZip(
     for (const item of items) {
         const size = COMPOSITE_SIZES[item.ratioKey] ?? { w: 1080, h: 1350 };
         const blob = await renderSnapshotBlob(item, size);
-        zip.file(buildDownloadFileName(item.creativeIndex, item.ratioKey), blob);
+        zip.file(buildDownloadFileName(item.projectShortId, item.creativeIndex, item.ratioKey), blob);
         saved += 1;
         onProgress?.({ done: saved, total: items.length, phase: 'render' });
     }
@@ -133,11 +134,12 @@ export async function downloadItemsAsZip(
 }
 
 // 원본 파일명 — 합성본과 폴더 구분용 -raw 접미
-export function buildRawFileName(creativeIndex: number, ratioKey: string): string {
-    return `tailorad-c${String(creativeIndex + 1).padStart(2, '0')}-${ratioKey}-raw.png`;
+export function buildRawFileName(projectShortId: string, creativeIndex: number, ratioKey: string): string {
+    return `tailored-ad-${projectShortId}-c${String(creativeIndex + 1).padStart(2, '0')}-${ratioKey}-raw.png`;
 }
 
 export interface RawDownloadItem {
+    projectShortId: string;
     imageUrl: string;
     creativeIndex: number;
     ratioKey: string;
@@ -163,7 +165,7 @@ export async function downloadRawItemsAsZip(
         try {
             const response = await fetch(item.imageUrl);
             if (!response.ok) throw new Error(`raw fetch failed: ${response.status}`);
-            zip.file(buildRawFileName(item.creativeIndex, item.ratioKey), await response.blob());
+            zip.file(buildRawFileName(item.projectShortId, item.creativeIndex, item.ratioKey), await response.blob());
             saved += 1;
         } catch (err) {
             skipped += 1;

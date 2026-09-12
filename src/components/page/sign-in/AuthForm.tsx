@@ -28,7 +28,7 @@ function AuthForm({
             <div className="mb-8 text-center">
                 <Image
                     src="/logo/logo-64.png"
-                    alt="TailorAd"
+                    alt="TailoredAd"
                     width={56}
                     height={56}
                     className="mx-auto mb-6 rounded-2xl"

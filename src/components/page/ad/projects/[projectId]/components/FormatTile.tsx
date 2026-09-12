@@ -25,6 +25,7 @@ const RATIO_LABEL: Record<string, string> = {
 };
 
 interface FormatTileProps {
+    projectShortId: string;
     ratioKey: AdRatioKey;
     imageResult?: AdImageResult | null;
     signedUrl?: string | null;
@@ -37,7 +38,7 @@ interface FormatTileProps {
     headlineColor?: string | null;
 }
 
-function FormatTile({ ratioKey, imageResult, signedUrl, brandLogoUrl, isProjectRunning, creativeIndex, onExpand, headlineFontFamily, headlineFontWeight, headlineColor }: FormatTileProps) {
+function FormatTile({ projectShortId, ratioKey, imageResult, signedUrl, brandLogoUrl, isProjectRunning, creativeIndex, onExpand, headlineFontFamily, headlineFontWeight, headlineColor }: FormatTileProps) {
     const ratioLabel = RATIO_LABEL[ratioKey] ?? ratioKey;
     const factor = RATIO_FACTOR[ratioKey] ?? 1;
 
@@ -63,6 +64,7 @@ function FormatTile({ ratioKey, imageResult, signedUrl, brandLogoUrl, isProjectR
         try {
             // 화면 오버레이 DOM을 그대로 PNG로 — 프리뷰와 픽셀 동일
             await downloadCompositedImage({
+                projectShortId,
                 imageUrl: signedUrl,
                 design: imageResult.design as AdDesignLayout,
                 ratioKey,
@@ -78,7 +80,7 @@ function FormatTile({ ratioKey, imageResult, signedUrl, brandLogoUrl, isProjectR
         } finally {
             setIsDownloading(false);
         }
-    }, [signedUrl, imageResult, ratioKey, creativeIndex, headlineFontFamily, headlineFontWeight, headlineColor, brandLogoUrl]);
+    }, [projectShortId, signedUrl, imageResult, ratioKey, creativeIndex, headlineFontFamily, headlineFontWeight, headlineColor, brandLogoUrl]);
 
     // 에러 타일
     if (hasError) {

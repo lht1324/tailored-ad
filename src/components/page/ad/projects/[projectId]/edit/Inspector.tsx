@@ -175,8 +175,17 @@ function Inspector({ design, copy, score, disabled, aspectRatio, brandPalette, o
     }, [copy, onChangeCopy]);
 
     const currentHex = normalizeHeadlineColor(copy.headlineColor);
+    const brandUpperSet = useMemo(
+        () => new Set((brandPalette ?? []).map((h) => h.toUpperCase())),
+        [brandPalette],
+    );
+    const isCustomActive =
+        currentHex !== '#FFFFFF' && currentHex !== '#000000' && !brandUpperSet.has(currentHex);
     const onClickCustomToggle = useCallback(() => {
         setCustomOpen((v) => !v);
+    }, []);
+    const onClickCustomDone = useCallback(() => {
+        setCustomOpen(false);
     }, []);
 
     const onClickAddHeadline = useCallback(() => {
@@ -408,12 +417,18 @@ function Inspector({ design, copy, score, disabled, aspectRatio, brandPalette, o
                                         type="button"
                                         onClick={onClickCustomToggle}
                                         aria-expanded={customOpen}
-                                        title="Custom color"
-                                        className={`flex h-9 w-9 items-center justify-center rounded-full border border-dashed transition-all hover:scale-105 ${
+                                        title={isCustomActive ? `Custom color ${currentHex}` : 'Custom color'}
+                                        className={`relative flex h-9 w-9 items-center justify-center rounded-full border border-dashed transition-all hover:scale-105 ${
                                             customOpen ? 'border-accent text-accent' : 'border-hairline text-text2'
                                         }`}
                                     >
                                         <Pipette className="h-4 w-4" strokeWidth={1.8} />
+                                        {isCustomActive && (
+                                            <span
+                                                className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border border-black/20"
+                                                style={{ backgroundColor: currentHex }}
+                                            />
+                                        )}
                                     </button>
                                 </div>
                                 {customOpen && (
@@ -435,6 +450,13 @@ function Inspector({ design, copy, score, disabled, aspectRatio, brandPalette, o
                                             />
                                             <span className="h-5 w-5 shrink-0 rounded-full border border-black/10" style={{ backgroundColor: currentHex }} />
                                         </label>
+                                        <button
+                                            type="button"
+                                            onClick={onClickCustomDone}
+                                            className="w-full rounded-lg bg-text1 px-3 py-2 text-[12px] font-semibold text-canvas transition-opacity hover:opacity-90"
+                                        >
+                                            Done
+                                        </button>
                                     </div>
                                 )}
                             </div>

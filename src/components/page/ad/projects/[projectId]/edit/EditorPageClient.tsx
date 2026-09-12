@@ -291,6 +291,7 @@ export default function EditorPageClient() {
         try {
             await downloadCompositedImage({
                 ...canvasInput,
+                projectShortId: projectId.slice(0, 6),
                 ratioKey: resolved.ratioKey,
                 creativeIndex: resolved.creativeIndex,
             });
@@ -299,7 +300,7 @@ export default function EditorPageClient() {
         } finally {
             setIsDownloadingCanvas(false);
         }
-    }, [resolved, design, canvasInput, isDownloadingCanvas]);
+    }, [resolved, design, canvasInput, isDownloadingCanvas, projectId]);
 
     if (status === 'loading') {
         return (

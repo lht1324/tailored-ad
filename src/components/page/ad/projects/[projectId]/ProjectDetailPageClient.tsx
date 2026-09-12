@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, AlertTriangle, CheckCircle2, Clock, Layers, Loader2, Palette, Pencil, RefreshCw } from 'lucide-react';
@@ -17,6 +17,8 @@ import { supabase } from "@/lib/supabase/supabaseClient";
 
 type DetailStatus = 'loading' | 'ready' | 'error';
 
+type SortMode = 'best' | 'avg' | 'index';
+
 function parseTileKey(tileKey: string): { creativeIndex: number; ratioKey: string } {
     const sep = tileKey.indexOf('_');
     if (sep === -1) return { creativeIndex: Number.NaN, ratioKey: '' };
@@ -26,6 +28,7 @@ function parseTileKey(tileKey: string): { creativeIndex: number; ratioKey: strin
 // 타일 프리뷰와 동일한 입력으로 합성 아이템 조립 (완성 타일이 아니면 null)
 // — 선택바·전체 다운로드가 같은 기준으로 묶이도록 공용화
 function buildCompositeItem(
+    projectShortId: string,
     creativeIndex: number,
     ratioKey: string,
     result: AdCreativeResult | null | undefined,
@@ -40,6 +43,7 @@ function buildCompositeItem(
     const resolved = rawName ? (fontMap as Record<string, { style: { fontFamily: string } }>)[rawName] : undefined;
     const designColor = (design.headline as unknown as { color?: string } | null)?.color;
     return {
+        projectShortId,
         imageUrl,
         design,
         ratioKey,
@@ -66,6 +70,7 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
     const [allResult, setAllResult] = useState<string | null>(null);
     const [rawProgress, setRawProgress] = useState<{ done: number; total: number; phase: 'render' | 'zip' } | null>(null);
     const [rawResult, setRawResult] = useState<string | null>(null);
+    const [sortMode, setSortMode] = useState<SortMode>('best');
 
     // 겹친 fetch는 마지막 것만 반영한다 (StrictMode 이중 마운트·폴링 겹침 대비).
     // 이전 방식(진행 중이면 새 호출 버리기)은 취소된 호출의 응답까지 버려져
@@ -160,30 +165,54 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
         // concept_count 범위 내에서 creative 0..count-1 모두 생성 (spec 없는 것도 pending으로 표시)
         const indices = Array.from({ length: count }, (_, i) => i);
 
-        // 완료된 건 best score 내림차순, 그 외는 인덱스순 — but running 중엔 인덱스순 유지가 덜 혼란
-        const withScores = indices.map((idx) => {
+        // 점수 집계 — best(천장) + avg(완성분 평균, 실패·pending 제외)
+        const creativeScores = indices.map((idx) => {
             const r = mapResult.get(idx);
             let best: number | null = null;
+            let sum = 0;
+            let scored = 0;
             if (r?.imageResults) {
                 for (const rk of project.aspect_ratios) {
                     const ir = (r.imageResults as Record<string, { score?: number | null }>)[rk as string];
-                    if (ir?.score != null && (best == null || ir.score > best)) best = ir.score;
+                    if (ir?.score != null) {
+                        if (best == null || ir.score > best) best = ir.score;
+                        sum += ir.score;
+                        scored += 1;
+                    }
                 }
             }
-            return { idx, best };
+            return { idx, best, avg: scored > 0 ? sum / scored : null, scored };
         });
 
-        const shouldSortByScore = !isRunning && withScores.some((x) => x.best != null);
-        const ordered = shouldSortByScore
-            ? [...withScores].sort((a, b) => (b.best ?? -1) - (a.best ?? -1) || a.idx - b.idx).map((x) => x.idx)
+        // running 중엔 인덱스순 유지가 덜 혼란 (완성될 때마다 순서가 춤추는 것 방지)
+        const hasAnyScore = creativeScores.some((x) => x.best != null);
+        const ordered = !isRunning && hasAnyScore && sortMode !== 'index'
+            ? [...creativeScores]
+                .sort((a, b) => sortMode === 'avg'
+                    ? (b.avg ?? -1) - (a.avg ?? -1) || (b.best ?? -1) - (a.best ?? -1) || a.idx - b.idx
+                    : (b.best ?? -1) - (a.best ?? -1) || a.idx - b.idx)
+                .map((x) => x.idx)
             : indices;
 
+        const mapScore = new Map(creativeScores.map((s) => [s.idx, s]));
         return ordered.map((idx) => ({
             creativeIndex: idx,
             spec: mapSpec.get(idx) ?? null,
             result: mapResult.get(idx) ?? null,
+            avg: mapScore.get(idx)?.avg ?? null,
+            scored: mapScore.get(idx)?.scored ?? 0,
         }));
-    }, [project, isRunning]);
+    }, [project, isRunning, sortMode]);
+
+    const hasAnyScore = useMemo(() => {
+        if (!project) return false;
+        return (project.ad_creative_results ?? []).some((r) =>
+            project.aspect_ratios.some((rk) => {
+                const ir = (r.imageResults as Record<string, { score?: number | null }> | undefined)?.[rk as string];
+                return ir?.score != null;
+            }),
+        );
+    }, [project]);
 
     const onExpandTile = useCallback((key: string) => {
         setLightboxKey(key);
@@ -199,6 +228,10 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
         if (Number.isNaN(cIdx)) return;
         router.push(`/projects/${projectId}/edit?creative=${cIdx}&ratio=${encodeURIComponent(ratioKey)}`);
     }, [lightboxKey, router, projectId]);
+
+    const onChangeSort = useCallback((e: ChangeEvent<HTMLSelectElement>) => {
+        setSortMode(e.target.value as SortMode);
+    }, []);
 
     const onClickBack = useCallback(() => {
         router.push('/projects');
@@ -220,7 +253,7 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
             for (const rk of project.aspect_ratios) {
                 const url = signedUrls[`${creativeIndex}_${rk}`];
                 if (!url) continue;
-                const item = buildCompositeItem(creativeIndex, rk, result, url, brandLogoSignedUrl);
+                const item = buildCompositeItem(project.id.slice(0, 6), creativeIndex, rk, result, url, brandLogoSignedUrl);
                 if (item) items.push(item);
             }
         }
@@ -235,7 +268,7 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
         try {
             const { saved, total } = await downloadItemsAsZip(
                 allCompletedItems,
-                `tailorad-${project?.id.slice(0, 6) ?? 'project'}-all.zip`,
+                `tailored-ad-${project?.id.slice(0, 6) ?? 'project'}-all.zip`,
                 (p) => setAllProgress({ done: p.done, total: p.total, phase: p.phase }),
             );
             setAllResult(`Saved ${saved}/${total}`);
@@ -258,7 +291,7 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
                 if (!url) continue;
                 const ir = result?.imageResults?.[rk as AdRatioKey] as unknown as { error?: unknown } | undefined;
                 if (ir?.error) continue;
-                items.push({ imageUrl: url, creativeIndex: idx, ratioKey: rk as string });
+                items.push({ projectShortId: project.id.slice(0, 6), imageUrl: url, creativeIndex: idx, ratioKey: rk as string });
             }
         }
         return items;
@@ -272,7 +305,7 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
         try {
             const { saved, total, skipped } = await downloadRawItemsAsZip(
                 rawCompletedItems,
-                `tailorad-${project?.id.slice(0, 6) ?? 'project'}-originals.zip`,
+                `tailored-ad-${project?.id.slice(0, 6) ?? 'project'}-originals.zip`,
                 (p) => setRawProgress({ done: p.done, total: p.total, phase: p.phase }),
             );
             setRawResult(`Saved ${saved}/${total}${skipped > 0 ? ` (${skipped} skipped)` : ''}`);
@@ -492,9 +525,28 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
                     </div>
                 </div>
 
-                {/* Creative 리스트 */}
-                <div className="mt-8 space-y-5">
-                    {sortedCreatives.map(({ creativeIndex, spec, result }) => (
+                {/* Creative 리스트 — 정렬 툴바 */}
+                <div className="mt-8 mb-3 flex items-center justify-between">
+                    <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-text2">
+                        {sortedCreatives.length} creatives
+                    </p>
+                    <label className="inline-flex items-center gap-2 text-[12px] text-text2">
+                        Sort
+                        <select
+                            value={sortMode}
+                            onChange={onChangeSort}
+                            disabled={isRunning || !hasAnyScore}
+                            title={isRunning ? 'Sorting available when generation completes' : 'Sort creatives'}
+                            className="rounded-full border border-hairline bg-surface px-3 py-1.5 text-[12px] text-text1 disabled:opacity-50"
+                        >
+                            <option value="best">Best score</option>
+                            <option value="avg">Average score</option>
+                            <option value="index">Creative order</option>
+                        </select>
+                    </label>
+                </div>
+                <div className="space-y-5">
+                    {sortedCreatives.map(({ creativeIndex, spec, result, avg, scored }) => (
                         <CreativeRow
                             key={creativeIndex}
                             creativeIndex={creativeIndex}
@@ -505,6 +557,8 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
                             brandLogoUrl={brandLogoSignedUrl}
                             isProjectRunning={isRunning}
                             onExpandTile={onExpandTile}
+                            avgScore={avg}
+                            scoredCount={scored}
                         />
                     ))}
                 </div>
@@ -523,6 +577,7 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
                     return (
                         <AdLightboxModal
                             imageUrl={url}
+                            projectShortId={project.id.slice(0, 6)}
                             ratioKey={ratioKey}
                             ratioLabel={ratioLabel}
                             creativeIndex={cIdx}

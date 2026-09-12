@@ -10,6 +10,7 @@ import { AdDesignLayout } from "@/lib/api/client/ad/adClientAPI";
 
 interface AdLightboxModalProps {
     imageUrl: string;
+    projectShortId: string;
     ratioKey: string;
     ratioLabel: string;
     creativeIndex: number;
@@ -24,7 +25,7 @@ interface AdLightboxModalProps {
     onEdit: (() => void) | null;
 }
 
-function AdLightboxModal({ imageUrl, ratioKey, ratioLabel, creativeIndex, design, score, headline, headlineFontFamily, headlineFontWeight, headlineColor, brandLogoUrl, onClose, onEdit }: AdLightboxModalProps) {
+function AdLightboxModal({ imageUrl, projectShortId, ratioKey, ratioLabel, creativeIndex, design, score, headline, headlineFontFamily, headlineFontWeight, headlineColor, brandLogoUrl, onClose, onEdit }: AdLightboxModalProps) {
     const onClickBackdrop = useCallback((e: React.MouseEvent) => {
         if (e.target === e.currentTarget) onClose();
     }, [onClose]);
@@ -39,6 +40,7 @@ function AdLightboxModal({ imageUrl, ratioKey, ratioLabel, creativeIndex, design
         setIsDownloading(true);
         try {
             await downloadCompositedImage({
+                projectShortId,
                 imageUrl,
                 design,
                 ratioKey,
@@ -54,19 +56,19 @@ function AdLightboxModal({ imageUrl, ratioKey, ratioLabel, creativeIndex, design
         } finally {
             setIsDownloading(false);
         }
-    }, [imageUrl, design, ratioKey, creativeIndex, headlineFontFamily, headlineFontWeight, headlineColor, brandLogoUrl]);
+    }, [imageUrl, projectShortId, design, ratioKey, creativeIndex, headlineFontFamily, headlineFontWeight, headlineColor, brandLogoUrl]);
 
     const onClickDownloadOriginal = useCallback(async () => {
         setIsDownloadingRaw(true);
         try {
-            await downloadRawFile(imageUrl, buildRawFileName(creativeIndex, ratioKey));
+            await downloadRawFile(imageUrl, buildRawFileName(projectShortId, creativeIndex, ratioKey));
         } catch (err) {
             console.error('original download failed', err);
             window.open(imageUrl, '_blank');
         } finally {
             setIsDownloadingRaw(false);
         }
-    }, [imageUrl, creativeIndex, ratioKey]);
+    }, [imageUrl, projectShortId, creativeIndex, ratioKey]);
 
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {

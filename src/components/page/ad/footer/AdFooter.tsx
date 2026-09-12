@@ -16,7 +16,7 @@ function AdFooter() {
             <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-10 md:flex-row md:items-center">
                 <div>
                     <div className="flex items-center gap-2.5">
-                        <span className="text-[15px] font-bold tracking-tight text-text1">TailorAd</span>
+                        <span className="text-[15px] font-bold tracking-tight text-text1">TailoredAd</span>
                         <span className="rounded-[6px] bg-accent px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-canvas">
                             Ad
                         </span>
@@ -36,13 +36,13 @@ function AdFooter() {
                         </a>
                     ))}
                     <Link href="/" className="text-[13px] font-medium text-text2 transition-colors duration-200 hover:text-text1">
-                        TailorAd Studio
+                        TailoredAd Studio
                     </Link>
                 </div>
             </div>
             <div className="mx-auto mt-10 flex max-w-6xl flex-col justify-between gap-4 border-t border-hairline pt-8 md:flex-row md:items-center">
                 <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-text2">
-                    © {new Date().getFullYear()} TailorAd
+                    © {new Date().getFullYear()} TailoredAd
                 </p>
                 <div className="flex items-center gap-8">
                     <span className="rotate-[2deg] rounded-[6px] border border-hairline px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-text2">

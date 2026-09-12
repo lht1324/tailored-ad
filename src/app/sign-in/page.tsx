@@ -3,9 +3,9 @@ import {Metadata} from "next";
 
 export const metadata: Metadata = {
     title: 'Sign In',
-    description: 'Log in to TailorAd. Bring your product photos and let our harnessed pipeline handle the complex generation process to create high-quality ad stills.',
+    description: 'Log in to TailoredAd. Bring your product photos and let our harnessed pipeline handle the complex generation process to create high-quality ad stills.',
     openGraph: {
-        title: 'Sign In to TailorAd',
+        title: 'Sign In to TailoredAd',
         description: 'Access your AI ad creation dashboard.',
         url: 'https://tailoredad.com/sign-in',
     },

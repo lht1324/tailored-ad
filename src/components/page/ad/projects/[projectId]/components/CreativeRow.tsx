@@ -23,9 +23,11 @@ interface CreativeRowProps {
     brandLogoUrl?: string | null;
     isProjectRunning: boolean;
     onExpandTile?: (key: string) => void;
+    avgScore?: number | null;
+    scoredCount?: number;
 }
 
-function CreativeRow({ creativeIndex, spec, result, batch, signedUrls, brandLogoUrl, isProjectRunning, onExpandTile }: CreativeRowProps) {
+function CreativeRow({ creativeIndex, spec, result, batch, signedUrls, brandLogoUrl, isProjectRunning, onExpandTile, avgScore, scoredCount }: CreativeRowProps) {
     const [expanded, setExpanded] = useState(true);
     const [isDownloadingRow, setIsDownloadingRow] = useState(false);
 
@@ -93,6 +95,7 @@ function CreativeRow({ creativeIndex, spec, result, batch, signedUrls, brandLogo
             if (!signedUrl || !ir || ir.error || !ir.design) continue;
             const designColor = (ir.design.headline as unknown as { color?: string } | null)?.color;
             items.push({
+                projectShortId: batch.id.slice(0, 6),
                 imageUrl: signedUrl,
                 design: ir.design,
                 ratioKey,
@@ -106,13 +109,13 @@ function CreativeRow({ creativeIndex, spec, result, batch, signedUrls, brandLogo
         if (items.length === 0) return;
         setIsDownloadingRow(true);
         try {
-            await downloadItemsAsZip(items, `tailorad-c${String(creativeIndex + 1).padStart(2, '0')}-all.zip`);
+            await downloadItemsAsZip(items, `tailored-ad-${batch.id.slice(0, 6)}-c${String(creativeIndex + 1).padStart(2, '0')}.zip`);
         } catch (err) {
             console.error('row download failed', err);
         } finally {
             setIsDownloadingRow(false);
         }
-    }, [batch.aspect_ratios, imageResults, signedUrls, creativeIndex, headlineFontFamily, headlineFontWeight, headlineColor, brandLogoUrl]);
+    }, [batch.id, batch.aspect_ratios, imageResults, signedUrls, creativeIndex, headlineFontFamily, headlineFontWeight, headlineColor, brandLogoUrl]);
 
     const isSpecPending = !spec && isProjectRunning;
     const statusLabel = isSpecPending
@@ -161,7 +164,9 @@ function CreativeRow({ creativeIndex, spec, result, batch, signedUrls, brandLogo
                             {statusLabel}
                         </span>
                         {bestScore != null && (
-                            <span className="font-mono text-[11px] text-text2">best {bestScore.toFixed(1)} / 10</span>
+                            <span className="font-mono text-[11px] text-text2">
+                                best {bestScore.toFixed(1)}{avgScore != null ? ` · avg ${avgScore.toFixed(1)} (${scoredCount ?? 0}/${batch.aspect_ratios.length})` : ''}
+                            </span>
                         )}
                         <span className="font-mono text-[11px] text-text2">· {stats.completed}/{stats.total} ready{stats.failed ? ` · ${stats.failed} failed` : ''}{stats.designing ? ` · ${stats.designing} designing` : ''}{stats.generating ? ` · ${stats.generating} generating` : ''}</span>
                     </div>
@@ -242,6 +247,7 @@ function CreativeRow({ creativeIndex, spec, result, batch, signedUrls, brandLogo
                                     return (
                                         <FormatTile
                                             key={ratioKey}
+                                            projectShortId={batch.id.slice(0, 6)}
                                             ratioKey={ratioKey}
                                             imageResult={ir ?? null}
                                             signedUrl={signedUrl}

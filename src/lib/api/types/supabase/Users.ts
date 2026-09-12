@@ -1,6 +1,6 @@
 // Forked from shortreal: the video-model config chain (VideoGenerationTasks,
 // which drags in the workspace editor) is intentionally severed here.
-// TailorAd owns its own model config shape.
+// TailoredAd owns its own model config shape.
 export interface AdModelConfig {
   [key: string]: unknown;
 }

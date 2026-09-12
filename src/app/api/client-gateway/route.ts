@@ -9,7 +9,7 @@ import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
  */
 
 // Whitelist for public routes (No authentication required)
-// TailorAd에는 아직 비로그인 공개 API가 없음 — 필요해지면 여기에 추가.
+// TailoredAd에는 아직 비로그인 공개 API가 없음 — 필요해지면 여기에 추가.
 const PUBLIC_ROUTES: { method: string; path: string }[] = [
 ];
 

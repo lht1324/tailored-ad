@@ -48,7 +48,7 @@ function SignInPageClient() {
         <div className="relative min-h-screen overflow-hidden bg-canvas">
             <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[28rem] flex-col justify-center px-4 py-16 sm:px-6">
                 <AuthForm
-                    title="Welcome to TailorAd"
+                    title="Welcome to TailoredAd"
                     subtitle="Sign in. Create tailored ads."
                     footerText="New here? No problem - just pick any option above!"
                     loading={isLoading}

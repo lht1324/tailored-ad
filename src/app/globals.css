@@ -2,7 +2,7 @@
 @plugin "@tailwindcss/typography";
 
 /*
- * TailorAd — 컬러 팔레트
+ * TailoredAd — 컬러 팔레트
  * 라이트가 기본. html에서 .theme-light 클래스를 제거하면 다크 팔레트로 전환됨.
  */
 :root {
@@ -38,7 +38,7 @@
   /* tailwind.config.js에서 이관된 커스텀 테마 설정 */
   --font-roboto: "Roboto", sans-serif;
 
-  /* TailorAd 팔레트 */
+  /* TailoredAd 팔레트 */
   --color-canvas: var(--ad-canvas);
   --color-surface: var(--ad-surface);
   --color-hairline: var(--ad-hairline);

@@ -1,7 +1,7 @@
 export const TERMS_OF_SERVICE = `
 ## 1. Eligibility & Prohibition of Use (CRITICAL)
 **BY USING THIS SERVICE, YOU REPRESENT THAT YOU ARE NOT A RESIDENT OF THE REPUBLIC OF KOREA.**
-Access to TailorAd is strictly prohibited for users located in or strictly subject to the laws of the Republic of Korea. If you access the Service from Korea via VPN or other means, you do so in violation of these Terms, and we assume no liability for compliance with Korean local laws.
+Access to TailoredAd is strictly prohibited for users located in or strictly subject to the laws of the Republic of Korea. If you access the Service from Korea via VPN or other means, you do so in violation of these Terms, and we assume no liability for compliance with Korean local laws.
 
 ## 2. Use of Services
 You agree to use our services only for lawful purposes. You represent and warrant that you will not use the service to:
@@ -11,7 +11,7 @@ You agree to use our services only for lawful purposes. You represent and warran
 
 ## 3. User Representations & Data Restrictions
 **Prohibition on Sensitive Data:** You agree NOT to input, upload, or process any sensitive personal information (including but not limited to financial data, health records, social security numbers, or private contact details) into the AI generation prompts or script fields.
-**Unsolicited Data Disclaimer:** The "Generate Script with AI" feature is designed solely for creative content generation. If you voluntarily input any personally identifiable information (PII) into these fields, **you acknowledge that such data is processed at your own risk**, and TailorAd disclaims any liability for the privacy or security of such unsolicited PII.
+**Unsolicited Data Disclaimer:** The "Generate Script with AI" feature is designed solely for creative content generation. If you voluntarily input any personally identifiable information (PII) into these fields, **you acknowledge that such data is processed at your own risk**, and TailoredAd disclaims any liability for the privacy or security of such unsolicited PII.
 
 ## 4. Intellectual Property
 **Your Content:** You retain ownership of the videos you create. You represent that you have the necessary rights to the input media you provide.
@@ -21,15 +21,15 @@ You agree to use our services only for lawful purposes. You represent and warran
 **Immediate Performance:** By clicking "Subscribe" or "Generate", you expressly request that the Service begins immediately.
 **Waiver of Withdrawal Right:** IF YOU ARE A CONSUMER IN THE EU/UK, YOU ACKNOWLEDGE THAT YOU LOSE YOUR RIGHT OF WITHDRAWAL (14-DAY COOLING-OFF PERIOD) ONCE THE SERVICE HAS STARTED (I.E., THE GENERATION PROCESS BEGINS).
 **No Refunds:** Due to the resource-intensive nature of AI video generation (GPU costs incurred immediately via API key usage initiated via your own credentials for Fal.ai), **we strictly do not offer refunds** once credits have been used or a subscription period has started.
-**BYOK (Bring Your Own Key) Responsibility:** If you configure and use your own Fal.ai API key (BYOK), all charges, usage limits, and billing disputes related to that API key are solely your responsibility. TailorAd disclaims any liability for financial damages, unexpected costs, or service disruptions arising from the use of your own API key.
+**BYOK (Bring Your Own Key) Responsibility:** If you configure and use your own Fal.ai API key (BYOK), all charges, usage limits, and billing disputes related to that API key are solely your responsibility. TailoredAd disclaims any liability for financial damages, unexpected costs, or service disruptions arising from the use of your own API key.
 
 ## 6. Disclaimer of Warranties
 The service is provided "AS IS" without warranties of any kind. We do not guarantee that AI-generated content will be accurate, unique, or suitable for your specific needs.
 **Free AI Features:** The "Generate Script with AI" feature is provided as a free, beta-test functionality. We reserve the right to modify, limit, or discontinue this feature at any time without liability. **We explicitly disclaim any responsibility for the confidentiality of data entered into this free feature.**
 
 ## 7. Limitation of Liability & Indemnification
-**Limitation:** To the maximum extent permitted by law, TailorAd shall not be liable for any indirect, incidental, or consequential damages (including loss of data or profits).
-**Indemnification:** You agree to indemnify and hold harmless TailorAd and its operators from any claims, damages, or legal fees arising from **your use of the generated content** or your violation of these Terms.
+**Limitation:** To the maximum extent permitted by law, TailoredAd shall not be liable for any indirect, incidental, or consequential damages (including loss of data or profits).
+**Indemnification:** You agree to indemnify and hold harmless TailoredAd and its operators from any claims, damages, or legal fees arising from **your use of the generated content** or your violation of these Terms.
 
 ## 8. Termination
 We reserve the right to **suspend or terminate your account and access** to the service immediately, without prior notice or liability, **for breach of these Terms, fraud, or legal requirement**.
@@ -49,7 +49,7 @@ We shall not be held responsible for any delay or failure in performance caused 
 
 export const PRIVACY_POLICY = `
 ## 1. Introduction
-TailorAd ("we", "us", or "our") respects your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you visit our website.
+TailoredAd ("we", "us", or "our") respects your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you visit our website.
 
 ## 2. Information We Collect
 - **Account Data:** Email address, name, and profile picture (via OAuth providers).
@@ -70,7 +70,7 @@ We utilize industry-leading AI infrastructure providers to generate content. You
     - [OpenRouter LLC](https://openrouter.ai/) (USA) — Only user-provided script content entered directly into generation fields is transmitted. Account data obtained via OAuth (such as email address, name, or profile picture) is never sent to OpenRouter or any other AI infrastructure provider.
 - **AI Infrastructure (User-directed / BYOK)**
   - **Video/Image** (for media generation)
-    - [fal.ai](https://fal.ai) (USA) — Processed using user-provided API keys (BYOK). When utilizing Fal.ai models, you are executing generations using your own API credentials, and TailorAd acts as a proxy for these requests.
+    - [fal.ai](https://fal.ai) (USA) — Processed using user-provided API keys (BYOK). When utilizing Fal.ai models, you are executing generations using your own API credentials, and TailoredAd acts as a proxy for these requests.
 - **Infrastructure** (for hosting and database)
   - [Vercel](https://vercel.com/home)
   - [Cloudflare](https://www.cloudflare.com/)
