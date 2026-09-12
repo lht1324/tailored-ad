@@ -2,9 +2,10 @@
 
 import { memo, useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
-import { X, Download, Loader2, Pencil } from 'lucide-react';
+import { X, Pencil } from 'lucide-react';
 import AdOverlay from "@/components/page/ad/results/components/AdOverlay";
-import { downloadCompositedImage } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
+import DownloadMenuButton from "@/components/page/ad/projects/[projectId]/components/DownloadMenuButton";
+import { downloadCompositedImage, downloadRawFile, buildRawFileName } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
 import { AdDesignLayout } from "@/lib/api/client/ad/adClientAPI";
 
 interface AdLightboxModalProps {
@@ -29,6 +30,7 @@ function AdLightboxModal({ imageUrl, ratioKey, ratioLabel, creativeIndex, design
     }, [onClose]);
 
     const [isDownloading, setIsDownloading] = useState(false);
+    const [isDownloadingRaw, setIsDownloadingRaw] = useState(false);
     const onClickDownload = useCallback(async () => {
         if (!design) {
             window.open(imageUrl, '_blank');
@@ -53,6 +55,18 @@ function AdLightboxModal({ imageUrl, ratioKey, ratioLabel, creativeIndex, design
             setIsDownloading(false);
         }
     }, [imageUrl, design, ratioKey, creativeIndex, headlineFontFamily, headlineFontWeight, headlineColor, brandLogoUrl]);
+
+    const onClickDownloadOriginal = useCallback(async () => {
+        setIsDownloadingRaw(true);
+        try {
+            await downloadRawFile(imageUrl, buildRawFileName(creativeIndex, ratioKey));
+        } catch (err) {
+            console.error('original download failed', err);
+            window.open(imageUrl, '_blank');
+        } finally {
+            setIsDownloadingRaw(false);
+        }
+    }, [imageUrl, creativeIndex, ratioKey]);
 
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
@@ -84,15 +98,27 @@ function AdLightboxModal({ imageUrl, ratioKey, ratioLabel, creativeIndex, design
                         )}
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                        <button
-                            type="button"
-                            onClick={onClickDownload}
-                            disabled={isDownloading}
-                            className="inline-flex items-center gap-2 rounded-full bg-text1 px-4 py-1.5 text-[12px] font-medium text-canvas hover:opacity-90 disabled:opacity-50"
-                        >
-                            {isDownloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.8} /> : <Download className="h-3.5 w-3.5" strokeWidth={1.8} />}
-                            Download
-                        </button>
+                        <DownloadMenuButton
+                            size="sm"
+                            items={[
+                                {
+                                    key: 'composed',
+                                    label: 'Final',
+                                    hint: 'PNG',
+                                    icon: 'text',
+                                    onSelect: onClickDownload,
+                                },
+                                {
+                                    key: 'raw',
+                                    label: 'Original',
+                                    hint: 'PNG',
+                                    icon: 'image',
+                                    onSelect: onClickDownloadOriginal,
+                                },
+                            ]}
+                            busy={isDownloading || isDownloadingRaw}
+                            busyLabel="Preparing…"
+                        />
                         {onEdit && (
                             <button
                                 type="button"

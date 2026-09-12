@@ -132,6 +132,52 @@ export async function downloadItemsAsZip(
     return { saved, total: items.length };
 }
 
+// 원본 파일명 — 합성본과 폴더 구분용 -raw 접미
+export function buildRawFileName(creativeIndex: number, ratioKey: string): string {
+    return `tailorad-c${String(creativeIndex + 1).padStart(2, '0')}-${ratioKey}-raw.png`;
+}
+
+export interface RawDownloadItem {
+    imageUrl: string;
+    creativeIndex: number;
+    ratioKey: string;
+}
+
+// 낱장 원본 — 스냅샷 없이 저장 파일 그대로 (합성본 1080p보다 고해상도)
+export async function downloadRawFile(imageUrl: string, fileName: string): Promise<void> {
+    const response = await fetch(imageUrl);
+    if (!response.ok) throw new Error(`raw fetch failed: ${response.status}`);
+    triggerBlobDownload(await response.blob(), fileName);
+}
+
+// 벌크 원본 ZIP — 실패 파일은 건너뛰고 개수 보고
+export async function downloadRawItemsAsZip(
+    items: RawDownloadItem[],
+    zipFileName: string,
+    onProgress?: (p: ZipProgress) => void,
+): Promise<{ saved: number; total: number; skipped: number }> {
+    const zip = new JSZip();
+    let saved = 0;
+    let skipped = 0;
+    for (const item of items) {
+        try {
+            const response = await fetch(item.imageUrl);
+            if (!response.ok) throw new Error(`raw fetch failed: ${response.status}`);
+            zip.file(buildRawFileName(item.creativeIndex, item.ratioKey), await response.blob());
+            saved += 1;
+        } catch (err) {
+            skipped += 1;
+            console.error('raw item skipped', err);
+        }
+        onProgress?.({ done: saved + skipped, total: items.length, phase: 'render' });
+    }
+    const content = await zip.generateAsync({ type: 'blob' }, () => {
+        onProgress?.({ done: saved + skipped, total: items.length, phase: 'zip' });
+    });
+    triggerBlobDownload(content, zipFileName);
+    return { saved, total: items.length, skipped };
+}
+
 function triggerBlobDownload(blob: Blob, fileName: string) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

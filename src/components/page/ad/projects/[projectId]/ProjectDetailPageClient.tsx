@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, AlertTriangle, CheckCircle2, Clock, Download, Layers, Loader2, Palette, Pencil, RefreshCw } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, CheckCircle2, Clock, Layers, Loader2, Palette, Pencil, RefreshCw } from 'lucide-react';
 import AppHeader from "@/components/page/ad/app-header/AppHeader";
 import CreativeRow from "@/components/page/ad/projects/[projectId]/components/CreativeRow";
 import AdLightboxModal from "@/components/page/ad/projects/[projectId]/components/AdLightboxModal";
-import { downloadItemsAsZip, type CompositeDownloadOptions } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
+import DownloadMenuButton from "@/components/page/ad/projects/[projectId]/components/DownloadMenuButton";
+import { downloadItemsAsZip, downloadRawItemsAsZip, type CompositeDownloadOptions, type RawDownloadItem } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
 import { fontMap } from "@/lib/fonts";
 import { adProjectClientAPI, getProjectProgress } from "@/lib/api/client/ad/adProjectClientAPI";
 import { AdCreativeResult, AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
@@ -60,8 +61,11 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
     const [isPolling, setIsPolling] = useState(false);
     const [lightboxKey, setLightboxKey] = useState<string | null>(null);
     const [isPreparingAll, setIsPreparingAll] = useState(false);
+    const [isPreparingRaw, setIsPreparingRaw] = useState(false);
     const [allProgress, setAllProgress] = useState<{ done: number; total: number; phase: 'render' | 'zip' } | null>(null);
     const [allResult, setAllResult] = useState<string | null>(null);
+    const [rawProgress, setRawProgress] = useState<{ done: number; total: number; phase: 'render' | 'zip' } | null>(null);
+    const [rawResult, setRawResult] = useState<string | null>(null);
 
     // 겹친 fetch는 마지막 것만 반영한다 (StrictMode 이중 마운트·폴링 겹침 대비).
     // 이전 방식(진행 중이면 새 호출 버리기)은 취소된 호출의 응답까지 버려져
@@ -243,6 +247,43 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
         }
     }, [allCompletedItems, isPreparingAll, project]);
 
+    // 원본 벌크 — 합성 없이 저장 파일 그대로 (design 없어도 URL+무에러면 포함)
+    const rawCompletedItems = useMemo(() => {
+        if (!project) return [];
+        const items: RawDownloadItem[] = [];
+        for (let idx = 0; idx < project.concept_count; idx++) {
+            const result = sortedCreatives.find((c) => c.creativeIndex === idx)?.result ?? null;
+            for (const rk of project.aspect_ratios) {
+                const url = signedUrls[`${idx}_${rk}`];
+                if (!url) continue;
+                const ir = result?.imageResults?.[rk as AdRatioKey] as unknown as { error?: unknown } | undefined;
+                if (ir?.error) continue;
+                items.push({ imageUrl: url, creativeIndex: idx, ratioKey: rk as string });
+            }
+        }
+        return items;
+    }, [project, sortedCreatives, signedUrls]);
+
+    const onClickDownloadOriginals = useCallback(async () => {
+        if (rawCompletedItems.length === 0 || isPreparingRaw) return;
+        setIsPreparingRaw(true);
+        setRawResult(null);
+        setRawProgress({ done: 0, total: rawCompletedItems.length, phase: 'render' });
+        try {
+            const { saved, total, skipped } = await downloadRawItemsAsZip(
+                rawCompletedItems,
+                `tailorad-${project?.id.slice(0, 6) ?? 'project'}-originals.zip`,
+                (p) => setRawProgress({ done: p.done, total: p.total, phase: p.phase }),
+            );
+            setRawResult(`Saved ${saved}/${total}${skipped > 0 ? ` (${skipped} skipped)` : ''}`);
+        } catch (err) {
+            console.error('download originals failed', err);
+            setRawResult('Download failed');
+        } finally {
+            setIsPreparingRaw(false);
+        }
+    }, [rawCompletedItems, isPreparingRaw, project]);
+
     const totalAssets = useMemo(() => {
         if (!project) return 0;
         return project.concept_count * project.aspect_ratios.length;
@@ -364,24 +405,46 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
                             </p>
                         </div>
 
-                        <div className="flex shrink-0 items-center gap-2">
+                        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
                             {allResult && !isPreparingAll && (
                                 <span className="font-mono text-[11px] text-text2">{allResult}</span>
                             )}
-                            <button
-                                type="button"
-                                onClick={onClickDownloadAll}
-                                disabled={isPreparingAll || allCompletedItems.length === 0}
-                                title={allCompletedItems.length === 0 ? 'No completed images yet' : `Download ${allCompletedItems.length} images as zip`}
-                                className="inline-flex items-center gap-2 rounded-full bg-text1 px-4 py-2 text-[13px] font-semibold text-canvas transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
-                            >
-                                {isPreparingAll ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.8} /> : <Download className="h-4 w-4" strokeWidth={1.8} />}
-                                {isPreparingAll
-                                    ? allProgress?.phase === 'zip'
-                                        ? 'Compressing…'
-                                        : `Preparing ${allProgress?.done ?? 0}/${allProgress?.total ?? allCompletedItems.length}…`
-                                    : 'Download all'}
-                            </button>
+                            {rawResult && !isPreparingRaw && (
+                                <span className="font-mono text-[11px] text-text2">{rawResult}</span>
+                            )}
+                            <DownloadMenuButton
+                                items={[
+                                    {
+                                        key: 'composed',
+                                        label: 'Final',
+                                        hint: `${allCompletedItems.length} images · ZIP`,
+                                        icon: 'text',
+                                        disabled: allCompletedItems.length === 0,
+                                        onSelect: onClickDownloadAll,
+                                    },
+                                    {
+                                        key: 'raw',
+                                        label: 'Originals',
+                                        hint: `${rawCompletedItems.length} images · ZIP`,
+                                        icon: 'image',
+                                        disabled: rawCompletedItems.length === 0,
+                                        onSelect: onClickDownloadOriginals,
+                                    },
+                                ]}
+                                disabled={allCompletedItems.length === 0 && rawCompletedItems.length === 0}
+                                busy={isPreparingAll || isPreparingRaw}
+                                busyLabel={
+                                    isPreparingAll
+                                        ? allProgress?.phase === 'zip'
+                                            ? 'Compressing…'
+                                            : `Preparing ${allProgress?.done ?? 0}/${allProgress?.total ?? allCompletedItems.length}…`
+                                        : isPreparingRaw
+                                            ? rawProgress?.phase === 'zip'
+                                                ? 'Compressing…'
+                                                : `Preparing ${rawProgress?.done ?? 0}/${rawProgress?.total ?? rawCompletedItems.length}…`
+                                            : undefined
+                                }
+                            />
                             <button
                                 type="button"
                                 onClick={onClickRefresh}

@@ -182,10 +182,11 @@ function FormatTile({ ratioKey, imageResult, signedUrl, brandLogoUrl, isProjectR
                         type="button"
                         onClick={onClickDownload}
                         disabled={isDownloading}
-                        aria-label="Download composited image"
-                        className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-surface/85 text-text1 opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 hover:bg-surface disabled:opacity-50"
+                        aria-label="Download final image"
+                        className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-surface/85 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.08em] text-text1 opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 hover:bg-surface disabled:opacity-50"
                     >
-                        {isDownloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.8} /> : <Download className="h-3.5 w-3.5" strokeWidth={1.8} />}
+                        {isDownloading ? <Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.8} /> : <Download className="h-3 w-3" strokeWidth={1.8} />}
+                        Final
                     </button>
                     <button
                         type="button"
