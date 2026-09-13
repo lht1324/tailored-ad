@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-09-13 03:49)
+# TailoredAd — 작업 기록 (Last Updated: 2026-09-13 12:00)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -29,6 +29,7 @@
 - **세션 중 추가**: `proxy.ts` (로그인 가드), `app/api/client-gateway/` (C2S→S2S),
   `app/api/user/[userId]/` (GET+PATCH, S2S+IDOR 가드), `public/logo/logo-64.png`,
   `lib/replicateRateLimit.ts`, `lib/colorUtils.ts`, `lib/textMeasure.ts`,
+  `lib/billing.ts` (기본 quota 50 + KST 월경계), `lib/api/server/usageServerAPI.ts` (원장),
   `components/.../[projectId]/components/compositeDownload.tsx`,
   `components/.../[projectId]/components/DownloadMenuButton.tsx`,
   `app/api/creative/[creative-index]/design/` (에디터 저장 PATCH),
@@ -65,6 +66,12 @@
 
 - **Supabase**: 신규가 아니라 ShortReal 프로젝트 공유 (비용). 테이블은 `ad_generation_batches` 전용,
   버킷은 `ad_image_storage` 전용으로 이미 분리됨. `users` 공유 = 로그인 통합 (크로스셀 보너스).
+- **사용량 과금 원장** (오늘, 코드 완료·SQL/검증 대기): 단위=저장 확정 완성 이미지 1장 (실패·재시도 무료).
+  `usage_ledger` append-only 1행=1장, 유니크 `(batch, creative, ratio)`로 중복 흡수.
+  월경계 KST 1일, `users.image_limit` quota (NULL→기본 50). 표시·차단은 `limit − COUNT`.
+  후킹점 `process/base`·`process/ratios` 업로드 성공 직후 (실패해도 유저 플로우 계속).
+  진입 가드 `POST /api/image` 402 + 헤더 실측 표시. 테이블 DDL은 사장님이 대시보드에 직접 생성.
+  balance 컬럼 안 씀 (레이스·중복 불가) — limit만 저장.
 - **결제(Polar)**: ad 코드에 과금 wiring 없음. 런칭 전 붙여야 함 (블로커).
 - **데모 이미지**: short_real preview 9종 복사했다가 전량 삭제. 도그푸딩(실생성물)으로 채울 예정.
 - **shortreal.ai/ad**: 런칭 당일 301 → tailoredad.com 후 은퇴.
@@ -115,9 +122,12 @@
 ## 7. 다음 작업
 
 - [x] 에디터에서 다운로드 (탑바 Download, 현재 캔버스 스냅샷 — 완료)
+- [x] 실사용량 표시 (원장+헤더 실측 — 코드 완료, **대시보드 SQL 실행 + 생성 테스트 검증 대기**)
+- [ ] Polar 연동 (확정. Dodo 비교 완료 — 고객은 결제사 안 고름, short_real 배선 재사용).
+  사장님 입력 대기 3종: 상품 생성(metadata `planId`, 대표 `isPopular`) + `POLAR_API_KEY` +
+  플랜 숫자 (이름·가격·월 장수). short_real Polar 조직 생일(2026-05-27 이전이면 Early Member) 확인 필요.
 - [ ] 낱장 Regenerate (실패 타일 살리기 + 재추첨. 뒷단 재제출 경로 존재, UI 배선만 — 제안됨, 미확정)
 - [ ] 브랜드 킷 (로고·팔레트·폰트·CTA 유저 저장 + 생성 프리필 — 제안됨, 미확정)
-- [ ] 실사용량 표시 (헤더 mock 교체 — 제안됨, 미확정)
 - [ ] 모바일 분리: 공유 파일에 반응형 추가 금지 (split 때 삭제 대상). 모바일은 현상 동결.
   분리 시 백로그 — Detail 본문 gutter, 타일 호버 아이콘, 에디터 슬라이더 터치 높이.
   방식 후보: UA 감지 → `(mobile)` 라우트 그룹 (URL 유지, JSX만 교체).
