@@ -8,6 +8,7 @@ import {
     adImageServerAPI,
 } from "@/lib/api/server/ad/imageServerAPI";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/supabaseServiceRole";
+import { usageServerAPI } from "@/lib/api/server/usageServerAPI";
 import { AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { selectBaseRatio } from "@/lib/api/server/ad/creativeCombinationSampler";
 
@@ -180,6 +181,18 @@ export async function POST(request: NextRequest) {
 
         if (uploadError) {
             throw new Error(`Supabase Storage upload failed (${filePath}): ${uploadError.message}`);
+        }
+
+        // 과금 원장 — 저장 확정분만 1줄. 중복 무시, 실패는 로그 후 계속 (유저 플로우 보호)
+        try {
+            await usageServerAPI.recordImageUsage({
+                userId: batch.user_id,
+                batchId,
+                creativeIndex,
+                ratioKey: effectiveRatioKey,
+            });
+        } catch (ledgerError) {
+            console.error(`[usage] ledger record failed (batch=${batchId}, creative=${creativeIndex}):`, ledgerError);
         }
 
         await adGenerationBatchServerAPI.updateCreativeImageByRatioGenerationCompleted(

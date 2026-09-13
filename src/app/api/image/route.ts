@@ -16,6 +16,8 @@ import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { internalFireAndForgetFetch } from "@/lib/utils/internalFetch";
 import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatchServerAPI";
+import { usersServerAPI } from "@/lib/api/server/usersServerAPI";
+import { usageServerAPI } from "@/lib/api/server/usageServerAPI";
 import {
     AdPipelineStartRequest,
     AdRatioKey,
@@ -48,6 +50,21 @@ export async function POST(request: NextRequest) {
             status: 403,
             error: "Forbidden. Missing userId."
         });
+    }
+
+    // 월 quota 가드 — 남은 장수 없으면 진입 차단 (402)
+    try {
+        const owner = await usersServerAPI.getUserByUserId(userId);
+        const usage = await usageServerAPI.getMonthlyUsage(userId, owner?.image_limit ?? null);
+        if (usage.remaining <= 0) {
+            return getNextBaseResponse({
+                success: false,
+                status: 402,
+                error: "Monthly image quota exhausted.",
+            });
+        }
+    } catch (quotaError) {
+        console.error(`[quota] check failed (user=${userId}) — fail-open:`, quotaError);
     }
 
     try {

@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { usersServerAPI } from "@/lib/api/server/usersServerAPI";
+import { usageServerAPI } from "@/lib/api/server/usageServerAPI";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { User } from "@/lib/api/types/supabase/Users";
@@ -67,11 +68,17 @@ export async function GET(
             replicate_api_key: maskKey(user.replicate_api_key),
         };
 
+        const usage = await usageServerAPI.getMonthlyUsage(userId, user.image_limit ?? null);
+
         return getNextBaseResponse({
             success: true,
             status: 200,
             data: {
                 user: maskedUser,
+                usage: {
+                    ...usage,
+                    plan: user.plan ?? null,
+                },
             },
             message: "Fetched user data successfully."
         });
@@ -101,11 +108,12 @@ export async function PATCH(
         // Request body 파싱
         const body: Partial<User> = await request.json();
 
-        // plan/subscription 계열은 Polar 웹훅 전담 — 클라이언트에서 변경 불가.
+        // plan/subscription/quota 계열은 Polar·어드민 전담 — 클라이언트에서 변경 불가.
         const updatable: Partial<User> = { ...body };
         delete updatable.id;
         delete updatable.plan;
         delete updatable.subscription_id;
+        delete updatable.image_limit;
 
         // 사용자 업데이트
         const updatedUser = await usersServerAPI.patchUserByUserId(userId, updatable);

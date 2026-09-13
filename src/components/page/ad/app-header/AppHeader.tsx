@@ -1,14 +1,34 @@
 'use client'
 
-import { memo } from 'react';
+import { memo, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import ThemeToggle from "@/components/page/ad/ThemeToggle";
+import { useAuth } from "@/context/AuthContext";
+import { usersClientAPI, type UserUsageSummary } from "@/lib/api/client/usersClientAPI";
 
-// 가라 사용량 (mock — 실 데이터 연동 시 교체)
-const MOCK_USAGE = { used: 847, total: 1000 };
+function planLabel(plan: string | null | undefined): string {
+    if (!plan || plan === 'none') return 'Free plan';
+    return plan;
+}
 
 function AppHeader() {
+    const { supabaseUser } = useAuth();
+    const [usage, setUsage] = useState<UserUsageSummary | null>(null);
+
+    useEffect(() => {
+        if (!supabaseUser) {
+            setUsage(null);
+            return;
+        }
+        let live = true;
+        void usersClientAPI.getUserUsageSummary(supabaseUser.id).then((result) => {
+            if (live) setUsage(result);
+        });
+        return () => {
+            live = false;
+        };
+    }, [supabaseUser?.id]);
     return (
         <header className="fixed inset-x-0 top-4 z-50 px-4">
             <nav className="mx-auto flex max-w-[87.5rem] items-center justify-between rounded-full border border-hairline bg-surface/70 py-2 pl-5 pr-2 backdrop-blur-xl">
@@ -27,10 +47,10 @@ function AppHeader() {
                         Projects
                     </Link>
                     <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-text2">
-                        {MOCK_USAGE.used.toLocaleString()} / {MOCK_USAGE.total.toLocaleString()} images
+                        {usage ? `${usage.used.toLocaleString()} / ${usage.limit.toLocaleString()} images` : '… images'}
                     </span>
                     <span className="rounded-full border border-hairline px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-text2">
-                        Growth plan
+                        {usage ? planLabel(usage.plan) : '… plan'}
                     </span>
                 </div>
 

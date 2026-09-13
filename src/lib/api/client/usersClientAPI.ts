@@ -1,6 +1,14 @@
 import {User} from "@/lib/api/types/supabase/Users";
 import {getFetch, patchFetch} from "@/lib/api/client/baseFetch";
 
+export interface UserUsageSummary {
+    plan?: string | null;
+    limit: number;
+    used: number;
+    remaining: number;
+    periodStart: string;
+}
+
 export const usersClientAPI = {
     async getUserByUserId(userId: string): Promise<User | null> {
         try {
@@ -14,6 +22,20 @@ export const usersClientAPI = {
             return getUserByUserIdResult.data.user;
         } catch (error) {
             console.error('Error fetching user by userId:', error);
+            return null;
+        }
+    },
+
+    async getUserUsageSummary(userId: string): Promise<UserUsageSummary | null> {
+        try {
+            const response = await getFetch(`/api/user/${userId}`);
+            const result = await response.json();
+            if (!result.success || !result.data) {
+                throw new Error(result.error ?? 'Usage not found');
+            }
+            return (result.data as { usage?: UserUsageSummary }).usage ?? null;
+        } catch (error) {
+            console.error('Error fetching user usage:', error);
             return null;
         }
     },

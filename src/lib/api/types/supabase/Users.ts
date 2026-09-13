@@ -15,6 +15,8 @@ export interface User {
     updated_at: string;
 
     subscription_id?: string; // Polar 구독 웹훅에 추가
+    /** 월 이미지 quota — NULL이면 코드 기본값. Polar·어드민만 변경 (클라 PATCH 차단) */
+    image_limit?: number | null;
     last_subscribed_at: string;
     scheduled_downgrade_at?: string;
     downgrade_target_plan_id?: string;
