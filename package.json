@@ -13,24 +13,25 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
+    "@remotion/player": "4.0.458",
     "@supabase/ssr": "^0.12.6",
     "@supabase/supabase-js": "^2.115.0",
     "@tailwindcss/typography": "^0.5.20",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.4",
+    "@polar-sh/sdk": "0.49.0",
     "framer-motion": "^13.2.0",
     "html-to-image": "^1.11.13",
     "jsonrepair": "^3.15.0",
     "jszip": "^3.10.2",
     "lucide-react": "^1.42.0",
-    "remotion": "4.0.458",
-    "@remotion/player": "4.0.458",
     "next": "16.3.4",
     "openai": "^7.10.0",
     "react": "19.2.8",
     "react-colorful": "^5.8.1",
     "react-dom": "19.2.8",
     "react-markdown": "^10.1.0",
+    "remotion": "4.0.458",
     "replicate": "^1.4.0"
   },
   "devDependencies": {

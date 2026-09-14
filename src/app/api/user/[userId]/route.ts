@@ -68,7 +68,7 @@ export async function GET(
             replicate_api_key: maskKey(user.replicate_api_key),
         };
 
-        const usage = await usageServerAPI.getMonthlyUsage(userId, user.image_limit ?? null);
+        const usage = await usageServerAPI.getUsageStatus(user);
 
         return getNextBaseResponse({
             success: true,

@@ -52,16 +52,19 @@ export async function POST(request: NextRequest) {
         });
     }
 
-    // 월 quota 가드 — 남은 장수 없으면 진입 차단 (402)
+    // 잔액 가드 — 남은 장수 없으면 진입 차단 (402)
+    // 유료(부여 이력 있음)는 누적 잔액제, 그 외는 KST 달력월제
     try {
         const owner = await usersServerAPI.getUserByUserId(userId);
-        const usage = await usageServerAPI.getMonthlyUsage(userId, owner?.image_limit ?? null);
-        if (usage.remaining <= 0) {
-            return getNextBaseResponse({
-                success: false,
-                status: 402,
-                error: "Monthly image quota exhausted.",
-            });
+        if (owner) {
+            const usage = await usageServerAPI.getUsageStatus(owner);
+            if (usage.remaining <= 0) {
+                return getNextBaseResponse({
+                    success: false,
+                    status: 402,
+                    error: "Image balance exhausted.",
+                });
+            }
         }
     } catch (quotaError) {
         console.error(`[quota] check failed (user=${userId}) — fail-open:`, quotaError);

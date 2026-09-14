@@ -47,7 +47,11 @@ function AppHeader() {
                         Projects
                     </Link>
                     <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-text2">
-                        {usage ? `${usage.used.toLocaleString()} / ${usage.limit.toLocaleString()} images` : '… images'}
+                        {usage
+                            ? usage.mode === 'balance'
+                                ? `${usage.remaining.toLocaleString()} images left`
+                                : `${usage.used.toLocaleString()} / ${(usage.limit ?? 0).toLocaleString()} images`
+                            : '… images'}
                     </span>
                     <span className="rounded-full border border-hairline px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-text2">
                         {usage ? planLabel(usage.plan) : '… plan'}

@@ -15,6 +15,9 @@ export interface User {
     updated_at: string;
 
     subscription_id?: string; // Polar 구독 웹훅에 추가
+    /** 현재 결제 사이클 [start, end) — Polar 웹훅이 동기화. NULL이면 KST 달력월 폴백 */
+    subscription_current_period_start?: string | null;
+    subscription_current_period_end?: string | null;
     /** 월 이미지 quota — NULL이면 코드 기본값. Polar·어드민만 변경 (클라 PATCH 차단) */
     image_limit?: number | null;
     last_subscribed_at: string;
