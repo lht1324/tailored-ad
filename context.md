@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-09-14 21:00)
+# TailoredAd — 작업 기록 (Last Updated: 2026-09-15 03:09)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -98,6 +98,17 @@
   (active/cycled/updated/canceled/revoked + order.refunded).
 - **가정 (사장님 미확정 — 다르면 수정)**: 해지·만료 후 잔액 계속 사용 가능,
   다운그레이드 시 잔액 유지+다음 사이클부터 적은数 부여, 환불 시 해당 사이클 전액 회수.
+- **Supabase 신 API 키로 전환**: `*_ANON_KEY` → `*_PUBLISHABLE_KEY`,
+  `SERVICE_ROLE` → `SECRET` (코드 5파일 7곳 교체 완료, 구이름 잔재 0).
+  `.env.local`에 신구 공존 중, 동작 확인 후 구이름은 사장님이 직접 삭제.
+  신형이 구형과 권한·RLS·Auth 동일 + 코드에 JWT 파싱 없음 확인済み.
+  레거시는 2026년 말 삭제 예정이라 신형으로 직행 (SDK 2.115 호환).
+- **Polar 체크아웃 설계 완료·구현은 다른 PC로 이관**: `POST /api/polar/checkouts`
+  (S2S 가드, body는 `{plan}`만 → 서버가 `POLAR_PRODUCT_BY_PLAN` 매핑,
+  userId는 gateway 주입값 사용) + `polarClientAPI.postPolarCheckouts` +
+  PricingSection 버튼 배선. SDK 실측: `externalCustomerId` 파라미터 존재 확인
+  (웹훅 `customer.external_id` 매핑용). 비로그인 클릭 →
+  `/sign-in?redirectTo=pricing` 경유. orders/구독변경/취소는 MVP 제외.
 - **데모 이미지**: short_real preview 9종 복사했다가 전량 삭제. 도그푸딩(실생성물)으로 채울 예정.
 - **shortreal.ai/ad**: 런칭 당일 301 → tailoredad.com 후 은퇴.
 - **랜딩 로그인 진입**: 서버 리다이렉트(/→/projects) 대신 헤더 조건부 UI (비로그인: Sign in + Start creating / 로그인: Open studio). 마케팅+제품 단일도메인 표준.
@@ -137,7 +148,7 @@
   - [x] 상품 3종 + metadata + Checkout Description
   - [x] `lib/polar.ts` 매핑표, 웹훅 리시버, 잔액제 코드
   - [ ] Supabase SQL 2종 (`usage_ledger`, `subscription_grants` + users 주기 컬럼)
-  - [ ] `npm install` (`@polar-sh/sdk`)
+  - [x] `npm install` (`@polar-sh/sdk` 0.49.0 설치 확인)
   - [ ] Polar 대시보드 웹훅 등록 (ngrok URL + `/api/webhook/polar`, raw, 이벤트 6종) +
     `POLAR_WEBHOOK_SECRET`을 `.env.local`에 추가
   - [ ] 체크아웃 생성 API + 요금제 버튼 배선 (다음 작업 — **체크아웃 생성 시
@@ -152,7 +163,9 @@
 - [ ] Supabase 대시보드 확인 (사장님): realtime publication에 `ad_generation_batches` 포함 여부 + RLS SELECT 자가행 허용 여부 (REST는 service_role이라 되고 live만 안 올 수 있음)
 - [ ] Cloudflare Secrets에 `UPSTASH_REDIS_REST_URL`/`TOKEN` 등록 (프로덕션)
 - [ ] 카피 품질: LLM 헤드라인 문법 어색 건 ("dress for it") — 프롬프트에 원어민 검수 지시 추가 예정
-- [ ] `npm run lint` 재확인 (최신 묶음 푸시 후)
+  - [ ] `npm run lint` 재확인 (최신 묶음 푸시 후).
+    참고: AppHeader setState-in-effect error 1건 pre-existing
+    (사용량 표시 커밋분. env rename과 무관 — stash 대조 확인, 미착수)
 
 ## 7. 다음 작업
 

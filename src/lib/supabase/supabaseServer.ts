@@ -26,7 +26,7 @@ export async function createSupabaseServer(mode: Mode = "readOnly") {
 
     return createServerClient(
         process.env.SUPABASE_URL!,
-        process.env.SUPABASE_ANON_KEY!, // 1번에서 수정한 ANON_KEY
+        process.env.SUPABASE_PUBLISHABLE_KEY!,
         {
             cookies: cookieMethods,
         },
