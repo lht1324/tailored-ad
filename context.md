@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-09-13 12:00)
+# TailoredAd — 작업 기록 (Last Updated: 2026-09-14 21:00)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -29,15 +29,20 @@
 - **세션 중 추가**: `proxy.ts` (로그인 가드), `app/api/client-gateway/` (C2S→S2S),
   `app/api/user/[userId]/` (GET+PATCH, S2S+IDOR 가드), `public/logo/logo-64.png`,
   `lib/replicateRateLimit.ts`, `lib/colorUtils.ts`, `lib/textMeasure.ts`,
-  `lib/billing.ts` (기본 quota 50 + KST 월경계), `lib/api/server/usageServerAPI.ts` (원장),
+   `lib/billing.ts` (기본 quota 50 + KST 월경계 — 무료/무이력 폴백용으로 유지),
+   `lib/api/server/usageServerAPI.ts` (원장+부여+잔액),
+   `lib/polar.ts` (상품 ID 매핑 — 진실원천, 코드 상수),
   `components/.../[projectId]/components/compositeDownload.tsx`,
   `components/.../[projectId]/components/DownloadMenuButton.tsx`,
-  `app/api/creative/[creative-index]/design/` (에디터 저장 PATCH),
+   `app/api/creative/[creative-index]/design/` (에디터 저장 PATCH),
+   `app/api/webhook/polar/` (Polar 구독 웹훅 리시버 — 서명 검증+grant 적립),
   `app/projects/[projectId]/edit/` + `components/.../edit/` (Remotion 에디터 일체:
   EditorPageClient, AssetTree, Inspector, FontPicker, EditorCanvas, AdStillComposition)
 - **신규 의존성**: `@upstash/redis ^1.38.0`, `@upstash/ratelimit ^2.0.8`,
   `html-to-image ^1.11.13`, `jszip ^3.10.1`, `@types/jszip ^3.4.1`,
-  `remotion 4.0.458` + `@remotion/player 4.0.458` (exact 고정, 공식 지침)
+  `remotion 4.0.458` + `@remotion/player 4.0.458` (exact 고정, 공식 지침),
+  `@polar-sh/sdk 0.49.0` (exact 고정, SDK beta라 pin 권고. `package.json` 기입됨,
+  **사장님이 `npm install` 실행해야 함**)
 
 ## 3. 분리 시 적용한 변경
 
@@ -66,13 +71,33 @@
 
 - **Supabase**: 신규가 아니라 ShortReal 프로젝트 공유 (비용). 테이블은 `ad_generation_batches` 전용,
   버킷은 `ad_image_storage` 전용으로 이미 분리됨. `users` 공유 = 로그인 통합 (크로스셀 보너스).
-- **사용량 과금 원장** (오늘, 코드 완료·SQL/검증 대기): 단위=저장 확정 완성 이미지 1장 (실패·재시도 무료).
+- **사용량 과금 원장** (코드 완료·SQL/검증 대기): 단위=저장 확정 완성 이미지 1장 (실패·재시도 무료).
   `usage_ledger` append-only 1행=1장, 유니크 `(batch, creative, ratio)`로 중복 흡수.
-  월경계 KST 1일, `users.image_limit` quota (NULL→기본 50). 표시·차단은 `limit − COUNT`.
   후킹점 `process/base`·`process/ratios` 업로드 성공 직후 (실패해도 유저 플로우 계속).
-  진입 가드 `POST /api/image` 402 + 헤더 실측 표시. 테이블 DDL은 사장님이 대시보드에 직접 생성.
-  balance 컬럼 안 씀 (레이스·중복 불가) — limit만 저장.
-- **결제(Polar)**: ad 코드에 과금 wiring 없음. 런칭 전 붙여야 함 (블로커).
+  balance 컬럼 안 씀 (레이스·중복 불가).
+- **잔액제(이월) 확정** (코드 완료·SQL/검증 대기): 결제한 만큼 권리 부여, 미사용분 소멸 없음.
+  `subscription_grants` append-only 1행=1사이클 부여, 유니크 `(구독, 사이클시작, 사유)`로 중복 흡수.
+  환불은 음수 grant 행으로 회수 (부분환불도 해당 사이클 전액 회수 — 감사 로그로 추적).
+  `remaining = 누적부여 − 누적사용`. 부여 이력 있는 유저만 잔액제,
+  없으면 기존 KST 달력월제 (`limit − COUNT`, NULL→기본 50) 폴백.
+  주기는 구독 결제일 기준 (`users.subscription_current_period_start/end`, Polar 웹훅 동기화).
+  진입 가드 `POST /api/image` 402 (잔액 소진 시) + 헤더 `N images left` 표시.
+  테이블 DDL 2종(`usage_ledger`, `subscription_grants` + users 주기 컬럼)은 사장님이 대시보드에 직접 생성.
+- **결제(Polar 확정, Dodo 탈락)**: Dodo는 한국 신분증이 Persona 인증에서 거부됨
+  (허용 목록엔 KR 있으나 템플릿 미포함 — Dodo 설정 문제, 지원팀 메일 양식 전달됨).
+  글로벌 타겟이라 카카오·네이버페이 강점도 무의미 + 수수료 동점(국제구독 실효 ~6%)이라 Polar로 런칭 확정.
+  Dodo는 보류 (한국 고객 생기면 두 번째 결제사로 추가 가능).
+- **Polar 현황**: 조직 Starter 요율 (5% + 50¢, 구독 추가요금 없음, 국제카드 +1.5% 별도).
+  상품 3종 생성됨 — Starter $9/100장 `66953e34-…`, Growth $39/500장 `6d55ba76-…`,
+  Pro $69/1000장 `b8d38860-…` (전체 ID는 `lib/polar.ts`). metadata `planId/imageLimit/isPopular`,
+  Checkout Description 3종(이월 반영) 입력됨. OAT 최소 스코프
+  (`checkouts:write`, `products:read`, `subscriptions:read`,
+  `customers:read`, 만료 1년). 웹훅 수신 `POST /api/webhook/polar` 구현됨
+  (서명 검증, active/cycled/updated→부여+동기화, canceled/revoked→잔액유지·플랜표시만 해제,
+  order.refunded→회수). 구독 이벤트 6종 등록 필요
+  (active/cycled/updated/canceled/revoked + order.refunded).
+- **가정 (사장님 미확정 — 다르면 수정)**: 해지·만료 후 잔액 계속 사용 가능,
+  다운그레이드 시 잔액 유지+다음 사이클부터 적은数 부여, 환불 시 해당 사이클 전액 회수.
 - **데모 이미지**: short_real preview 9종 복사했다가 전량 삭제. 도그푸딩(실생성물)으로 채울 예정.
 - **shortreal.ai/ad**: 런칭 당일 301 → tailoredad.com 후 은퇴.
 - **랜딩 로그인 진입**: 서버 리다이렉트(/→/projects) 대신 헤더 조건부 UI (비로그인: Sign in + Start creating / 로그인: Open studio). 마케팅+제품 단일도메인 표준.
@@ -108,7 +133,17 @@
 
 - [ ] 실생성 이미지 6~8장 → 랜딩 PortfolioSection에 박기 (스테이징에서 생성 → 버킷에서 회수)
 - [ ] `support@tailoredad.com` (+`contact@`) Email Routing (tailoredad.com 도메인에서 별도 설정)
-- [ ] Polar 과금 연결 (블로커)
+- [ ] Polar 과금 연결 (블로커 — 진행 중):
+  - [x] 상품 3종 + metadata + Checkout Description
+  - [x] `lib/polar.ts` 매핑표, 웹훅 리시버, 잔액제 코드
+  - [ ] Supabase SQL 2종 (`usage_ledger`, `subscription_grants` + users 주기 컬럼)
+  - [ ] `npm install` (`@polar-sh/sdk`)
+  - [ ] Polar 대시보드 웹훅 등록 (ngrok URL + `/api/webhook/polar`, raw, 이벤트 6종) +
+    `POLAR_WEBHOOK_SECRET`을 `.env.local`에 추가
+  - [ ] 체크아웃 생성 API + 요금제 버튼 배선 (다음 작업 — **체크아웃 생성 시
+    customer `external_id` = 우리 userId 필수**, 안 그러면 웹훅 매핑 불가)
+  - [ ] E2E 테스트 (결제 → grant → 잔액 표시 → 생성 → 차감)
+  - [ ] Cloudflare Secrets에 `POLAR_API_KEY`·`POLAR_WEBHOOK_SECRET` 등록 (배포 때)
 - [ ] 약관 실체 검토 (한국 조항 유지 여부 포함)
 - [ ] `tailorad.com` 구매 + 리다이렉트
 - [ ] `shortreal.ai/ad` → 301 (런칭 당일)
@@ -123,9 +158,8 @@
 
 - [x] 에디터에서 다운로드 (탑바 Download, 현재 캔버스 스냅샷 — 완료)
 - [x] 실사용량 표시 (원장+헤더 실측 — 코드 완료, **대시보드 SQL 실행 + 생성 테스트 검증 대기**)
-- [ ] Polar 연동 (확정. Dodo 비교 완료 — 고객은 결제사 안 고름, short_real 배선 재사용).
-  사장님 입력 대기 3종: 상품 생성(metadata `planId`, 대표 `isPopular`) + `POLAR_API_KEY` +
-  플랜 숫자 (이름·가격·월 장수). short_real Polar 조직 생일(2026-05-27 이전이면 Early Member) 확인 필요.
+- [x] 잔액제·Polar 웹훅 코드 (위 Polar 항목의 코드 부분 완료, SQL·키·웹훅등록·E2E 대기)
+- [ ] 체크아웃 생성 API + 요금제 버튼 배선 (다음 순서 1순위)
 - [ ] 낱장 Regenerate (실패 타일 살리기 + 재추첨. 뒷단 재제출 경로 존재, UI 배선만 — 제안됨, 미확정)
 - [ ] 브랜드 킷 (로고·팔레트·폰트·CTA 유저 저장 + 생성 프리필 — 제안됨, 미확정)
 - [ ] 모바일 분리: 공유 파일에 반응형 추가 금지 (split 때 삭제 대상). 모바일은 현상 동결.
@@ -153,5 +187,8 @@ npm run deploy   # opennext build + deploy (master에서)
 - Supabase Redirect URLs에 workers.dev + 실도메인 등록 (구글 로그인용).
 - Upstash: `tailored-ad-ratelimit` (AWS 도쿄, Free, eviction ON). 월 명령어 40만 전후로 PAYG 전환 + budget cap.
 - dev `BASE_URL`은 ngrok 주소 경유 (ngrok 꺼지면 self-fetch DOCTYPE 500 — ngrok 켜둘 것).
+- Polar: OAT는 생성 시 1회만 표시 (분실 시 폐기 후 재생성). PC·환경별 토큰 분리 권장.
+  웹훅 endpoint는 대시보드 등록 (dev는 ngrok URL + `/api/webhook/polar`).
+  `.env.local` 필요 키: `POLAR_API_KEY` + `POLAR_WEBHOOK_SECRET` (사장님이 직접 입력, 채팅 금지).
 
 (End of file)
