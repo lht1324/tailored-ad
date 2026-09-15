@@ -3,7 +3,7 @@ import { validateEvent, WebhookVerificationError } from "@polar-sh/sdk/webhooks"
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { usersServerAPI } from "@/lib/api/server/usersServerAPI";
 import { usageServerAPI } from "@/lib/api/server/usageServerAPI";
-import { PLAN_BY_POLAR_PRODUCT, PLAN_IMAGE_LIMIT } from "@/lib/polar";
+import { getPlanByPolarProduct, PLAN_IMAGE_LIMIT } from "@/lib/polar";
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
 
 /**
@@ -58,7 +58,7 @@ async function handleSubscriptionEvent(type: string, data: PolarSubscriptionData
         return;
     }
     const productId = data.product_id ?? data.product?.id ?? '';
-    const plan = PLAN_BY_POLAR_PRODUCT[productId];
+    const plan = getPlanByPolarProduct(productId);
     if (!plan) {
         console.warn(`[webhook/polar] ${type}: unknown product (subscription=${data.id}, product=${productId})`);
         return;

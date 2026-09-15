@@ -35,7 +35,7 @@ function AdFooter() {
                             {link.label}
                         </a>
                     ))}
-                    <Link href="/" className="text-[13px] font-medium text-text2 transition-colors duration-200 hover:text-text1">
+                    <Link href="/projects" className="text-[13px] font-medium text-text2 transition-colors duration-200 hover:text-text1">
                         TailoredAd Studio
                     </Link>
                 </div>

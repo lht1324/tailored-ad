@@ -62,7 +62,7 @@ export default function HeroSection() {
                         Ads that don&apos;t look like AI stock.
                     </h1>
                     <p className="mt-6 max-w-md text-[17px] leading-relaxed text-text2">
-                        Brand-consistent creatives for teams without a designer. Upload your product — get platform-ready ads in minutes.
+                        Brand-consistent creatives for teams without a designer. Upload your product and get platform-ready ads in minutes.
                     </p>
                     <div className="mt-10 flex flex-wrap items-center gap-4">
                         <Link

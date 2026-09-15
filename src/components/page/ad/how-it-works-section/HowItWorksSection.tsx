@@ -44,7 +44,7 @@ const STEPS: Step[] = [
         number: '01',
         label: 'Assets',
         title: 'Upload your assets',
-        description: 'Drop in product photos, your logo, or a portrait. A background alone is enough to start — bring more to match your brand.',
+        description: 'Drop in product photos, your logo, or a portrait. A background alone is enough to start. Bring more to match your brand.',
         className: 'md:col-span-7 rotate-[0.4deg]',
         sticker: (
             <span className="rotate-[3deg] rounded-[6px] border border-dashed border-hairline px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-text2">
@@ -56,7 +56,7 @@ const STEPS: Step[] = [
         number: '02',
         label: 'Scenes',
         title: 'Generate the scene',
-        description: 'We prompt the model with ad-theory-built templates. Candidates are generated in a batch and quality-gated — you only see the best.',
+        description: 'We prompt the model with templates built on ad theory. Candidates are generated in a batch and quality-gated. You only see the best.',
         className: 'md:col-span-5 -rotate-[0.7deg] md:translate-y-8',
         sticker: (
             <span className="-rotate-[2deg] rounded-full border-2 border-accent/60 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-accent">
@@ -68,7 +68,7 @@ const STEPS: Step[] = [
         number: '03',
         label: 'Composite',
         title: 'Composite your product',
-        description: 'Your product is painted into the scene with matching light and shadow. One batch, one credit — failures cost you nothing extra.',
+        description: 'Your product is painted into the scene with matching light and shadow. One batch, one credit. Failures cost you nothing extra.',
         className: 'md:col-span-6 rotate-[0.5deg]',
         sticker: (
             <span className="rotate-[2deg] rounded-full border border-hairline px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-text2">
@@ -80,7 +80,7 @@ const STEPS: Step[] = [
         number: '04',
         label: 'Layout',
         title: 'AI designs the layout',
-        description: 'A layout model places headline, CTA, and logo. Then we render them deterministically — pixel-exact type, never AI text artifacts.',
+        description: 'A layout model places headline, CTA, and logo. Then we render them deterministically. Pixel-exact type, never AI text artifacts.',
         className: 'md:col-span-6 -rotate-[0.5deg] md:translate-y-4',
         sticker: (
             <span className="-rotate-[3deg] rounded-[6px] border-2 border-hairline px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-text2">
@@ -158,7 +158,7 @@ export default function HowItWorksSection() {
                                 From product photo to ready-to-run ad.
                             </h2>
                             <p className="mt-5 text-[17px] leading-relaxed text-text2">
-                                Five steps, most of them handled for you. The AI worries about the image — we guarantee the type.
+                                Five steps, most of them handled for you. The AI worries about the image. We guarantee the type.
                             </p>
                         </div>
                         <span className="rotate-[2deg] rounded-[8px] border-2 border-hairline px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-text2">
@@ -178,7 +178,7 @@ export default function HowItWorksSection() {
                                 Side note
                             </p>
                             <p className="mt-2 text-[13px] leading-relaxed text-text2">
-                                Every render is deterministic — what you preview is exactly what you download. No surprises.
+                                Every render is deterministic. What you preview is exactly what you download. No surprises.
                             </p>
                         </div>
                     </Reveal>

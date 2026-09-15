@@ -100,10 +100,10 @@ export default function PortfolioSection() {
                                 Portfolio
                             </p>
                             <h2 className="mt-3 text-4xl font-bold leading-tight tracking-tight text-text1 md:text-5xl">
-                                Ads you&apos;d scroll past twice.
+                                Ads worth a second look.
                             </h2>
                             <p className="mt-5 text-[17px] leading-relaxed text-text2">
-                                No generic stock vibes. Every creative is sampled from a batch, quality-gated, then finished with pixel-exact type and logo.
+                                No generic stock vibes. Every creative comes from a quality-gated batch, finished with pixel-exact type and logo.
                             </p>
                         </div>
                     </div>

@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-09-15 12:00)
+# TailoredAd — 작업 기록 (Last Updated: 2026-09-16 03:34)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -45,8 +45,8 @@
 - **신규 의존성**: `@upstash/redis ^1.38.0`, `@upstash/ratelimit ^2.0.8`,
   `html-to-image ^1.11.13`, `jszip ^3.10.1`, `@types/jszip ^3.4.1`,
   `remotion 4.0.458` + `@remotion/player 4.0.458` (exact 고정, 공식 지침),
-  `@polar-sh/sdk 0.49.0` (exact 고정, SDK beta라 pin 권고. `package.json` 기입됨,
-  **사장님이 `npm install` 실행해야 함**)
+  `@polar-sh/sdk 0.49.0` (exact 고정, SDK beta라 pin 권고. 설치 확인.
+  `npm install`이 caret로 바꾼 흔적 있어 exact로 복원함 — 재발 시 확인)
 
 ## 3. 분리 시 적용한 변경
 
@@ -93,17 +93,23 @@
   (`polar_subscription_id` nullable 포함). 잔액 0이면 하드게이트:
   402 + `/create` 업셀 모달 (`BalanceExhaustedError` 판별) + 헤더 Upgrade pill.
   trial 적립 실패는 fail-soft (잔액 0 + 로그, 조회 500 방지).
-- **첫 유료 자동 할인** (코드 완료·discount ID 대기): 체크아웃 생성 시 유료 이력 없으면
+- **첫 유료 자동 할인** (Starter-only로 확정): 체크아웃 생성 시 **PLAN_1 + 유료 이력 없음**일 때만
   `discount_id` 자동 첨부 (`POLAR_FIRST_ORDER_DISCOUNT_ID` env, 없으면 정가 진행).
-  코드 입력칸은 안 켬 (유출 원천 차단). 사장님이 코드 없는 discount 만들고 ID 전달 예정.
-  duration 첫 결제 확인 필요.
+  코드 입력칸은 안 켬 (유출 원천 차단). API 실측 검증됨 (plan-1 첨부 50%/once/무코드,
+  plan-2 제외, `external_id` 매핑 정상). Growth/Pro 첫결제에 붙이면 500 에러 나므로
+  대시보드 Products 제한도 Starter만 유지할 것.
+- **Pricing 정직 개편**: 존재하지 않는 플랜 차등(후보 개수·멀티레퍼런스) 삭제 —
+  코드에 게이팅이 없어 티어 차이는 월 장수뿐. 취소선($49/$99, 실판매가 없음) 삭제,
+  Most popular 배지 삭제 (데이터 생기면 복귀), "re-renders" 삭제 (미구현),
+  사이즈 5종 명시, CTA `Choose {plan}`, trial 10장 안내 추가.
 - **결제(Polar 확정, Dodo 탈락)**: Dodo는 한국 신분증이 Persona 인증에서 거부됨
   (허용 목록엔 KR 있으나 템플릿 미포함 — Dodo 설정 문제, 지원팀 메일 양식 전달됨).
   글로벌 타겟이라 카카오·네이버페이 강점도 무의미 + 수수료 동점(국제구독 실효 ~6%)이라 Polar로 런칭 확정.
   Dodo는 보류 (한국 고객 생기면 두 번째 결제사로 추가 가능).
 - **Polar 현황**: 조직 Starter 요율 (5% + 50¢, 구독 추가요금 없음, 국제카드 +1.5% 별도).
-  상품 3종 생성됨 — Starter $9/100장 `66953e34-…`, Growth $39/500장 `6d55ba76-…`,
-  Pro $69/1000장 `b8d38860-…` (전체 ID는 `lib/polar.ts`). metadata `planId/imageLimit/isPopular`,
+  상품 3종 생성됨 — 전부 **샌드박스** (Starter $9/100장 `66953e34-…`,
+  Growth $39/500장 `6d55ba76-…`, Pro $69/1000장 `b8d38860-…`, API 실측 확인).
+  프로덕션 상품 미생성 — 생성 후 `POLAR_PRODUCT_BY_PLAN`에 기입 (현재 빈값). metadata `planId/imageLimit/isPopular`,
   Checkout Description 3종(이월 반영) 입력됨. OAT 최소 스코프
   (`checkouts:write`, `products:read`, `subscriptions:read`,
   `customers:read`, 만료 1년). 웹훅 수신 `POST /api/webhook/polar` 구현됨
@@ -118,7 +124,10 @@
 - **결제 확인 원칙**: `return_url` 읽기전용 + 웹훅 쓰기 (콜백 부여 금지).
   성공 페이지는 Realtime primary + 30초 타임아웃 폴백 (폴링 기각).
 - **돈문 위치**: 구독 게이트 없음 (`proxy`·gateway는 로그인만). 402+업셀이 유일한 돈문.
-- **Polar 샌드박스 미지원**: 코드 프로덕션 고정. 필요 시 `POLAR_ENV` 분기 (half-day).
+- **Polar 환경 분리**: `NODE_ENV` 기준 자동 (`dev`=sandbox, `build/start`=production).
+  상품 ID도 환경별 매핑 (`POLAR_PRODUCT_BY_PLAN`/`POLAR_SANDBOX_PRODUCT_BY_PLAN`,
+  샌드박스 ID는 대시보드 생성 후 기입 대기). dev env는 샌드박스 OAT+시크릿,
+  prod는 프로덕션 OAT+시크릿 (키·조직 불일치 시 401 `invalid_token`).
 - **로딩 오버레이**: Projects (목록+헤더 사용량 둘 다 해제 조건, `AppHeader onUsageLoaded`),
   Detail (초기 `loading` 구간). 수동 Refresh는 인라인 유지.
 - **Supabase 신 API 키로 전환**: `*_ANON_KEY` → `*_PUBLISHABLE_KEY`,
@@ -141,6 +150,8 @@
 - **재시도 상한 버그 수정**: 웹훅이 `attempt`를 process에 안 넘겨 무한 재시도 가능했음 → 전달 추가.
 - **다운로드 어휘 통일**: 합성본 `Final` / 원본 `Original` (광고업계 표준어 확인). 파일명 `tailored-ad-{id6}-c01-4_5.png` + 원본 `-raw` 접미 (배치 구별로 id6 포함. ZIP도 동일 체계 `-all`/`-originals`/`-c01`). 스플릿 버튼(`DownloadMenuButton`)으로 통합 — 헤더 벌크(ZIP) + 모달 낱장. 타일 호버·줄 pill은 합성 전용 유지. sparkles 아이콘 사용 안 함 (AI 클리셰).
 - **Detail 정렬**: best(기본) / avg(완성분 평균, 분모 `n/m` 병기) / index 드롭다운. running 중·점수 없음은 비활성. 행에 `best X · avg Y (n/m)` 병기.
+- **랜딩 카피 de-AI** (Pricing 제외 6파일): em dash 연결 12곳 → 마침표,
+  Portfolio 헤드라인 의미 버그 수정, FAQ 답변 2단락 구조화, 뱃지·푸터 링크 수정.
 - **에디터 커스텀 컬러 확정**: live-apply 유지 (패널 문법 일치). 커스텀 패널에 `Done` 버튼(닫기=확정) + 피펫 버튼에 선택색 도트. 스냅샷-취소 불필요 판정 (되돌리기는 스와치 1클릭 + Save 게이트로 충분).
 - **브랜드 표기 통일**: `TailorAd` → `TailoredAd` (문자열 전수 치환, 사장님 직접. 코드 식별자·동작 영향 없음, lint 무결함 확인).
 - **다운로드 엔진**: DOM 스냅샷(html-to-image) — 타일·모달·다운로드·에디터 4곳 픽셀 동일 보장. ZIP(전체/줄단위/원본)은 jszip 클라 처리. 서버 ZIP 안 함 (Workers CPU 한도).
@@ -175,7 +186,8 @@
   - [x] Polar 대시보드 웹훅 등록 (ngrok URL + `/api/webhook/polar`, raw, 이벤트 6종, API 버전 2026-04) +
     `POLAR_WEBHOOK_SECRET` 입력됨
   - [x] 체크아웃 생성 API + 요금제 버튼 배선 + 성공 페이지
-  - [ ] 코드 없는 discount 생성 + `POLAR_FIRST_ORDER_DISCOUNT_ID` 입력 (사장님, duration 첫 결제 확인)
+  - [x] 코드 없는 discount 생성 + `POLAR_FIRST_ORDER_DISCOUNT_ID` 입력 + API 실측 검증
+    (50%/once/무코드, Starter 첨부·Growth 제외, duration=Once 확인됨)
   - [ ] E2E 테스트 (결제 → grant → 잔액 표시 → 생성 → 차감 → 환불 회수)
   - [ ] Cloudflare Secrets에 `POLAR_API_KEY`·`POLAR_WEBHOOK_SECRET`·`POLAR_FIRST_ORDER_DISCOUNT_ID` 등록 (배포 때)
 - [ ] 약관 실체 검토 (한국 조항 유지 여부 포함)

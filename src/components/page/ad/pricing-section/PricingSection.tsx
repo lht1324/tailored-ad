@@ -13,7 +13,6 @@ interface Plan {
     planId: PaidPlan;
     name: string;
     price: number;
-    originalPrice?: number;
     images: string;
     perImage: string;
     highlighted?: boolean;
@@ -31,9 +30,10 @@ const PLANS: Plan[] = [
         highlighted: true,
         className: 'md:translate-y-6',
         features: [
-            'Quality-gated 4-candidate batches',
-            'All sizes: 1:1, 4:5, 9:16, banner',
-            'Unlimited downloads & re-renders',
+            'Quality-gated batches',
+            'All sizes: 1:1, 4:5, 9:16, 16:9, 2:3',
+            'Multi-reference compositing',
+            'Unlimited downloads',
             'Unused images roll over',
             'Deterministic type & logo',
         ],
@@ -42,28 +42,24 @@ const PLANS: Plan[] = [
         planId: SubscriptionPlan.PLAN_2,
         name: 'Growth',
         price: 39,
-        originalPrice: 49,
         images: '500 images / month',
         perImage: '$0.078 / image',
         className: '-rotate-[0.5deg] md:translate-y-10',
         features: [
             'Everything in Starter',
-            'Batch generation up to 16 candidates',
-            'Multi-reference compositing',
+            '500 images for continuous testing',
         ],
     },
     {
         planId: SubscriptionPlan.PLAN_3,
         name: 'Pro',
         price: 69,
-        originalPrice: 99,
         images: '1,000 images / month',
         perImage: '$0.069 / image',
         className: 'rotate-[0.5deg] md:translate-y-8',
         features: [
             'Everything in Growth',
-            '1,000 images to cover the season',
-            'Agency-friendly volume',
+            '1,000 images for high-volume testing',
         ],
     },
 ];
@@ -82,20 +78,10 @@ function PricingCard({ plan, busy, onClickCheckout }: {
                     : 'border-hairline bg-surface shadow-[0_24px_60px_-30px_rgba(0,0,0,0.7)]'
             }`}
         >
-            {dark && (
-                <span className="absolute -top-4 left-8 z-10 -rotate-[3deg] rounded-full border-2 border-accent/50 bg-canvas px-3.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-accent">
-                    Most popular
-                </span>
-            )}
             <h3 className={`text-[15px] font-semibold tracking-tight ${dark ? 'text-canvas' : 'text-text1'}`}>
                 {plan.name}
             </h3>
             <div className={`mt-6 flex items-baseline gap-1.5 ${dark ? 'text-canvas' : 'text-text1'}`}>
-                {plan.originalPrice && (
-                    <span className={`text-5xl font-medium tracking-tight line-through ${dark ? 'text-canvas/50' : 'text-text2/60'}`}>
-                        ${plan.originalPrice}
-                    </span>
-                )}
                 <span className="text-5xl font-bold tracking-tight">
                     ${plan.price}
                 </span>
@@ -131,7 +117,7 @@ function PricingCard({ plan, busy, onClickCheckout }: {
                     dark ? 'bg-canvas text-text1' : 'bg-text1 text-canvas'
                 }`}
             >
-                {busy ? 'Redirecting…' : 'Get started'}
+                {busy ? 'Redirecting…' : `Choose ${plan.name}`}
             </button>
         </div>
     );
@@ -168,7 +154,7 @@ export default function PricingSection() {
                             Simple pricing, honest costs.
                         </h2>
                         <p className="mt-5 text-[17px] leading-relaxed text-text2">
-                            You pay for generation batches, not downloads. Every batch is quality-gated — the failures are on us.
+                            You pay for the images you generate, not downloads. Every batch is quality-gated. Failures are on us.
                         </p>
                     </div>
                 </Reveal>
@@ -185,9 +171,11 @@ export default function PricingSection() {
                     </p>
                 )}
                 <Reveal delay={0.1}>
-                    <p className="mx-auto mt-10 max-w-2xl text-center text-[13px] leading-relaxed text-text2">
-                        Plans bill monthly. Image counts are matched to current model pricing · we always honor the count we show you today, and we&apos;ll tell you before anything changes.
-                    </p>
+                    <ul className="mx-auto mt-16 max-w-2xl space-y-1.5 text-center text-[13px] leading-relaxed text-text2">
+                        <li>Start with 10 free images.</li>
+                        <li>Plans bill monthly. Image counts are matched to current model pricing.</li>
+                        <li>We always honor the count we show you today, and we&apos;ll tell you before anything changes.</li>
+                    </ul>
                 </Reveal>
             </div>
         </section>

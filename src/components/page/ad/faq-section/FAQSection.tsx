@@ -5,36 +5,42 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
 import Reveal from "@/components/page/ad/Reveal";
 
-const FAQ_ITEMS = [
+const FAQ_ITEMS: { question: string; answer: string[] }[] = [
     {
         question: 'How is billing calculated?',
-        answer: 'You pay for generation batches — one batch is one quality-gated set of candidates. Downloads, size variants, and re-renders are free and unlimited. We never charge you per candidate image.',
+        answer: ['You pay for generation batches. One batch is one quality-gated set of candidates. Downloads, size variants, and re-renders are free and unlimited. We never charge you per candidate image.'],
     },
     {
         question: 'Do unused images expire?',
-        answer: 'No. Images you paid for never expire — not at the end of the billing period, not after cancellation. Your remaining balance stays usable.',
+        answer: ['No. Images you paid for never expire. Not at the end of the billing period. Not after cancellation.'],
     },
     {
         question: 'Can I use my own product photos and logo?',
-        answer: 'Yes. Upload product photos, your logo, and even a portrait. Your assets are composited into the generated scene with consistent lighting and shadows, and your logo stays pixel-exact.',
+        answer: [
+            'Yes. Upload product photos, your logo, and even a portrait.',
+            'Your assets are composited into the generated scene with consistent lighting and shadows. Your logo stays pixel-exact.',
+        ],
     },
     {
         question: 'Which ad sizes do you support?',
-        answer: 'Every layout renders into the formats your ad platforms need: 1:1, 4:5, 9:16, 16:9, story, and display banner variants — all from the same design.',
+        answer: ['Every layout renders into the formats your ad platforms need: 1:1, 4:5, 9:16, 16:9, Story, and display banner variants. All from the same design.'],
     },
     {
         question: 'What does "doesn\'t look like AI stock" mean?',
-        answer: 'We generate candidate batches and quality-gate them before you ever see them, then composite headline and logo deterministically instead of asking the model to paint them. The result is a controlled, brand-consistent look — not a generic AI rendering.',
+        answer: [
+            'We generate candidate batches and quality-gate them before you ever see them. Then we composite headline and logo deterministically instead of asking the model to paint them.',
+            'The result is a controlled, brand-consistent look. Not a generic AI rendering.',
+        ],
     },
     {
         question: 'Can I cancel anytime?',
-        answer: 'Yes. Your subscription can be cancelled at any time, and your remaining images stay usable.',
+        answer: ['Yes. Cancel anytime. Your remaining images stay usable.'],
     },
 ];
 
 function FAQItem({ question, answer, isOpen, onToggle }: {
     question: string;
-    answer: string;
+    answer: string[];
     isOpen: boolean;
     onToggle: () => void;
 }) {
@@ -62,9 +68,11 @@ function FAQItem({ question, answer, isOpen, onToggle }: {
                         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
                         className="overflow-hidden"
                     >
-                        <p className="max-w-2xl pb-6 text-[15px] leading-relaxed text-text2">
-                            {answer}
-                        </p>
+                        <div className="max-w-2xl space-y-3 pb-6 text-[15px] leading-relaxed text-text2">
+                            {answer.map((paragraph, index) => (
+                                <p key={index}>{paragraph}</p>
+                            ))}
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -84,7 +92,7 @@ export default function FAQSection() {
                             Questions, answered.
                         </h2>
                         <span className="mt-6 inline-block -rotate-[3deg] rounded-[8px] border-2 border-hairline px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-text2">
-                            Q&A — updated weekly
+                            Common questions
                         </span>
                     </div>
                 </Reveal>

@@ -4,7 +4,7 @@ import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { usersServerAPI } from "@/lib/api/server/usersServerAPI";
 import { usageServerAPI } from "@/lib/api/server/usageServerAPI";
 import { getPolarClient } from "@/lib/polarClient";
-import { POLAR_PRODUCT_BY_PLAN, type PaidPlan } from "@/lib/polar";
+import { getPolarEnvironment, getPolarProductId, type PaidPlan } from "@/lib/polar";
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
 
 const VALID_PLANS: PaidPlan[] = [
@@ -16,7 +16,7 @@ const VALID_PLANS: PaidPlan[] = [
 /**
  * Polar 체크아웃 세션 생성 — POST /api/polar/checkouts
  * C2S 진입은 client-gateway 경유 (gateway가 세션 검증 + userId 주입).
- * body는 {plan}만 받는다. 상품 ID 매핑은 서버 상수(POLAR_PRODUCT_BY_PLAN)가 진실원천.
+ * body는 {plan}만 받는다. 상품 ID 매핑은 환경별 서버 상수(getPolarProductId)가 진실원천.
  * 유저 매핑은 externalCustomerId + metadata.userId 이중 기록 (웹훅 매칭용).
  */
 export async function POST(request: NextRequest) {
@@ -56,12 +56,14 @@ export async function POST(request: NextRequest) {
             error: `Unsupported plan: ${plan}`,
         });
     }
-    const productId = POLAR_PRODUCT_BY_PLAN[plan as PaidPlan];
-    if (!productId) {
+    let productId: string;
+    try {
+        productId = getPolarProductId(plan as PaidPlan);
+    } catch (err) {
         return getNextBaseResponse({
             success: false,
             status: 400,
-            error: `No product mapped for plan: ${plan}`,
+            error: err instanceof Error ? err.message : `No product mapped for plan: ${plan}`,
         });
     }
 
@@ -75,10 +77,10 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        // 첫 유료 한정 자동 할인 — 유료 이력 있으면 정가. ID는 env (없으면 정가로 진행)
+        // 첫 유료 한정 자동 할인 — Starter 플랜만, 유료 이력 있으면 정가. ID는 env (없으면 정가로 진행)
         const firstOrderDiscountId = process.env.POLAR_FIRST_ORDER_DISCOUNT_ID;
         let discountId: string | undefined;
-        if (firstOrderDiscountId) {
+        if (firstOrderDiscountId && plan === SubscriptionPlan.PLAN_1) {
             try {
                 if (!(await usageServerAPI.hasPaidGrant(userId))) {
                     discountId = firstOrderDiscountId;
@@ -106,7 +108,7 @@ export async function POST(request: NextRequest) {
             message: "Checkout session created.",
         });
     } catch (error) {
-        console.error(`[polar/checkouts] create failed (user=${userId}, plan=${plan}):`, error);
+        console.error(`[polar/checkouts] create failed (user=${userId}, plan=${plan}, env=${getPolarEnvironment()}):`, error);
         return getNextBaseResponse({
             success: false,
             status: 500,

@@ -61,7 +61,7 @@ export default function FeaturesSection() {
                                 Built around the one thing that matters: how it looks.
                             </h2>
                             <p className="mt-5 text-[17px] leading-relaxed text-text2">
-                                Image generation is cheap. So we spend it where others can&apos;t · on quality, not corners.
+                                Image generation is cheap. We spend it where it counts: quality, not shortcuts.
                             </p>
                         </div>
                         <span className="-rotate-[3deg] rounded-[8px] border-2 border-hairline px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-text2">
@@ -76,7 +76,7 @@ export default function FeaturesSection() {
                             title="Harnessed generation"
                             description={
                                 <>
-                                    Each image is generated in every format you select and passed through a quality gate. You see the best one or two — never the experiments. Sampling is on us, because a batch of images costs cents.
+                                    Each image is generated in every format you select and passed through a quality gate. You see the best one or two. Never the experiments. Sampling is on us, because a batch of images costs cents.
                                 </>
                             }
                         />
@@ -106,7 +106,7 @@ export default function FeaturesSection() {
                             title="Multi-reference compositing"
                             description={
                                 <>
-                                    Your product and logo stay consistent across every scene — the same bottle, the same colors, everywhere.
+                                    Your product and logo stay consistent across every scene. The same bottle, the same colors, everywhere.
                                 </>
                             }
                             sticker={
@@ -120,7 +120,7 @@ export default function FeaturesSection() {
                             title="One layout, every format"
                             description={
                                 <>
-                                    Design once, export everywhere. Each ad is rendered deterministically into the sizes your ad platforms demand.
+                                    Design once, export everywhere. Each ad is rendered deterministically into the sizes your ad platforms require.
                                 </>
                             }
                         >
@@ -144,7 +144,7 @@ export default function FeaturesSection() {
                             title="Unlimited re-renders"
                             description={
                                 <>
-                                    Downloads and re-renders never cost extra. Tweak a headline, export again — same price, forever.
+                                    Downloads and re-renders never cost extra. Tweak a headline, export again. Same price, forever.
                                 </>
                             }
                             sticker={
@@ -158,7 +158,7 @@ export default function FeaturesSection() {
                             title="Quality-gated batches"
                             description={
                                 <>
-                                    Every batch is a set of candidates filtered by our gate. The failures are on us · you only pay for what we&apos;d approve.
+                                    Every batch is a set of candidates filtered by our gate. The failures are on us. You only pay for what we&apos;d approve.
                                 </>
                             }
                             sticker={
