@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FolderOpen, Plus, RefreshCw } from 'lucide-react';
+import { FolderOpen, Loader2, Plus, RefreshCw } from 'lucide-react';
 import AppHeader from "@/components/page/ad/app-header/AppHeader";
 import ProjectCard from "@/components/page/ad/projects/components/ProjectCard";
 import { adProjectClientAPI } from "@/lib/api/client/ad/adProjectClientAPI";
@@ -31,6 +31,11 @@ export default function ProjectsPageClient() {
     const [error, setError] = useState<string | null>(null);
     const [filter, setFilter] = useState<FilterKey>('all');
     const [hasMore, setHasMore] = useState(false);
+    const [headerReady, setHeaderReady] = useState(false);
+
+    const onHeaderUsageLoaded = useCallback(() => {
+        setHeaderReady(true);
+    }, []);
 
     const fetchProjects = useCallback(async (showRefreshing = false) => {
         if (showRefreshing) setIsRefreshing(true);
@@ -141,7 +146,17 @@ export default function ProjectsPageClient() {
 
     return (
         <>
-            <AppHeader />
+            <AppHeader onUsageLoaded={onHeaderUsageLoaded} />
+
+            {/* 초기 로딩 전체 오버레이 — 목록+헤더 사용량 둘 다 끝나야 해제. 수동 Refresh 때는 띄우지 않음 */}
+            {(isLoading || !headerReady) && (
+                <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-canvas/80 backdrop-blur-sm">
+                    <Loader2 className="h-8 w-8 animate-spin text-text2" strokeWidth={1.8} />
+                    <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-text2">
+                        Loading projects…
+                    </p>
+                </div>
+            )}
 
             <main className="mx-auto max-w-[90rem] px-8 pb-24 pt-32">
                 <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">

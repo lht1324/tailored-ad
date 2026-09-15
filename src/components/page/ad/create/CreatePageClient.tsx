@@ -9,7 +9,7 @@ import {
     AdAspectRatio,
     AdUploadedComponent,
 } from "@/lib/api/client/ad/adClientAPI";
-import { adProjectClientAPI } from "@/lib/api/client/ad/adProjectClientAPI";
+import { adProjectClientAPI, BalanceExhaustedError } from "@/lib/api/client/ad/adProjectClientAPI";
 import { postFormFetch } from "@/lib/api/client/baseFetch";
 
 function inferFileExtension(fileName: string): string {
@@ -36,6 +36,7 @@ export default function CreatePageClient() {
     // 생성 진행
     const [isGenerating, setIsGenerating] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showUpsell, setShowUpsell] = useState(false);
 
     const hasSubject = useMemo(() => product !== null || person !== null, [product, person]);
 
@@ -102,6 +103,11 @@ export default function CreatePageClient() {
 
             router.push(`/projects/${batchId}`);
         } catch (err) {
+            if (err instanceof BalanceExhaustedError) {
+                setShowUpsell(true);
+                setIsGenerating(false);
+                return;
+            }
             setError(err instanceof Error ? err.message : 'Failed to start generation. Please try again.');
             setIsGenerating(false);
         }
@@ -174,6 +180,32 @@ export default function CreatePageClient() {
                     </button>
                 </div>
             </div>
+
+            {showUpsell && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+                    <div className="w-full max-w-sm rounded-2xl border border-hairline bg-surface p-8 text-center">
+                        <h2 className="text-xl font-bold tracking-tight text-text1">Out of images</h2>
+                        <p className="mt-3 text-[14px] leading-relaxed text-text2">
+                            You&apos;ve used all your images, including the free trial.
+                            Subscribe to keep creating — unused images never expire.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => router.push('/#pricing')}
+                            className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-text1 px-6 py-3 text-[14px] font-semibold text-canvas"
+                        >
+                            View plans
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setShowUpsell(false)}
+                            className="mt-3 inline-flex w-full items-center justify-center rounded-full px-6 py-2.5 text-[13px] font-medium text-text2"
+                        >
+                            Not now
+                        </button>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

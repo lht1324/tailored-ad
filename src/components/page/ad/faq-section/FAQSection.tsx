@@ -12,7 +12,7 @@ const FAQ_ITEMS = [
     },
     {
         question: 'Do unused images expire?',
-        answer: 'No. Your monthly allowance rolls over for as long as your subscription is active. Allowance is only forfeited if you cancel your subscription.',
+        answer: 'No. Images you paid for never expire — not at the end of the billing period, not after cancellation. Your remaining balance stays usable.',
     },
     {
         question: 'Can I use my own product photos and logo?',
@@ -28,7 +28,7 @@ const FAQ_ITEMS = [
     },
     {
         question: 'Can I cancel anytime?',
-        answer: 'Yes. Your subscription can be cancelled at any time. Your allowance remains usable through the end of your billing period.',
+        answer: 'Yes. Your subscription can be cancelled at any time, and your remaining images stay usable.',
     },
 ];
 

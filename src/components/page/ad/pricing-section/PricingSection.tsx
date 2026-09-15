@@ -1,9 +1,16 @@
 'use client'
 
+import { useCallback, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Check } from 'lucide-react';
 import Reveal from "@/components/page/ad/Reveal";
+import { useAuth } from "@/context/AuthContext";
+import { polarClientAPI } from "@/lib/api/client/polarClientAPI";
+import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
+import type { PaidPlan } from "@/lib/polar";
 
 interface Plan {
+    planId: PaidPlan;
     name: string;
     price: number;
     originalPrice?: number;
@@ -16,6 +23,7 @@ interface Plan {
 
 const PLANS: Plan[] = [
     {
+        planId: SubscriptionPlan.PLAN_1,
         name: 'Starter',
         price: 9,
         images: '100 images / month',
@@ -31,6 +39,7 @@ const PLANS: Plan[] = [
         ],
     },
     {
+        planId: SubscriptionPlan.PLAN_2,
         name: 'Growth',
         price: 39,
         originalPrice: 49,
@@ -44,6 +53,7 @@ const PLANS: Plan[] = [
         ],
     },
     {
+        planId: SubscriptionPlan.PLAN_3,
         name: 'Pro',
         price: 69,
         originalPrice: 99,
@@ -58,7 +68,11 @@ const PLANS: Plan[] = [
     },
 ];
 
-function PricingCard({ plan }: { plan: Plan }) {
+function PricingCard({ plan, busy, onClickCheckout }: {
+    plan: Plan;
+    busy: boolean;
+    onClickCheckout: (planId: PaidPlan) => void;
+}) {
     const dark = !!plan.highlighted;
     return (
         <div
@@ -109,19 +123,42 @@ function PricingCard({ plan }: { plan: Plan }) {
                     );
                 })}
             </ul>
-            <a
-                href="mailto:support@tailoredad.com?subject=Early%20access%20request"
-                className={`mt-10 inline-flex items-center justify-center rounded-full py-3.5 text-[14px] font-semibold transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] ${
+            <button
+                type="button"
+                onClick={() => onClickCheckout(plan.planId)}
+                disabled={busy}
+                className={`mt-10 inline-flex w-full items-center justify-center rounded-full py-3.5 text-[14px] font-semibold transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 disabled:hover:scale-100 ${
                     dark ? 'bg-canvas text-text1' : 'bg-text1 text-canvas'
                 }`}
             >
-                Get early access
-            </a>
+                {busy ? 'Redirecting…' : 'Get started'}
+            </button>
         </div>
     );
 }
 
 export default function PricingSection() {
+    const { supabaseUser } = useAuth();
+    const router = useRouter();
+    const [busyPlan, setBusyPlan] = useState<PaidPlan | null>(null);
+    const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+    const onClickCheckout = useCallback(async (planId: PaidPlan) => {
+        if (!supabaseUser) {
+            router.push('/sign-in?redirectTo=/#pricing');
+            return;
+        }
+        setCheckoutError(null);
+        setBusyPlan(planId);
+        const url = await polarClientAPI.createCheckout(planId);
+        setBusyPlan(null);
+        if (!url) {
+            setCheckoutError('Could not start checkout. Please try again.');
+            return;
+        }
+        window.location.href = url;
+    }, [supabaseUser, router]);
+
     return (
         <section id="pricing" className="scroll-mt-24 border-t border-hairline bg-surface/40 px-4 py-24 md:py-32">
             <div className="mx-auto max-w-6xl">
@@ -138,10 +175,15 @@ export default function PricingSection() {
                 <div className="mt-16 grid grid-cols-1 gap-6 lg:grid-cols-3">
                     {PLANS.map((plan, index) => (
                         <Reveal key={plan.name} delay={index * 0.08} className={plan.className}>
-                            <PricingCard plan={plan} />
+                            <PricingCard plan={plan} busy={busyPlan === plan.planId} onClickCheckout={onClickCheckout} />
                         </Reveal>
                     ))}
                 </div>
+                {checkoutError && (
+                    <p className="mx-auto mt-6 max-w-2xl text-center text-[13px] font-medium text-red-500">
+                        {checkoutError}
+                    </p>
+                )}
                 <Reveal delay={0.1}>
                     <p className="mx-auto mt-10 max-w-2xl text-center text-[13px] leading-relaxed text-text2">
                         Plans bill monthly. Image counts are matched to current model pricing · we always honor the count we show you today, and we&apos;ll tell you before anything changes.

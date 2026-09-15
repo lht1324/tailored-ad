@@ -3,10 +3,9 @@ import {getFetch, patchFetch} from "@/lib/api/client/baseFetch";
 
 export interface UserUsageSummary {
     plan?: string | null;
-    mode: 'balance' | 'monthly';
+    mode: 'balance';
     used: number;
-    limit?: number;
-    granted?: number;
+    granted: number;
     remaining: number;
     periodStart: string | null;
     periodEnd?: string | null;

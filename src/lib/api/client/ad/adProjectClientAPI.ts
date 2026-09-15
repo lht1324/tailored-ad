@@ -36,6 +36,14 @@ export type AdPipelineStartClientRequest = {
     brandPalette?: string[] | null;
 };
 
+/** 잔액 소진 — /create 업셀 모달 판별용 (402 전용) */
+export class BalanceExhaustedError extends Error {
+    constructor() {
+        super('Image balance exhausted.');
+        this.name = 'BalanceExhaustedError';
+    }
+}
+
 export const adGenerationBatchClientAPI = {
     async listBatches(options?: { limit?: number; offset?: number }): Promise<AdGenerationBatchListResponse> {
         const params = new URLSearchParams();
@@ -74,12 +82,23 @@ export const adGenerationBatchClientAPI = {
     },
 
     async createBatch(request: AdPipelineStartClientRequest): Promise<{ batchId: string }> {
-        const response = await postFetch('/api/image', request);
-        const result = await response.json();
-        if (!result.success || !result.data) {
-            throw new Error(result.error ?? 'Failed to create batch');
+        try {
+            const response = await postFetch('/api/image', request);
+            const result = await response.json();
+            if (!result.success || !result.data) {
+                // gateway가 HTTP 상태로 바꿔 내려 body를 못 읽는 경우 — 402 잔액 소진 판별
+                if (result.status === 402 || /balance exhausted/i.test(result.error ?? '')) {
+                    throw new BalanceExhaustedError();
+                }
+                throw new Error(result.error ?? 'Failed to create batch');
+            }
+            return result.data as { batchId: string };
+        } catch (error) {
+            if (error instanceof Error && /\[402\]/.test(error.message)) {
+                throw new BalanceExhaustedError();
+            }
+            throw error;
         }
-        return result.data as { batchId: string };
     },
 };
 

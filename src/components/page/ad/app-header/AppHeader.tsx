@@ -12,23 +12,27 @@ function planLabel(plan: string | null | undefined): string {
     return plan;
 }
 
-function AppHeader() {
+function AppHeader({ onUsageLoaded }: { onUsageLoaded?: () => void }) {
     const { supabaseUser } = useAuth();
     const [usage, setUsage] = useState<UserUsageSummary | null>(null);
 
     useEffect(() => {
         if (!supabaseUser) {
             setUsage(null);
+            onUsageLoaded?.();
             return;
         }
         let live = true;
         void usersClientAPI.getUserUsageSummary(supabaseUser.id).then((result) => {
-            if (live) setUsage(result);
+            if (live) {
+                setUsage(result);
+                onUsageLoaded?.();
+            }
         });
         return () => {
             live = false;
         };
-    }, [supabaseUser?.id]);
+    }, [supabaseUser?.id, onUsageLoaded]);
     return (
         <header className="fixed inset-x-0 top-4 z-50 px-4">
             <nav className="mx-auto flex max-w-[87.5rem] items-center justify-between rounded-full border border-hairline bg-surface/70 py-2 pl-5 pr-2 backdrop-blur-xl">
@@ -46,13 +50,18 @@ function AppHeader() {
                     >
                         Projects
                     </Link>
-                    <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-text2">
-                        {usage
-                            ? usage.mode === 'balance'
-                                ? `${usage.remaining.toLocaleString()} images left`
-                                : `${usage.used.toLocaleString()} / ${(usage.limit ?? 0).toLocaleString()} images`
-                            : '… images'}
-                    </span>
+                    {usage && usage.remaining <= 0 ? (
+                        <Link
+                            href="/#pricing"
+                            className="rounded-full bg-text1 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-canvas"
+                        >
+                            Upgrade
+                        </Link>
+                    ) : (
+                        <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-text2">
+                            {usage ? `${usage.remaining.toLocaleString()} images left` : '… images'}
+                        </span>
+                    )}
                     <span className="rounded-full border border-hairline px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-text2">
                         {usage ? planLabel(usage.plan) : '… plan'}
                     </span>

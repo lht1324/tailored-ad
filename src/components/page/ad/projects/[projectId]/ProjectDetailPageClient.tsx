@@ -335,6 +335,12 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
         return (
             <>
                 <AppHeader />
+                <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-canvas/80 backdrop-blur-sm">
+                    <Loader2 className="h-8 w-8 animate-spin text-text2" strokeWidth={1.8} />
+                    <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-text2">
+                        Loading project…
+                    </p>
+                </div>
                 <main className="mx-auto max-w-[90rem] px-8 pb-24 pt-32">
                     <div className="animate-pulse space-y-6">
                         <div className="h-6 w-32 rounded bg-canvas" />

@@ -1,5 +1,4 @@
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/supabaseServiceRole";
-import { DEFAULT_MONTHLY_IMAGE_QUOTA, getMonthStartKST } from "@/lib/billing";
 import { User } from "@/lib/api/types/supabase/Users";
 
 /**
@@ -13,14 +12,10 @@ export interface UsageRecord {
     ratioKey: string;
 }
 
-export interface MonthlyUsage {
-    used: number;
-    limit: number;
-    remaining: number;
-    periodStart: string;
-}
+/** 무료 체험 1회 부여량 — 평생 1회, 소멸 없음 */
+export const TRIAL_GRANT_IMAGES = 10;
 
-/** 잔액제 사용량 — 유료(부여 이력 있음) 유저용. 사용은 누적 전체, 소멸 없음(이월). */
+/** 잔액제 사용량 — 누적 부여 − 누적 사용, 소멸 없음(이월). */
 export interface BalanceUsage {
     mode: 'balance';
     used: number; // 누적 사용 (원장 전체)
@@ -30,25 +25,15 @@ export interface BalanceUsage {
     periodEnd: string | null; // 현재 사이클 종료 (없으면 null)
 }
 
-/** 달력월 사용량 — 무료·부여 이력 없음 유저용 (KST 1일 리셋, 기존 동작) */
-export interface CycleUsage {
-    mode: 'monthly';
-    used: number;
-    limit: number;
-    remaining: number;
-    periodStart: string;
-    periodEnd: null;
-}
-
-export type UsageStatus = BalanceUsage | CycleUsage;
+export type UsageStatus = BalanceUsage;
 
 export interface GrantRecord {
     userId: string;
-    polarSubscriptionId: string;
+    polarSubscriptionId: string | null; // trial은 null
     cycleStart: string; // ISO
     cycleEnd: string; // ISO
     granted: number; // 양수=부여, 음수=회수(환불)
-    reason: string; // 'subscription' | 'refund'
+    reason: string; // 'trial' | 'subscription' | 'refund'
 }
 
 export const usageServerAPI = {
@@ -66,31 +51,6 @@ export const usageServerAPI = {
             throw new Error(`Failed to record image usage: ${error.message}`);
         }
         return 'recorded';
-    },
-
-    async countImagesSince(userId: string, sinceIso: string): Promise<number> {
-        const supabase = createSupabaseServiceRoleClient();
-        const { count, error } = await supabase
-            .from('usage_ledger')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', userId)
-            .gte('created_at', sinceIso);
-        if (error) {
-            throw new Error(`Failed to count image usage: ${error.message}`);
-        }
-        return count ?? 0;
-    },
-
-    async getMonthlyUsage(userId: string, limit: number | null): Promise<MonthlyUsage> {
-        const periodStart = getMonthStartKST();
-        const used = await usageServerAPI.countImagesSince(userId, periodStart.toISOString());
-        const quota = limit ?? DEFAULT_MONTHLY_IMAGE_QUOTA;
-        return {
-            used,
-            limit: quota,
-            remaining: Math.max(0, quota - used),
-            periodStart: periodStart.toISOString(),
-        };
     },
 
     // 부여 기록 — append-only. 동일(구독, 사이클, 사유) 중복은 무시, 그 외 실패는 throw
@@ -158,21 +118,50 @@ export const usageServerAPI = {
         return data;
     },
 
-    // 사용량 상태 — 부여 이력 있으면 잔액제, 없으면 KST 달력월제
+    // 사용량 상태 — 잔액제 단일. 부여 이력 없으면 trial 10장 lazy 부여 후 잔액제.
+    // 월 리셋 없음 (무료 폴백 폐지). trial 유니크(user_id WHERE reason='trial')가 동시호출 흡수.
     async getUsageStatus(user: User): Promise<UsageStatus> {
-        const { granted, hasHistory } = await usageServerAPI.sumGrantedAllTime(user.id);
-        if (hasHistory) {
-            const used = await usageServerAPI.countImagesAllTime(user.id);
-            return {
-                mode: 'balance',
-                used,
-                granted,
-                remaining: Math.max(0, granted - used),
-                periodStart: user.subscription_current_period_start ?? null,
-                periodEnd: user.subscription_current_period_end ?? null,
-            };
+        let summary = await usageServerAPI.sumGrantedAllTime(user.id);
+        if (!summary.hasHistory) {
+            // trial 적립 실패해도 조회는 죽이지 않는다 (잔액 0 폴백, 로그로 추적)
+            try {
+                const now = new Date().toISOString();
+                await usageServerAPI.recordGrant({
+                    userId: user.id,
+                    polarSubscriptionId: null,
+                    cycleStart: now,
+                    cycleEnd: now,
+                    granted: TRIAL_GRANT_IMAGES,
+                    reason: 'trial',
+                });
+                summary = await usageServerAPI.sumGrantedAllTime(user.id);
+            } catch (grantError) {
+                console.error(`[usage] trial grant failed (user=${user.id}):`, grantError);
+            }
         }
-        const monthly = await usageServerAPI.getMonthlyUsage(user.id, user.image_limit ?? null);
-        return { ...monthly, mode: 'monthly', periodEnd: null };
+        const used = await usageServerAPI.countImagesAllTime(user.id);
+        return {
+            mode: 'balance',
+            used,
+            granted: summary.granted,
+            remaining: Math.max(0, summary.granted - used),
+            periodStart: user.subscription_current_period_start ?? null,
+            periodEnd: user.subscription_current_period_end ?? null,
+        };
+    },
+
+    // 첫 유료 여부 — 체크아웃 첫주문 할인 eligibility용 (trial은 유료 아님)
+    async hasPaidGrant(userId: string): Promise<boolean> {
+        const supabase = createSupabaseServiceRoleClient();
+        const { count, error } = await supabase
+            .from('subscription_grants')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId)
+            .eq('reason', 'subscription')
+            .limit(1);
+        if (error) {
+            throw new Error(`Failed to check paid grants: ${error.message}`);
+        }
+        return (count ?? 0) > 0;
     },
 };
