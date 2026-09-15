@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-09-15 03:09)
+# TailoredAd — 작업 기록 (Last Updated: 2026-09-15 12:00)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -32,10 +32,14 @@
    `lib/billing.ts` (기본 quota 50 + KST 월경계 — 무료/무이력 폴백용으로 유지),
    `lib/api/server/usageServerAPI.ts` (원장+부여+잔액),
    `lib/polar.ts` (상품 ID 매핑 — 진실원천, 코드 상수),
+   `lib/polarClient.ts` (서버 전용 Polar 싱글톤 — 클라 import 금지),
+   `lib/api/client/polarClientAPI.ts` (체크아웃 생성),
   `components/.../[projectId]/components/compositeDownload.tsx`,
   `components/.../[projectId]/components/DownloadMenuButton.tsx`,
    `app/api/creative/[creative-index]/design/` (에디터 저장 PATCH),
    `app/api/webhook/polar/` (Polar 구독 웹훅 리시버 — 서명 검증+grant 적립),
+   `app/api/polar/checkouts/` (체크아웃 세션 생성 — body `{plan}`만),
+   `app/checkout/success/` + `components/page/checkout/` (결제 성공 읽기전용 화면),
   `app/projects/[projectId]/edit/` + `components/.../edit/` (Remotion 에디터 일체:
   EditorPageClient, AssetTree, Inspector, FontPicker, EditorCanvas, AdStillComposition)
 - **신규 의존성**: `@upstash/redis ^1.38.0`, `@upstash/ratelimit ^2.0.8`,
@@ -69,20 +73,30 @@
 
 ## 4. 결정 사항
 
-- **Supabase**: 신규가 아니라 ShortReal 프로젝트 공유 (비용). 테이블은 `ad_generation_batches` 전용,
-  버킷은 `ad_image_storage` 전용으로 이미 분리됨. `users` 공유 = 로그인 통합 (크로스셀 보너스).
+- **Supabase**: 새 프로젝트로 이전 완료 (short_real 공유 해제 — 사장님 직접.
+  `users`·`ad_generation_batches`·RPC 3종·버킷(새 user_id 경로로 파일까지)·Auth 이전,
+  `next.config.ts` 호스트 교체). realtime·RLS는 신프로젝트 기준 §6 확인 항목 유지.
+- **이전 gotcha**: 옮긴 `subscription_grants`에 `reason` 체크제약이 따라와서 `trial` insert 거부됨.
+  해소: 제약 삭제 후 `('trial','subscription','refund')`로 재생성. 향후 스키마 이전 시 체크제약 확인 필수.
 - **사용량 과금 원장** (코드 완료·SQL/검증 대기): 단위=저장 확정 완성 이미지 1장 (실패·재시도 무료).
   `usage_ledger` append-only 1행=1장, 유니크 `(batch, creative, ratio)`로 중복 흡수.
   후킹점 `process/base`·`process/ratios` 업로드 성공 직후 (실패해도 유저 플로우 계속).
   balance 컬럼 안 씀 (레이스·중복 불가).
-- **잔액제(이월) 확정** (코드 완료·SQL/검증 대기): 결제한 만큼 권리 부여, 미사용분 소멸 없음.
+- **잔액제(이월) 확정** (코드 완료·SQL 실행됨·E2E 대기): 결제한 만큼 권리 부여, 미사용분 소멸 없음.
   `subscription_grants` append-only 1행=1사이클 부여, 유니크 `(구독, 사이클시작, 사유)`로 중복 흡수.
   환불은 음수 grant 행으로 회수 (부분환불도 해당 사이클 전액 회수 — 감사 로그로 추적).
-  `remaining = 누적부여 − 누적사용`. 부여 이력 있는 유저만 잔액제,
-  없으면 기존 KST 달력월제 (`limit − COUNT`, NULL→기본 50) 폴백.
+  `remaining = 누적부여 − 누적사용`. 월 리셋 폐지 — KST 달력월 코드 삭제됨.
   주기는 구독 결제일 기준 (`users.subscription_current_period_start/end`, Polar 웹훅 동기화).
   진입 가드 `POST /api/image` 402 (잔액 소진 시) + 헤더 `N images left` 표시.
-  테이블 DDL 2종(`usage_ledger`, `subscription_grants` + users 주기 컬럼)은 사장님이 대시보드에 직접 생성.
+- **무료 정책 확정** (월 50 폐지): trial 10장 평생 1회, lazy 부여 (`getUsageStatus` 내,
+  partial unique `(user_id) WHERE reason='trial'`로 동시호출 흡수). trial SQL 실행됨
+  (`polar_subscription_id` nullable 포함). 잔액 0이면 하드게이트:
+  402 + `/create` 업셀 모달 (`BalanceExhaustedError` 판별) + 헤더 Upgrade pill.
+  trial 적립 실패는 fail-soft (잔액 0 + 로그, 조회 500 방지).
+- **첫 유료 자동 할인** (코드 완료·discount ID 대기): 체크아웃 생성 시 유료 이력 없으면
+  `discount_id` 자동 첨부 (`POLAR_FIRST_ORDER_DISCOUNT_ID` env, 없으면 정가 진행).
+  코드 입력칸은 안 켬 (유출 원천 차단). 사장님이 코드 없는 discount 만들고 ID 전달 예정.
+  duration 첫 결제 확인 필요.
 - **결제(Polar 확정, Dodo 탈락)**: Dodo는 한국 신분증이 Persona 인증에서 거부됨
   (허용 목록엔 KR 있으나 템플릿 미포함 — Dodo 설정 문제, 지원팀 메일 양식 전달됨).
   글로벌 타겟이라 카카오·네이버페이 강점도 무의미 + 수수료 동점(국제구독 실효 ~6%)이라 Polar로 런칭 확정.
@@ -96,19 +110,28 @@
   (서명 검증, active/cycled/updated→부여+동기화, canceled/revoked→잔액유지·플랜표시만 해제,
   order.refunded→회수). 구독 이벤트 6종 등록 필요
   (active/cycled/updated/canceled/revoked + order.refunded).
-- **가정 (사장님 미확정 — 다르면 수정)**: 해지·만료 후 잔액 계속 사용 가능,
+- **가정 → 확정** (번들 승인으로): 해지·만료 후 잔액 계속 사용 가능,
   다운그레이드 시 잔액 유지+다음 사이클부터 적은数 부여, 환불 시 해당 사이클 전액 회수.
+  FAQ 2개(이월·해지)도 정책 문구로 정합화됨.
+- **Hero CTA 4분기**: 비로그인→`/create`, trial+0→`/#pricing`, 로그인 그 외→`/projects`
+  (plan 값으로 구독 판별). 헤더 표기는 `N images left` 확정 (이월제라 M/N 불가).
+- **결제 확인 원칙**: `return_url` 읽기전용 + 웹훅 쓰기 (콜백 부여 금지).
+  성공 페이지는 Realtime primary + 30초 타임아웃 폴백 (폴링 기각).
+- **돈문 위치**: 구독 게이트 없음 (`proxy`·gateway는 로그인만). 402+업셀이 유일한 돈문.
+- **Polar 샌드박스 미지원**: 코드 프로덕션 고정. 필요 시 `POLAR_ENV` 분기 (half-day).
+- **로딩 오버레이**: Projects (목록+헤더 사용량 둘 다 해제 조건, `AppHeader onUsageLoaded`),
+  Detail (초기 `loading` 구간). 수동 Refresh는 인라인 유지.
 - **Supabase 신 API 키로 전환**: `*_ANON_KEY` → `*_PUBLISHABLE_KEY`,
   `SERVICE_ROLE` → `SECRET` (코드 5파일 7곳 교체 완료, 구이름 잔재 0).
   `.env.local`에 신구 공존 중, 동작 확인 후 구이름은 사장님이 직접 삭제.
   신형이 구형과 권한·RLS·Auth 동일 + 코드에 JWT 파싱 없음 확인済み.
   레거시는 2026년 말 삭제 예정이라 신형으로 직행 (SDK 2.115 호환).
-- **Polar 체크아웃 설계 완료·구현은 다른 PC로 이관**: `POST /api/polar/checkouts`
+- **Polar 체크아웃 구현 완료** (설계→구현): `POST /api/polar/checkouts`
   (S2S 가드, body는 `{plan}`만 → 서버가 `POLAR_PRODUCT_BY_PLAN` 매핑,
-  userId는 gateway 주입값 사용) + `polarClientAPI.postPolarCheckouts` +
-  PricingSection 버튼 배선. SDK 실측: `externalCustomerId` 파라미터 존재 확인
-  (웹훅 `customer.external_id` 매핑용). 비로그인 클릭 →
-  `/sign-in?redirectTo=pricing` 경유. orders/구독변경/취소는 MVP 제외.
+  userId는 gateway 주입값 사용) + `polarClientAPI.createCheckout` +
+  PricingSection 버튼 배선 (mailto 제거, 비로그인 → `/sign-in?redirectTo=/#pricing`).
+  `externalCustomerId` + `metadata.userId` 이중 기록 (웹훅 매칭용).
+  성공 페이지 `/checkout/success` (Realtime+폴백). orders/구독변경/취소는 MVP 제외.
 - **데모 이미지**: short_real preview 9종 복사했다가 전량 삭제. 도그푸딩(실생성물)으로 채울 예정.
 - **shortreal.ai/ad**: 런칭 당일 301 → tailoredad.com 후 은퇴.
 - **랜딩 로그인 진입**: 서버 리다이렉트(/→/projects) 대신 헤더 조건부 UI (비로그인: Sign in + Start creating / 로그인: Open studio). 마케팅+제품 단일도메인 표준.
@@ -147,14 +170,14 @@
 - [ ] Polar 과금 연결 (블로커 — 진행 중):
   - [x] 상품 3종 + metadata + Checkout Description
   - [x] `lib/polar.ts` 매핑표, 웹훅 리시버, 잔액제 코드
-  - [ ] Supabase SQL 2종 (`usage_ledger`, `subscription_grants` + users 주기 컬럼)
+  - [x] Supabase SQL 2종 + users 주기 컬럼 + trial SQL (실행됨)
   - [x] `npm install` (`@polar-sh/sdk` 0.49.0 설치 확인)
-  - [ ] Polar 대시보드 웹훅 등록 (ngrok URL + `/api/webhook/polar`, raw, 이벤트 6종) +
-    `POLAR_WEBHOOK_SECRET`을 `.env.local`에 추가
-  - [ ] 체크아웃 생성 API + 요금제 버튼 배선 (다음 작업 — **체크아웃 생성 시
-    customer `external_id` = 우리 userId 필수**, 안 그러면 웹훅 매핑 불가)
-  - [ ] E2E 테스트 (결제 → grant → 잔액 표시 → 생성 → 차감)
-  - [ ] Cloudflare Secrets에 `POLAR_API_KEY`·`POLAR_WEBHOOK_SECRET` 등록 (배포 때)
+  - [x] Polar 대시보드 웹훅 등록 (ngrok URL + `/api/webhook/polar`, raw, 이벤트 6종, API 버전 2026-04) +
+    `POLAR_WEBHOOK_SECRET` 입력됨
+  - [x] 체크아웃 생성 API + 요금제 버튼 배선 + 성공 페이지
+  - [ ] 코드 없는 discount 생성 + `POLAR_FIRST_ORDER_DISCOUNT_ID` 입력 (사장님, duration 첫 결제 확인)
+  - [ ] E2E 테스트 (결제 → grant → 잔액 표시 → 생성 → 차감 → 환불 회수)
+  - [ ] Cloudflare Secrets에 `POLAR_API_KEY`·`POLAR_WEBHOOK_SECRET`·`POLAR_FIRST_ORDER_DISCOUNT_ID` 등록 (배포 때)
 - [ ] 약관 실체 검토 (한국 조항 유지 여부 포함)
 - [ ] `tailorad.com` 구매 + 리다이렉트
 - [ ] `shortreal.ai/ad` → 301 (런칭 당일)
@@ -171,8 +194,10 @@
 
 - [x] 에디터에서 다운로드 (탑바 Download, 현재 캔버스 스냅샷 — 완료)
 - [x] 실사용량 표시 (원장+헤더 실측 — 코드 완료, **대시보드 SQL 실행 + 생성 테스트 검증 대기**)
-- [x] 잔액제·Polar 웹훅 코드 (위 Polar 항목의 코드 부분 완료, SQL·키·웹훅등록·E2E 대기)
-- [ ] 체크아웃 생성 API + 요금제 버튼 배선 (다음 순서 1순위)
+- [x] 잔액제·Polar 웹훅 코드 (위 Polar 항목의 코드 부분 완료, E2E·discount ID 대기)
+- [x] 체크아웃 생성 API + 요금제 버튼 배선 + 성공 페이지
+- [x] Trial 10장 + 하드게이트 + Hero CTA + 로딩 오버레이
+- [ ] E2E 테스트 (다음 순서 1순위 — discount ID 들어오면 같이 검증)
 - [ ] 낱장 Regenerate (실패 타일 살리기 + 재추첨. 뒷단 재제출 경로 존재, UI 배선만 — 제안됨, 미확정)
 - [ ] 브랜드 킷 (로고·팔레트·폰트·CTA 유저 저장 + 생성 프리필 — 제안됨, 미확정)
 - [ ] 모바일 분리: 공유 파일에 반응형 추가 금지 (split 때 삭제 대상). 모바일은 현상 동결.
@@ -201,7 +226,8 @@ npm run deploy   # opennext build + deploy (master에서)
 - Upstash: `tailored-ad-ratelimit` (AWS 도쿄, Free, eviction ON). 월 명령어 40만 전후로 PAYG 전환 + budget cap.
 - dev `BASE_URL`은 ngrok 주소 경유 (ngrok 꺼지면 self-fetch DOCTYPE 500 — ngrok 켜둘 것).
 - Polar: OAT는 생성 시 1회만 표시 (분실 시 폐기 후 재생성). PC·환경별 토큰 분리 권장.
-  웹훅 endpoint는 대시보드 등록 (dev는 ngrok URL + `/api/webhook/polar`).
-  `.env.local` 필요 키: `POLAR_API_KEY` + `POLAR_WEBHOOK_SECRET` (사장님이 직접 입력, 채팅 금지).
+  웹훅 endpoint는 대시보드 등록 (dev는 ngrok URL + `/api/webhook/polar`, raw, 2026-04).
+  `.env.local` 필요 키: `POLAR_API_KEY` + `POLAR_WEBHOOK_SECRET` +
+  `POLAR_FIRST_ORDER_DISCOUNT_ID` (사장님이 직접 입력, 채팅 금지).
 
 (End of file)
