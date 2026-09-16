@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-09-16 13:00)
+# TailoredAd — 작업 기록 (Last Updated: 2026-09-17 03:44)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -146,6 +146,13 @@
   에디터 토글 시 헤드라인 아래 자동 배치 (맹목 x8/y80 삭제).
 - **CTA 색 enum 미착수**: 글자/배경 `white|black` 추출 제안됨, border·패딩값은 기각 (em 공식).
   프롬프트 Unit 2 + 스키마 + 타입 + 렌더 + Inspector 손봐야 함.
+- **크리에이티브 프롬프트 3-way 분리** (단일 파일, 통짜 3벌):
+  `PRODUCT_ONLY` / `PERSON_ONLY` / `POST_AD_CREATIVE_PROMPT`(combined) +
+  호출부 `selectCreativePrompt` 선택. 순수 규칙: 상대 input 언급 전면 제거
+  (앵커·노트·예시 포함, 축 테이블은 공유 유지). 관계 어휘 4종
+  (holding/wearing/using/beside) + 카메라 중재 규칙. Few-shot 13개
+  (5/4/4, 단어 수·seed 일관성 검증済み). 출력 스키마 동일이라 파서·DB 무영향.
+  별도 결함 수정 포함: logo 서수 하드코딩→order list 참조, Ex2 verbatim 교정.
 - **타일 vs 라이트박스 CTA 분쟁 중**: 모달은 공식 일치 실측됨. 타일 측정값이 CSS 산수와
   모순 (em 기준·폰트 혼재) → 노드 혼동 유력. 안쪽 알약 단독 재측정 대기 중.
 - **관측 메모**: `external_id` null로 옴 (metadata fallback으로 커버, 코드 수정 없음).
@@ -233,6 +240,7 @@
 - [x] Trial 10장 + 하드게이트 + Hero CTA + 로딩 오버레이
 - [x] 웹훅 403 해결 + 수신/처리 분리 (E2E grant 적립 확인)
 - [ ] E2E 테스트 (다음 순서 1순위 — 생성→차감→환불 회수 남음, 테스트 계정 정리 후)
+- [ ] 프롬프트 3-way eyeball (케이스별 1배치 — product 회귀 우선 → person → combined 순. quota 소모 유의)
 - [ ] 타일 CTA 재측정 판정 (위 분쟁 항목)
 - [ ] CTA 색 enum 추출 (제안됨, 미확정)
 - [ ] 낱장 Regenerate (실패 타일 살리기 + 재추첨. 뒷단 재제출 경로 존재, UI 배선만 — 제안됨, 미확정)

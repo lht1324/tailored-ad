@@ -2,7 +2,7 @@ import { AdCopySpec, AdCreativeSpec, AdImageResult, AdRatioKey } from "@/lib/api
 import { AdDesignLayout } from "@/lib/api/client/ad/adClientAPI";
 import { cleanAndParseJSON } from "@/lib/utils/jsonUtils";
 import { OpenRouterClient, OpenRouterModel } from "@/lib/OpenRouterClient";
-import { POST_AD_CREATIVE_PROMPT } from "@/lib/llm-prompts/ad/POST_AD_CREATIVE_PROMPT";
+import { selectCreativePrompt } from "@/lib/llm-prompts/ad/POST_AD_CREATIVE_PROMPT";
 import { POST_AD_IMAGE_ANALYSIS_PROMPT } from "@/lib/llm-prompts/ad/POST_AD_IMAGE_ANALYSIS_PROMPT";
 import { fontMap } from "@/lib/fonts";
 
@@ -95,7 +95,7 @@ Instruction: Generate ratio-specific I2I captions and ad copy according to the s
             const generatedContent = await client.createCompletion(
                 {
                     model: OpenRouterModel.GLM_5_3_FLASH,
-                    systemMessage: POST_AD_CREATIVE_PROMPT,
+                    systemMessage: selectCreativePrompt(Boolean(productImageBase64), Boolean(personImageBase64)),
                     userMessage,
                     imageBase64List: imageBase64List.length > 0 ? imageBase64List : undefined,
                     imageDetail: "high",
