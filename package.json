@@ -32,7 +32,8 @@
     "react-dom": "19.2.8",
     "react-markdown": "^10.1.0",
     "remotion": "4.0.458",
-    "replicate": "^1.4.0"
+    "replicate": "^1.4.0",
+    "standardwebhooks": "^1.1.1"
   },
   "devDependencies": {
     "@opennextjs/cloudflare": "^1.20.6",

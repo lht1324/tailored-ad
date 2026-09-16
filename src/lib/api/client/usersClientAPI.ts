@@ -7,6 +7,7 @@ export interface UserUsageSummary {
     used: number;
     granted: number;
     remaining: number;
+    hasPaid: boolean;
     periodStart: string | null;
     periodEnd?: string | null;
 }

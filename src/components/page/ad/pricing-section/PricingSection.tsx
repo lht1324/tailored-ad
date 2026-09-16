@@ -1,11 +1,12 @@
 'use client'
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check } from 'lucide-react';
 import Reveal from "@/components/page/ad/Reveal";
 import { useAuth } from "@/context/AuthContext";
 import { polarClientAPI } from "@/lib/api/client/polarClientAPI";
+import { usersClientAPI } from "@/lib/api/client/usersClientAPI";
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
 import type { PaidPlan } from "@/lib/polar";
 
@@ -15,7 +16,6 @@ interface Plan {
     price: number;
     images: string;
     perImage: string;
-    highlighted?: boolean;
     className?: string;
     features: string[];
 }
@@ -27,14 +27,13 @@ const PLANS: Plan[] = [
         price: 9,
         images: '100 images / month',
         perImage: '$0.090 / image',
-        highlighted: true,
         className: 'md:translate-y-6',
         features: [
             'Quality-gated batches',
             'All sizes: 1:1, 4:5, 9:16, 16:9, 2:3',
             'Multi-reference compositing',
             'Unlimited downloads',
-            'Unused images roll over',
+            'Unused images never expire',
             'Deterministic type & logo',
         ],
     },
@@ -64,46 +63,63 @@ const PLANS: Plan[] = [
     },
 ];
 
-function PricingCard({ plan, busy, onClickCheckout }: {
+function PricingCard({ plan, busy, showDiscountNote, onClickCheckout }: {
     plan: Plan;
     busy: boolean;
+    showDiscountNote: boolean;
     onClickCheckout: (planId: PaidPlan) => void;
 }) {
-    const dark = !!plan.highlighted;
     return (
         <div
-            className={`relative flex h-full flex-col rounded-[1.5rem] border p-8 md:p-9 ${
-                dark
-                    ? 'border-accent bg-accent shadow-[0_36px_90px_-32px_rgba(239,43,112,0.6)]'
-                    : 'border-hairline bg-surface shadow-[0_24px_60px_-30px_rgba(0,0,0,0.7)]'
-            }`}
+            className="flex h-full flex-col rounded-[1.5rem] border border-hairline bg-surface p-8 shadow-[0_24px_60px_-30px_rgba(0,0,0,0.7)] md:p-9"
         >
-            <h3 className={`text-[15px] font-semibold tracking-tight ${dark ? 'text-canvas' : 'text-text1'}`}>
-                {plan.name}
-            </h3>
-            <div className={`mt-6 flex items-baseline gap-1.5 ${dark ? 'text-canvas' : 'text-text1'}`}>
-                <span className="text-5xl font-bold tracking-tight">
-                    ${plan.price}
-                </span>
-                <span className={`text-[15px] font-medium ${dark ? 'text-canvas/75' : 'text-text2'}`}>/ mo</span>
+            <div className="flex items-center justify-between gap-3">
+                <h3 className="text-[15px] font-semibold tracking-tight text-text1">
+                    {plan.name}
+                </h3>
+                {showDiscountNote && (
+                    <span className="whitespace-nowrap rounded-full border border-accent px-2.5 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-accent">
+                        −50% first month
+                    </span>
+                )}
             </div>
-            <p className={`mt-4 font-mono text-[11px] uppercase tracking-[0.18em] ${dark ? 'text-canvas/75' : 'text-text2'}`}>
+            <div className="mt-6 flex items-baseline gap-1.5 text-text1">
+                {showDiscountNote ? (
+                    <>
+                        <span className="text-3xl font-medium tracking-tight text-text2/60 line-through">
+                            ${plan.price}
+                        </span>
+                        <span className="text-5xl font-bold tracking-tight">
+                            ${(plan.price / 2).toFixed(2)}
+                        </span>
+                    </>
+                ) : (
+                    <span className="text-5xl font-bold tracking-tight">
+                        ${plan.price}
+                    </span>
+                )}
+                <span className="text-[15px] font-medium text-text2">/ mo</span>
+            </div>
+            <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.18em] text-text2">
                 {plan.images}
             </p>
-            <p className={`mt-1.5 font-mono text-[11px] uppercase tracking-[0.18em] ${dark ? 'text-canvas' : 'text-accent'}`}>
+            <p className="mt-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-accent">
                 {plan.perImage}
             </p>
+            {showDiscountNote && (
+                <p className="mt-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-text2">
+                    then ${plan.price}/mo
+                </p>
+            )}
             <ul className="mt-8 flex-1 space-y-3.5">
                 {plan.features.map((feature) => {
                     const unlimited = feature.includes('Unlimited downloads');
                     return (
                         <li
                             key={feature}
-                            className={`flex items-start gap-3 text-[14px] leading-snug ${
-                                dark ? 'text-canvas/85' : 'text-text2'
-                            } ${unlimited ? (dark ? 'font-semibold text-canvas' : 'font-semibold text-text1') : ''}`}
+                            className={`flex items-start gap-3 text-[14px] leading-snug text-text2 ${unlimited ? 'font-semibold text-text1' : ''}`}
                         >
-                            <Check size={15} strokeWidth={2} className={`mt-0.5 shrink-0 ${dark ? 'text-canvas' : 'text-accent'}`} />
+                            <Check size={15} strokeWidth={2} className="mt-0.5 shrink-0 text-accent" />
                             {feature}
                         </li>
                     );
@@ -113,9 +129,7 @@ function PricingCard({ plan, busy, onClickCheckout }: {
                 type="button"
                 onClick={() => onClickCheckout(plan.planId)}
                 disabled={busy}
-                className={`mt-10 inline-flex w-full items-center justify-center rounded-full py-3.5 text-[14px] font-semibold transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 disabled:hover:scale-100 ${
-                    dark ? 'bg-canvas text-text1' : 'bg-text1 text-canvas'
-                }`}
+                className="mt-10 inline-flex w-full items-center justify-center rounded-full bg-text1 py-3.5 text-[14px] font-semibold text-canvas transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 disabled:hover:scale-100"
             >
                 {busy ? 'Redirecting…' : `Choose ${plan.name}`}
             </button>
@@ -128,6 +142,23 @@ export default function PricingSection() {
     const router = useRouter();
     const [busyPlan, setBusyPlan] = useState<PaidPlan | null>(null);
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
+    const [discountEligible, setDiscountEligible] = useState(false);
+
+    // 첫주문 할인 대상 여부 — 유료 이력 없는 로그인 유저에게만 Starter 카드에 표시
+    useEffect(() => {
+        if (!supabaseUser) return;
+        let live = true;
+        // 동기 setState는 lint(react-hooks/set-state-in-effect) 위반이라 마이크로태스크로 지연
+        void Promise.resolve().then(() => {
+            if (!live) return;
+            void usersClientAPI.getUserUsageSummary(supabaseUser.id).then((summary) => {
+                if (live) setDiscountEligible(!!summary && !summary.hasPaid);
+            });
+        });
+        return () => {
+            live = false;
+        };
+    }, [supabaseUser?.id]);
 
     const onClickCheckout = useCallback(async (planId: PaidPlan) => {
         if (!supabaseUser) {
@@ -161,7 +192,12 @@ export default function PricingSection() {
                 <div className="mt-16 grid grid-cols-1 gap-6 lg:grid-cols-3">
                     {PLANS.map((plan, index) => (
                         <Reveal key={plan.name} delay={index * 0.08} className={plan.className}>
-                            <PricingCard plan={plan} busy={busyPlan === plan.planId} onClickCheckout={onClickCheckout} />
+                            <PricingCard
+                                plan={plan}
+                                busy={busyPlan === plan.planId}
+                                showDiscountNote={discountEligible && plan.planId === SubscriptionPlan.PLAN_1}
+                                onClickCheckout={onClickCheckout}
+                            />
                         </Reveal>
                     ))}
                 </div>

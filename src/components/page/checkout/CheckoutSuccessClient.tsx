@@ -16,7 +16,7 @@ const CONFIRM_TIMEOUT_MS = 30000;
  * Realtime primary (내 grants INSERT 감지) + 30초 타임아웃 폴백 (수동 새로고침).
  */
 function CheckoutSuccessClient() {
-    const { supabaseUser } = useAuth();
+    const { supabaseUser, isInitializingAuthContext } = useAuth();
     const userId = supabaseUser?.id;
     const [status, setStatus] = useState<SuccessStatus>('checking');
     const [usage, setUsage] = useState<UserUsageSummary | null>(null);
@@ -85,6 +85,16 @@ function CheckoutSuccessClient() {
         if (!usage) return null;
         return `${usage.remaining.toLocaleString()} images available`;
     }, [usage]);
+
+    if (isInitializingAuthContext) {
+        return (
+            <main className="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center px-4 text-center">
+                <Loader2 className="h-10 w-10 animate-spin text-text2" strokeWidth={1.8} />
+                <h1 className="mt-5 text-2xl font-bold tracking-tight text-text1">Confirming your payment…</h1>
+                <p className="mt-3 text-[15px] text-text2">This usually takes a few seconds. Don&apos;t close this tab.</p>
+            </main>
+        );
+    }
 
     if (!supabaseUser) {
         return (

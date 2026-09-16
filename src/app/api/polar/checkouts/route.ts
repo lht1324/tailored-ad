@@ -13,6 +13,13 @@ const VALID_PLANS: PaidPlan[] = [
     SubscriptionPlan.PLAN_3,
 ];
 
+// dev(ngrok 경유 결제) → 결제한 브라우저 세션이 있는 로컬 클라로 복귀.
+// prod → 실도메인. origin이 갈리면 세션이 안 보여서 분기 필수.
+const isProd = process.env.NODE_ENV === "production";
+const SUCCESS_URL = isProd
+    ? `${process.env.BASE_URL}/checkout/success`
+    : "http://localhost:3000/checkout/success";
+
 /**
  * Polar 체크아웃 세션 생성 — POST /api/polar/checkouts
  * C2S 진입은 client-gateway 경유 (gateway가 세션 검증 + userId 주입).
@@ -95,7 +102,7 @@ export async function POST(request: NextRequest) {
             customerEmail: user.email,
             customerMetadata: { userId },
             metadata: { userId },
-            successUrl: `${process.env.BASE_URL}/checkout/success`,
+            successUrl: SUCCESS_URL,
             allowTrial: false,
             ...(discountId ? { discountId } : {}),
         });

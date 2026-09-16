@@ -4,8 +4,21 @@ const isDev = process.env.NODE_ENV === "development";
 // docker-compose.yml 확인
 const isDocker = process.env.DOCKER === "true";
 
+// dev HMR 허용 호스트 — ngrok 경유 접속 시에만 (재시작마다 바뀌므로 env에서 파생, 하드코딩 금지)
+const ngrokHostname = (() => {
+    try {
+        const { hostname } = new URL(process.env.NEXT_PUBLIC_BASE_URL ?? "");
+        return hostname.endsWith(".ngrok-free.dev") || hostname.endsWith(".ngrok.io")
+            ? hostname
+            : null;
+    } catch {
+        return null;
+    }
+})();
+
 const nextConfig: NextConfig = {
   distDir: isDocker ? ".next-docker" : ".next",
+  ...(isDev && ngrokHostname ? { allowedDevOrigins: [ngrokHostname] } : {}),
 
   images: {
     remotePatterns: [

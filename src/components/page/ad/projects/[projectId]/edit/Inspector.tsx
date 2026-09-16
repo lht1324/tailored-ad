@@ -210,18 +210,36 @@ function Inspector({ design, copy, score, disabled, aspectRatio, brandPalette, o
         if (design.cta) {
             onChangeDesign({ ...design, cta: null });
         } else {
+            // 헤드라인 아래 자동 배치 (프롬프트 Unit 2 공식, 가상 1000px 캔버스 실측 줄수)
+            // 맹목 고정값(x8/y80) 금지 — 겹침 깨짐의 원인
+            const headline = design.headline;
+            let x = 8;
+            let y = 80;
+            if (headline) {
+                const H = 1000;
+                const W = H * aspectRatio;
+                const fontPx = (headline.fontSizePct / 100) * H;
+                const boxPx = (headline.maxWidth / 100) * W;
+                const lines = estimateWrappedLines(
+                    copy.headline ?? headline.text,
+                    `${currentWeight} ${fontPx}px ${currentFamilyStack}`,
+                    boxPx,
+                );
+                x = Math.min(90, Math.max(2, headline.x));
+                y = Math.min(90, headline.y + lines * headline.fontSizePct * 1.4 + 3);
+            }
             onChangeDesign({
                 ...design,
                 cta: {
                     text: copy.cta ?? 'Shop Now',
-                    x: 8,
-                    y: 80,
+                    x: Math.round(x),
+                    y: Math.round(y),
                     widthPct: 30,
                     fontSizePct: 2.4,
                 } as AdDesignLayout['cta'],
             });
         }
-    }, [design, copy.cta, onChangeDesign]);
+    }, [design, copy.cta, copy.headline, aspectRatio, currentFamilyStack, currentWeight, onChangeDesign]);
 
     const onClickToggleScrim = useCallback(() => {
         onChangeDesign({ ...design, scrim: !design.scrim });

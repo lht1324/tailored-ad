@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-09-16 03:34)
+# TailoredAd — 작업 기록 (Last Updated: 2026-09-16 13:00)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -46,7 +46,8 @@
   `html-to-image ^1.11.13`, `jszip ^3.10.1`, `@types/jszip ^3.4.1`,
   `remotion 4.0.458` + `@remotion/player 4.0.458` (exact 고정, 공식 지침),
   `@polar-sh/sdk 0.49.0` (exact 고정, SDK beta라 pin 권고. 설치 확인.
-  `npm install`이 caret로 바꾼 흔적 있어 exact로 복원함 — 재발 시 확인)
+  `npm install`이 caret로 바꾼 흔적 있어 exact로 복원함 — 재발 시 확인),
+  `standardwebhooks ^1.1.1` (웹훅 서명 직접 검증용 — 아래 403 건)
 
 ## 3. 분리 시 적용한 변경
 
@@ -128,8 +129,29 @@
   상품 ID도 환경별 매핑 (`POLAR_PRODUCT_BY_PLAN`/`POLAR_SANDBOX_PRODUCT_BY_PLAN`,
   샌드박스 ID는 대시보드 생성 후 기입 대기). dev env는 샌드박스 OAT+시크릿,
   prod는 프로덕션 OAT+시크릿 (키·조직 불일치 시 401 `invalid_token`).
-- **로딩 오버레이**: Projects (목록+헤더 사용량 둘 다 해제 조건, `AppHeader onUsageLoaded`),
-  Detail (초기 `loading` 구간). 수동 Refresh는 인라인 유지.
+- **웹훅 403 해결** (09-16): 원인 = Polar SDK 0.49.0이 시크릿 전체를 base64 재인코딩.
+  09-08 이후 `whsec_` 시크릿과 충돌 → 값 맞아도 확정 403. 문서는 `polar_whs_` 날것 전제라 서로 모순.
+  수정: 수신부에서 `standardwebhooks` 직접 검증 (`whsec_` 통째로). 로컬 왕복 테스트 통과,
+  실전 200 확인 (receiver→process 연쇄). 체크아웃 SDK 호출은 그대로.
+- **웹훅 수신/처리 분리**: `/api/webhook/polar` (검증→전달→즉시 200) + `/api/polar/process`
+  (S2S 전용 핸들러). Replicate 리시버와 동일 계약.
+- **successUrl 환경 분기**: prod → `BASE_URL`, dev → `localhost:3000` (세션 오리진 일치용).
+- **성공 페이지 Auth 초기화 게이트**: 세션 복원 전 Sign in 오판 수정.
+- **next.config allowedDevOrigins**: ngrok 호스트 env 파생 허용 (dev HMR 경고 해소, 재시작 필요).
+- **Pricing 추가 정리**: 에디터 줄 삭제→FAQ 이전 (`Does editing cost images?`),
+  `roll over`→`never expire`, 강조 메커니즘 삭제 (3장 동일 카드),
+  첫달가 표시 (~~$9~~ $4.50 + 플랜명 옆 뱃지 + `then $9/mo`), em dash 제거.
+- **CTA 렌더 개선** (`AdOverlay`): 헤드라인 hug (`fit-content`+maxWidth 캡),
+  알약 hug (em 패딩+nowrap, 바깥 틀 안 중앙 정렬), 행간 명시 (상속 variance 차단),
+  에디터 토글 시 헤드라인 아래 자동 배치 (맹목 x8/y80 삭제).
+- **CTA 색 enum 미착수**: 글자/배경 `white|black` 추출 제안됨, border·패딩값은 기각 (em 공식).
+  프롬프트 Unit 2 + 스키마 + 타입 + 렌더 + Inspector 손봐야 함.
+- **타일 vs 라이트박스 CTA 분쟁 중**: 모달은 공식 일치 실측됨. 타일 측정값이 CSS 산수와
+  모순 (em 기준·폰트 혼재) → 노드 혼동 유력. 안쪽 알약 단독 재측정 대기 중.
+- **관측 메모**: `external_id` null로 옴 (metadata fallback으로 커버, 코드 수정 없음).
+  테스트 잔액 부풀음 (subscription 100×3 + trial 10 — E2E 전 테스트 계정 정리 필요).
+  endpoint 10연속 실패 시 자동 비활성화 — 대시보드 확인 필수.
+  checkout 200 ≠ grant (성공 페이지는 읽기전용).
 - **Supabase 신 API 키로 전환**: `*_ANON_KEY` → `*_PUBLISHABLE_KEY`,
   `SERVICE_ROLE` → `SECRET` (코드 5파일 7곳 교체 완료, 구이름 잔재 0).
   `.env.local`에 신구 공존 중, 동작 확인 후 구이름은 사장님이 직접 삭제.
@@ -206,10 +228,13 @@
 
 - [x] 에디터에서 다운로드 (탑바 Download, 현재 캔버스 스냅샷 — 완료)
 - [x] 실사용량 표시 (원장+헤더 실측 — 코드 완료, **대시보드 SQL 실행 + 생성 테스트 검증 대기**)
-- [x] 잔액제·Polar 웹훅 코드 (위 Polar 항목의 코드 부분 완료, E2E·discount ID 대기)
+- [x] 잔액제·Polar 웹훅 코드 (완료, E2E 중 생성→차감→환불 남음)
 - [x] 체크아웃 생성 API + 요금제 버튼 배선 + 성공 페이지
 - [x] Trial 10장 + 하드게이트 + Hero CTA + 로딩 오버레이
-- [ ] E2E 테스트 (다음 순서 1순위 — discount ID 들어오면 같이 검증)
+- [x] 웹훅 403 해결 + 수신/처리 분리 (E2E grant 적립 확인)
+- [ ] E2E 테스트 (다음 순서 1순위 — 생성→차감→환불 회수 남음, 테스트 계정 정리 후)
+- [ ] 타일 CTA 재측정 판정 (위 분쟁 항목)
+- [ ] CTA 색 enum 추출 (제안됨, 미확정)
 - [ ] 낱장 Regenerate (실패 타일 살리기 + 재추첨. 뒷단 재제출 경로 존재, UI 배선만 — 제안됨, 미확정)
 - [ ] 브랜드 킷 (로고·팔레트·폰트·CTA 유저 저장 + 생성 프리필 — 제안됨, 미확정)
 - [ ] 모바일 분리: 공유 파일에 반응형 추가 금지 (split 때 삭제 대상). 모바일은 현상 동결.

@@ -8,7 +8,11 @@ import Reveal from "@/components/page/ad/Reveal";
 const FAQ_ITEMS: { question: string; answer: string[] }[] = [
     {
         question: 'How is billing calculated?',
-        answer: ['You pay for generation batches. One batch is one quality-gated set of candidates. Downloads, size variants, and re-renders are free and unlimited. We never charge you per candidate image.'],
+        answer: ['You pay for the images you generate, not downloads. Every batch is quality-gated. Failures are on us.'],
+    },
+    {
+        question: 'Does editing cost images?',
+        answer: ['No. Editor tweaks and re-exports are free and unlimited. Only AI generation uses your balance.'],
     },
     {
         question: 'Do unused images expire?',

@@ -21,6 +21,7 @@ export interface BalanceUsage {
     used: number; // 누적 사용 (원장 전체)
     granted: number; // 누적 부여 (grants 합)
     remaining: number; // granted - used (0 하한)
+    hasPaid: boolean; // 유료(subscription) 부여 이력 — 첫주문 할인 eligibility용
     periodStart: string | null; // 현재 사이클 시작 (없으면 null)
     periodEnd: string | null; // 현재 사이클 종료 (없으면 null)
 }
@@ -71,11 +72,11 @@ export const usageServerAPI = {
         return 'recorded';
     },
 
-    async sumGrantedAllTime(userId: string): Promise<{ granted: number; hasHistory: boolean }> {
+    async sumGrantedAllTime(userId: string): Promise<{ granted: number; hasHistory: boolean; hasPaid: boolean }> {
         const supabase = createSupabaseServiceRoleClient();
         const { data, error } = await supabase
             .from('subscription_grants')
-            .select('granted')
+            .select('granted, reason')
             .eq('user_id', userId);
         if (error) {
             throw new Error(`Failed to sum grants: ${error.message}`);
@@ -84,6 +85,7 @@ export const usageServerAPI = {
         return {
             granted: rows.reduce((sum, row) => sum + (row.granted ?? 0), 0),
             hasHistory: rows.length > 0,
+            hasPaid: rows.some((row) => row.reason === 'subscription' && (row.granted ?? 0) > 0),
         };
     },
 
@@ -145,6 +147,7 @@ export const usageServerAPI = {
             used,
             granted: summary.granted,
             remaining: Math.max(0, summary.granted - used),
+            hasPaid: summary.hasPaid,
             periodStart: user.subscription_current_period_start ?? null,
             periodEnd: user.subscription_current_period_end ?? null,
         };

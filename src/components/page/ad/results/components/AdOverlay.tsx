@@ -236,20 +236,23 @@ function AdOverlay({ design, headlineFontFamily, headlineFontWeight, headlineCol
             {headline && (
                 <div
                     ref={headlineBoxRef}
-                    className={`absolute ${drag?.onDragHeadline ? 'cursor-grab active:cursor-grabbing hover:[outline:2px_dashed_white] hover:[outline-offset:3px] hover:[box-shadow:0_0_0_5px_rgba(0,0,0,0.35)]' : ''}`}
+                    className="absolute"
                     onPointerDown={drag?.onDragHeadline ? onPointerDownHeadline : undefined}
                     style={{
                         left: `${headline.x}%`,
                         top: `${headline.y}%`,
-                        width: `${headline.maxWidth}%`,
+                        // 박스 = 최장줄 hug (maxWidth는 감쌈 상한). 짧은 줄은 align대로 정렬.
+                        width: 'fit-content',
+                        maxWidth: `${headline.maxWidth}%`,
                         textAlign: headline.align,
                         ...(drag?.onDragHeadline ? { touchAction: 'none', pointerEvents: 'auto' as const } : {}),
                     }}
                 >
                     <h3
-                        className="font-bold leading-[1.05] tracking-[-0.02em]"
+                        className="font-bold tracking-[-0.02em]"
                         style={{
                             fontSize: size.h > 0 ? (size.h * headline.fontSizePct) / 100 : 24,
+                            lineHeight: 1.05,
                             color: headlineTextColor,
                             fontFamily: headlineFontFamily ?? undefined,
                             fontWeight: headlineFontWeight ?? undefined,
@@ -266,18 +269,25 @@ function AdOverlay({ design, headlineFontFamily, headlineFontWeight, headlineCol
                     className="absolute"
                     style={{ left: `${cta.x}%`, top: `${cta.y}%` }}
                 >
+                    {/* 바깥 틀(지정폭) 안에서 알약 가운데 정렬 — 넘치면 양쪽 대칭이라 중심 유지 */}
                     <span
-                        className={`flex items-center justify-center rounded-full bg-white font-semibold text-black ${drag?.onDragCta ? 'cursor-grab active:cursor-grabbing hover:[outline:2px_dashed_white] hover:[outline-offset:3px] hover:[box-shadow:0_0_0_5px_rgba(0,0,0,0.35)]' : ''}`}
-                        onPointerDown={drag?.onDragCta ? onPointerDownCta : undefined}
-                        style={{
-                            width: size.w > 0 ? (size.w * cta.widthPct) / 100 : 96,
-                            height: size.h > 0 ? (size.h * cta.fontSizePct * 2.4) / 100 : 28,
-                            fontSize: size.h > 0 ? (size.h * cta.fontSizePct) / 100 : 12,
-                            visibility: textVisibility,
-                            ...(drag?.onDragCta ? { touchAction: 'none', pointerEvents: 'auto' as const } : {}),
-                        }}
+                        className="flex justify-center"
+                        style={{ width: size.w > 0 ? (size.w * cta.widthPct) / 100 : 96 }}
                     >
-                        {cta.text}
+                        <span
+                            className={`inline-flex items-center justify-center rounded-full bg-white font-semibold text-black ${drag?.onDragCta ? 'cursor-grab active:cursor-grabbing hover:[outline:2px_dashed_white] hover:[outline-offset:3px] hover:[box-shadow:0_0_0_5px_rgba(0,0,0,0.35)]' : ''}`}
+                            onPointerDown={drag?.onDragCta ? onPointerDownCta : undefined}
+                            style={{
+                                padding: '0.45em 1.1em',
+                                fontSize: size.h > 0 ? (size.h * cta.fontSizePct) / 100 : 12,
+                                lineHeight: 1.2,
+                                whiteSpace: 'nowrap',
+                                visibility: textVisibility,
+                                ...(drag?.onDragCta ? { touchAction: 'none', pointerEvents: 'auto' as const } : {}),
+                            }}
+                        >
+                            {cta.text}
+                        </span>
                     </span>
                 </div>
             )}
