@@ -68,11 +68,11 @@ const STEPS: Step[] = [
         number: '03',
         label: 'Composite',
         title: 'Composite your product',
-        description: 'Your product is painted into the scene with matching light and shadow. One batch, one credit. Failures cost you nothing extra.',
+        description: 'Your product is painted into the scene with matching light and shadow. You pay per finished image. Failures cost you nothing.',
         className: 'md:col-span-6 rotate-[0.5deg]',
         sticker: (
             <span className="rotate-[2deg] rounded-full border border-hairline px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-text2">
-                1 batch = 1 credit
+                per finished image
             </span>
         ),
     },
@@ -92,7 +92,7 @@ const STEPS: Step[] = [
         number: '05',
         label: 'Export',
         title: 'Export every size',
-        description: 'Download 1:1, 4:5, 9:16, banner, and story variants from the same layout. Downloads and re-renders are unlimited.',
+        description: 'Download 1:1, 4:5, 9:16, banner, and story variants from the same layout. Downloads are unlimited, editing is free.',
         className: 'md:col-span-8 rotate-[0.3deg]',
         sticker: (
             <span className="rotate-[4deg] rounded-full bg-accent px-3.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-canvas shadow-[0_10px_30px_-10px_rgba(239,43,112,0.6)]">

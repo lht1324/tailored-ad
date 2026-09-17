@@ -1,6 +1,6 @@
 'use client'
 
-import { Type, Layers, Maximize2, Sparkles, RefreshCw, BadgeCheck } from 'lucide-react';
+import { Type, Layers, Maximize2, Sparkles, Gift, BadgeCheck } from 'lucide-react';
 import { ReactNode } from 'react';
 import Reveal from "@/components/page/ad/Reveal";
 
@@ -140,15 +140,15 @@ export default function FeaturesSection() {
                     </Reveal>
                     <Reveal delay={0.05} className="md:col-span-2 -rotate-[0.5deg]">
                         <FeatureCard
-                            icon={<RefreshCw size={18} strokeWidth={1.5} />}
-                            title="Unlimited re-renders"
+                            icon={<Gift size={18} strokeWidth={1.5} />}
+                            title="Start with 10 free images"
                             description={
                                 <>
-                                    Downloads and re-renders never cost extra. Tweak a headline, export again. Same price, forever.
+                                    Full product, no card upfront. Your trial images work everywhere paid ones do.
                                 </>
                             }
                             sticker={
-                                <Stamp className="-rotate-[4deg] border-accent/60 text-accent">∞ unlimited</Stamp>
+                                <Stamp className="-rotate-[4deg] border-accent/60 text-accent">no card required</Stamp>
                             }
                         />
                     </Reveal>
