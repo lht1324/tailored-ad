@@ -101,8 +101,9 @@ const HARD_BANNED_AXIS_PAIRS: ReadonlyArray<readonly [CreativeAxisName, string, 
 /**
  * 모드별 제외값 — 사람/물건 전제 업계 용어. 해당 모드에서는 풀에서 빼고 뽑는다.
  * ban 쌍(사진물리)과 달리 입력 모드 기준이라 여기로 분리.
+ * combined는 인물 포함 강제: 탑다운·클로즈업·팩샷 제외 (인물 탈락 실측).
  */
-const MODE_EXCLUDED_VALUES: Record<Exclude<CreativeMode, 'combined'>, Partial<Record<CreativeAxisName, readonly string[]>>> = {
+const MODE_EXCLUDED_VALUES: Record<CreativeMode, Partial<Record<CreativeAxisName, readonly string[]>>> = {
     'product-only': {
         camera: ['lifestyle_shot', 'product_in_hand'],
         layout_tone: ['lifestyle_narrative'],
@@ -110,10 +111,12 @@ const MODE_EXCLUDED_VALUES: Record<Exclude<CreativeMode, 'combined'>, Partial<Re
     'person-only': {
         camera: ['packshot'],
     },
+    'combined': {
+        camera: ['packshot', 'detail_close', 'flat_lay', 'overhead_angle'],
+    },
 };
 
 function getModePool(axisName: CreativeAxisName, mode: CreativeMode): readonly string[] {
-    if (mode === 'combined') return AXIS_POOLS[axisName];
     const excluded = MODE_EXCLUDED_VALUES[mode][axisName] ?? [];
     return AXIS_POOLS[axisName].filter((value) => !excluded.includes(value));
 }
