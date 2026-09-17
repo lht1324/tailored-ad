@@ -202,7 +202,7 @@ export const PRODUCT_ONLY_CREATIVE_PROMPT = `
       Quality Gate (pre-output checklist, INTERNAL):
       - [ ] Each image_prompt_record value is 18-32 words, one sentence, ends with period, contains ratio token?
       - [ ] Each caption reserves negative space matching its framing/layout_tone?
-      - [ ] No caption contains "text", "word", "letter", "headline", "CTA", "logo", "price", "discount"?
+      - [ ] No caption contains painted-text or promo language ("text", "headline", "logo", "price tag", "discount", "sale", "$")?
       - [ ] No caption lists raw keywords ("hero_shot", "golden_hour") verbatim?
       - [ ] Headline 3-8 words, English, no period, cta null iff cta_enabled=false? (headline always present; raw render is a display toggle)
       - [ ] All aspect_ratios keys present, no missing, no extra, exact AdRatioKey spelling ("9_16" not "9:16")?
@@ -309,7 +309,7 @@ export const PRODUCT_ONLY_CREATIVE_PROMPT = `
     - Keys MUST be exactly: reasoning, ratio_reasonings, image_prompt_record, copy. No extra top-level keys. No snake_case variance ("imageSpecs" is wrong, "image_prompt_record" is correct).
     - image_prompt_record and ratio_reasonings MUST have identical key sets, both exactly equal to the requested aspect_ratios (no missing, no hallucinated ratios).
     - Captions 18-32 words, one sentence, period-terminated, ratio token included. Violations will fail the pipeline's Caption missing check.
-    - Never paint text into image. If you include any of [text, word, letter, headline, CTA, logo, watermark, price, discount, sale, %] inside image_prompt_record, the generation is wasted and billed.
+    - Never paint text into image. If you include any of [text, word, letter, headline, CTA, logo, watermark, price tag, discount language, sale, promo, $] inside image_prompt_record, the generation is wasted and billed. (Numerals with % for sizes and negative space, e.g. "60% void", are required — not banned.)
     - Never list raw axis keywords verbatim inside captions. Render them.
     - If cta_enabled is false, copy.cta MUST be JSON null. If true, MUST be one of the whitelist (Shop Now, Get Yours, Try Today, Claim Offer, See Results, Start Free, Learn More).
     - Headline 3-8 words, English, no trailing period, no ALL CAPS, max one exclamation (prefer zero).
@@ -518,7 +518,7 @@ export const PERSON_ONLY_CREATIVE_PROMPT = `
       Quality Gate (pre-output checklist, INTERNAL):
       - [ ] Each image_prompt_record value is 18-32 words, one sentence, ends with period, contains ratio token?
       - [ ] Each caption reserves negative space matching its framing/layout_tone?
-      - [ ] No caption contains "text", "word", "letter", "headline", "CTA", "logo", "price", "discount"?
+      - [ ] No caption contains painted-text or promo language ("text", "headline", "logo", "price tag", "discount", "sale", "$")?
       - [ ] No caption lists raw keywords ("hero_shot", "golden_hour") verbatim?
       - [ ] Headline 3-8 words, English, no period, cta null iff cta_enabled=false? (headline always present; raw render is a display toggle)
       - [ ] All aspect_ratios keys present, no missing, no extra, exact AdRatioKey spelling ("9_16" not "9:16")?
@@ -610,7 +610,7 @@ export const PERSON_ONLY_CREATIVE_PROMPT = `
     - Keys MUST be exactly: reasoning, ratio_reasonings, image_prompt_record, copy. No extra top-level keys. No snake_case variance ("imageSpecs" is wrong, "image_prompt_record" is correct).
     - image_prompt_record and ratio_reasonings MUST have identical key sets, both exactly equal to the requested aspect_ratios (no missing, no hallucinated ratios).
     - Captions 18-32 words, one sentence, period-terminated, ratio token included. Violations will fail the pipeline's Caption missing check.
-    - Never paint text into image. If you include any of [text, word, letter, headline, CTA, logo, watermark, price, discount, sale, %] inside image_prompt_record, the generation is wasted and billed.
+    - Never paint text into image. If you include any of [text, word, letter, headline, CTA, logo, watermark, price tag, discount language, sale, promo, $] inside image_prompt_record, the generation is wasted and billed. (Numerals with % for sizes and negative space, e.g. "60% void", are required — not banned.)
     - Never list raw axis keywords verbatim inside captions. Render them.
     - If cta_enabled is false, copy.cta MUST be JSON null. If true, MUST be one of the whitelist (Shop Now, Get Yours, Try Today, Claim Offer, See Results, Start Free, Learn More).
     - Headline 3-8 words, English, no trailing period, no ALL CAPS, max one exclamation (prefer zero).
@@ -750,7 +750,7 @@ export const POST_AD_CREATIVE_PROMPT = `
       Arbitration: camera decides prominence but the relationship must stay compatible — product_in_hand forces holding; detail_close/packshot/flat_lay keep product leading with the person contextual yet recognizable; lifestyle/environment accept any. Never depict a relationship you did not choose. Never drop an attached subject.
 
       Examples of GOOD (do this):
-      - "The person holding the product in a sunlit kitchen, product anchored left third of horizontal 16_9 canvas with 55% warm oak and linen negative space right, soft studio window wrap casting feathered highlights, lifestyle ease."
+      - "The person holding the product in a sunlit kitchen, anchored left third of horizontal 16_9 canvas with 55% warm oak negative right, soft window wrap casting feathered highlights, lifestyle ease."
       - "The person wearing the product in vertical 9_16 canvas with draped natural flow, soft daylight modeling the fabric folds, effortless modern ease."
 
       Examples of BAD (never do this):
@@ -826,7 +826,7 @@ export const POST_AD_CREATIVE_PROMPT = `
       Quality Gate (pre-output checklist, INTERNAL):
       - [ ] Each image_prompt_record value is 18-32 words, one sentence, ends with period, contains ratio token?
       - [ ] Each caption reserves negative space matching its framing/layout_tone?
-      - [ ] No caption contains "text", "word", "letter", "headline", "CTA", "logo", "price", "discount"?
+      - [ ] No caption contains painted-text or promo language ("text", "headline", "logo", "price tag", "discount", "sale", "$")?
       - [ ] No caption lists raw keywords ("hero_shot", "golden_hour") verbatim?
       - [ ] Headline 3-8 words, English, no period, cta null iff cta_enabled=false? (headline always present; raw render is a display toggle)
       - [ ] All aspect_ratios keys present, no missing, no extra, exact AdRatioKey spelling ("9_16" not "9:16")?
@@ -916,7 +916,7 @@ export const POST_AD_CREATIVE_PROMPT = `
     - Keys MUST be exactly: reasoning, ratio_reasonings, image_prompt_record, copy. No extra top-level keys. No snake_case variance ("imageSpecs" is wrong, "image_prompt_record" is correct).
     - image_prompt_record and ratio_reasonings MUST have identical key sets, both exactly equal to the requested aspect_ratios (no missing, no hallucinated ratios).
     - Captions 18-32 words, one sentence, period-terminated, ratio token included. Violations will fail the pipeline's Caption missing check.
-    - Never paint text into image. If you include any of [text, word, letter, headline, CTA, logo, watermark, price, discount, sale, %] inside image_prompt_record, the generation is wasted and billed.
+    - Never paint text into image. If you include any of [text, word, letter, headline, CTA, logo, watermark, price tag, discount language, sale, promo, $] inside image_prompt_record, the generation is wasted and billed. (Numerals with % for sizes and negative space, e.g. "60% void", are required — not banned.)
     - Never list raw axis keywords verbatim inside captions. Render them.
     - If cta_enabled is false, copy.cta MUST be JSON null. If true, MUST be one of the whitelist (Shop Now, Get Yours, Try Today, Claim Offer, See Results, Start Free, Learn More).
     - Headline 3-8 words, English, no trailing period, no ALL CAPS, max one exclamation (prefer zero).

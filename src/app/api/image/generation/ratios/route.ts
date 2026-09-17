@@ -4,10 +4,7 @@ import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatchServerAPI";
 import { adImageServerAPI } from "@/lib/api/server/ad/imageServerAPI";
 import { selectBaseRatio } from "@/lib/api/server/ad/creativeCombinationSampler";
-import {
-    ReplicateImageModelId,
-    replicateClient,
-} from "@/lib/ReplicateClient";
+import { replicateClient } from "@/lib/ReplicateClient";
 import { AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 
 /**
@@ -141,7 +138,6 @@ export async function POST(request: NextRequest) {
             const wrappedCaptionForRetry = `INSTRUCTION: Use the input image ONLY to preserve the product/person identity (shape, color, material, lace, perforations, stitching). Do NOT copy its background, floor, shadows or wall — recreate the product with pixel-perfect edges on the new scene described below.\n\nSCENE: ${caption}`;
             try {
                 await replicateClient.postAdImageEditPrediction({
-                    model: ReplicateImageModelId.NANO_BANANA,
                     prompt: wrappedCaptionForRetry,
                     imageUrls: referenceUrlsForRetry,
                     aspectRatio: retryRatioKey,
@@ -181,7 +177,6 @@ export async function POST(request: NextRequest) {
             const wrappedCaptionForSingle = `INSTRUCTION: Use the input image ONLY to preserve the product/person identity (shape, color, material, lace, perforations, stitching). Do NOT copy its background, floor, shadows or wall — recreate the product with pixel-perfect edges on the new scene described below.\n\nSCENE: ${caption}`;
             try {
                 await replicateClient.postAdImageEditPrediction({
-                    model: ReplicateImageModelId.NANO_BANANA,
                     prompt: wrappedCaptionForSingle,
                     imageUrls: originalImageUrls,
                     aspectRatio: singleRatio,
@@ -253,7 +248,6 @@ export async function POST(request: NextRequest) {
             const wrappedCaptionForRatio = `INSTRUCTION: Use the input image ONLY to preserve the product/person identity (shape, color, material, lace, perforations, stitching). Do NOT copy its background, floor, shadows or wall — recreate the product with pixel-perfect edges on the new scene described below.\n\nSCENE: ${caption}`;
             try {
                 await replicateClient.postAdImageEditPrediction({
-                    model: ReplicateImageModelId.NANO_BANANA,
                     prompt: wrappedCaptionForRatio,
                     imageUrls: referenceUrlsWithBase,
                     aspectRatio: ratioKey,

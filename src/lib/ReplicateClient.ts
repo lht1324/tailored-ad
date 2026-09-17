@@ -11,19 +11,30 @@ import { acquireReplicateSlot } from "@/lib/replicateRateLimit";
  */
 
 /**
- * ad 이미지 편집에 쓰는 모델 — google 공식 모델은 {owner}/{name} 식별자로 최신 버전이 실행된다.
- * 모델 교체는 이 enum이면 충분하도록 입력 조립을 여기서 캡슐화한다.
+ * ad 이미지 생성 모델 — Black Forest Labs FLUX.2 Dev 단일.
+ * {owner}/{name} 식별자로 최신 버전이 실행된다. 모델 교체는 이 상수 + buildFluxInput만 바꾸면 된다.
  */
+const FLUX_IMAGE_MODEL = "black-forest-labs/flux-2-dev";
 
-export enum ReplicateImageModelId {
-    /** Gemini 2.5 Flash Image — 원본. aspect_ratio 지원 */
-    NANO_BANANA = "google/nano-banana",
-    /** Gemini 3 Pro Image — SOTA. aspect_ratio·해상도(최대 4K) 지원 */
-    NANO_BANANA_PRO = "google/nano-banana-pro",
-    /** Gemini 3.1 Flash Image — 현재 올라운드 주력. aspect_ratio 지원 */
-    NANO_BANANA_2 = "google/nano-banana-2",
-    /** Gemini 3.1 Flash-Lite Image — 최저가·최저지연, 1K 출력 한정. aspect_ratio 지원 */
-    NANO_BANANA_2_LITE = "google/nano-banana-2-lite",
+/**
+ * FLUX.2 Dev 입력 조립 (실측 스키마 확인됨).
+ * aspect 값("4:5" 등)과 웹훅·output 파싱은 공용 (collectOutputUrls가 형태 흡수).
+ */
+function buildFluxInput(
+    prompt: string,
+    imageUrls: string[],
+    aspectRatio?: string,
+): Record<string, unknown> {
+    const input: Record<string, unknown> = {
+        prompt,
+        disable_safety_checker: true,
+        // regular variant ($0.014/MP) — go_fast($0.012)는 최적화 경로라 최종 품질 우선으로 고정
+        go_fast: false,
+    };
+    if (imageUrls.length > 0) input.input_images = imageUrls;
+    const ratio = aspectRatio ? aspectRatio.replace('_', ':') : undefined;
+    if (ratio) input.aspect_ratio = ratio;
+    return input;
 }
 
 /** prediction 완료(성공·실패·취소 전부) 때만 웹훅을 받는다 */
@@ -42,8 +53,6 @@ function createReplicateInstance(): Replicate {
 }
 
 export interface AdImageEditPredictionParams {
-    /** 사용 모델 — 미지정 시 원본 nano-banana */
-    model?: ReplicateImageModelId;
     /** I2I 지시문 — creative의 캡션(imagePromptRecord) */
     prompt: string;
     /** 참조 이미지 URL 목록 — [원본 상품/인물] 또는 [기준 이미지 + 원본] */
@@ -137,17 +146,11 @@ export const replicateClient = {
     async postAdImageEditPrediction(params: AdImageEditPredictionParams): Promise<ReplicatePredictionSubmission> {
         const replicate = createReplicateInstance();
 
-        const input: Record<string, unknown> = {
-            prompt: params.prompt,
-        };
-
-        if (params.imageUrls.length > 0) {
-            input.image_input = params.imageUrls;
-        }
-
-        if (params.aspectRatio) {
-            input.aspect_ratio = params.aspectRatio.replace('_', ':');
-        }
+        const input = buildFluxInput(
+            params.prompt,
+            params.imageUrls,
+            params.aspectRatio,
+        );
 
         await acquireReplicateSlot();
 
@@ -155,7 +158,7 @@ export const replicateClient = {
         for (let attempt = 1; attempt <= MAX_SUBMIT_ATTEMPTS; attempt++) {
             try {
                 const prediction = await replicate.predictions.create({
-                    model: params.model ?? ReplicateImageModelId.NANO_BANANA,
+                    model: FLUX_IMAGE_MODEL,
                     input: input,
                     webhook: params.webhookUrl,
                     webhook_events_filter: WEBHOOK_EVENTS_FILTER,

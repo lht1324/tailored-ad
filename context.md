@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-09-18 01:00)
+# TailoredAd — 작업 기록 (Last Updated: 2026-09-18 04:03)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -28,7 +28,8 @@
 - `context/AuthContext.tsx`, 전역 레이아웃/globals
 - **세션 중 추가**: `proxy.ts` (로그인 가드), `app/api/client-gateway/` (C2S→S2S),
   `app/api/user/[userId]/` (GET+PATCH, S2S+IDOR 가드), `public/logo/logo-64.png`,
-  `lib/replicateRateLimit.ts`, `lib/colorUtils.ts`, `lib/textMeasure.ts`,
+   `lib/replicateRateLimit.ts`, `lib/colorUtils.ts`, `lib/textMeasure.ts`,
+   `lib/imageResize.ts` (참조 다운스케일 — Generate 시점 긴 변 1024px),
    `lib/billing.ts` (기본 quota 50 + KST 월경계 — 무료/무이력 폴백용으로 유지),
    `lib/api/server/usageServerAPI.ts` (원장+부여+잔액),
    `lib/polar.ts` (상품 ID 매핑 — 진실원천, 코드 상수),
@@ -194,6 +195,17 @@
 - **DetailPage 갱신**: 4초 폴링 삭제. Realtime 구독 + 수동 Refresh만. (끊김 체감 시 탭 복귀 재조회로 대응 예정)
 - **Detail 선택 개념 삭제**: 하단 선택바 제거 (10개 줄에서 도달 불가). 타일 클릭→확대경, 진입은 헤더 Editor + 모달 Edit + 카드 연필.
 - **Replicate 429**: 공식 한도 600/분. Upstash slidingWindow 500/60s + 최대 10초 홀딩 + 429 백오프(Retry-After 존중, 상한 10초, 2회). Redis 장애·키 없음은 fail-open. Upstash Free 시작 → 월 40만 명령 전후로 PAYG (전환 시 budget cap $5).
+- **FLUX.2 Dev 전환** (09-18): 이미지 생성 모델 Nano Banana → FLUX.2 Dev 단일화
+  (base/ratios 호출부 교체). 고아 enum·`model` 파라미터·도달불가 분기 제거,
+  상수 1곳(`FLUX_IMAGE_MODEL`)으로 고정. 프롬프트의 모델 언급·% 금지 문구도 정합화.
+- **go_fast=false 고정** (09-18): FLUX_2_DEV 제출에 `go_fast: false` 명시 (regular $0.014/MP).
+  true($0.012)는 별도 최적화 경로라 품질 불확실 → 최종 품질 우선. 장당 차이 $0.006 수준이라 비용 논외.
+  `buildModelInput()` 1곳이라 base·ratios 일괄 적용.
+- **원본 이미지 다운스케일** (09-18): Generate 클릭 시점에 긴 변 1024px로 축소 후 업로드
+  (미리보기는 원본 유지, 실제 전송만 축소). 근거: Gemini 768 타일·Flux 입력 1MP 상한·
+  Replicate 입력 $0.014/MP (3000×1200 1장이 입력비 $0.05→$0.006).
+  신규 `lib/imageResize.ts` (canvas, 의존성 없음, 원 포맷 유지, 실패 시 원본).
+  UploadZone은 미수정, 서버(Workers CPU 10ms) 처리는 불가라 클라 전용.
 - **재시도 상한 버그 수정**: 웹훅이 `attempt`를 process에 안 넘겨 무한 재시도 가능했음 → 전달 추가.
 - **다운로드 어휘 통일**: 합성본 `Final` / 원본 `Original` (광고업계 표준어 확인). 파일명 `tailored-ad-{id6}-c01-4_5.png` + 원본 `-raw` 접미 (배치 구별로 id6 포함. ZIP도 동일 체계 `-all`/`-originals`/`-c01`). 스플릿 버튼(`DownloadMenuButton`)으로 통합 — 헤더 벌크(ZIP) + 모달 낱장. 타일 호버·줄 pill은 합성 전용 유지. sparkles 아이콘 사용 안 함 (AI 클리셰).
 - **Detail 정렬**: best(기본) / avg(완성분 평균, 분모 `n/m` 병기) / index 드롭다운. running 중·점수 없음은 비활성. 행에 `best X · avg Y (n/m)` 병기.
@@ -268,6 +280,7 @@
 - [ ] CTA 색 enum 추출 (제안됨, 미확정)
 - [ ] 낱장 Regenerate (실패 타일 살리기 + 재추첨. 뒷단 재제출 경로 존재, UI 배선만 — 제안됨, 미확정)
 - [ ] 브랜드 킷 (로고·팔레트·폰트·CTA 유저 저장 + 생성 프리필 — 제안됨, 미확정)
+- [ ] [imageResize] 실측 확인 (사장님): 큰 이미지로 Generate → 콘솔 `[imageResize]` 로그 + 전송본 치수
 - [ ] 모바일 분리: 공유 파일에 반응형 추가 금지 (split 때 삭제 대상). 모바일은 현상 동결.
   분리 시 백로그 — Detail 본문 gutter, 타일 호버 아이콘, 에디터 슬라이더 터치 높이.
   방식 후보: UA 감지 → `(mobile)` 라우트 그룹 (URL 유지, JSX만 교체).

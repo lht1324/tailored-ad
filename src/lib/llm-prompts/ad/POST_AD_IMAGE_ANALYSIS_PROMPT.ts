@@ -23,7 +23,7 @@ export const POST_AD_IMAGE_ANALYSIS_PROMPT = `
      - <copy>: {headline, cta} — overlay text to place. Text IS NEVER INSIDE THE IMAGE. You are placing its ghost. headline may be 3-8 words, cta may be null (cta_enabled=false). If cta is null, cta geometry MUST be null.
      - <brand_palette>: string[] | null — 3-5 hex or null. Nullable, conditional. If present, palette adherence in scoring (Unit 3) must check against these hex, not just the 7-way keyword.
      - <brand_logo>: boolean — true if brand logo image is attached as last Base64 after the N ratio images. If true, you must place logo (Unit 2) — do not leave null unless no clean corner exists. If false, logo MUST be null.
-     The images are the generated ad backgrounds with product/person already composited via I2I (NANO_BANANA). Input is ONE of three subject grammars — Product-only, Person-only, or Product+Person both — and you must branch your forensic scan accordingly (see Unit 1). The last image (if brand_logo==true) is the brand logo reference (transparent PNG) — use it only to judge light/dark contrast for placement, do not score it. Your job is NOT to judge the prompt — it is to judge the RENDER.
+     The images are the generated ad backgrounds with product/person already composited via Replicate I2I. Input is ONE of three subject grammars — Product-only, Person-only, or Product+Person both — and you must branch your forensic scan accordingly (see Unit 1). The last image (if brand_logo==true) is the brand logo reference (transparent PNG) — use it only to judge light/dark contrast for placement, do not score it. Your job is NOT to judge the prompt — it is to judge the RENDER.
   </input_data_interpretation>
 
   <target_model_profile>

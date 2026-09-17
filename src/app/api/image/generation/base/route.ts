@@ -5,10 +5,7 @@ import { internalFireAndForgetFetch } from "@/lib/utils/internalFetch";
 import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatchServerAPI";
 import { adImageServerAPI } from "@/lib/api/server/ad/imageServerAPI";
 import { selectBaseRatio } from "@/lib/api/server/ad/creativeCombinationSampler";
-import {
-    ReplicateImageModelId,
-    replicateClient,
-} from "@/lib/ReplicateClient";
+import { replicateClient } from "@/lib/ReplicateClient";
 import { AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 
 /**
@@ -112,7 +109,6 @@ export async function POST(request: NextRequest) {
         const wrappedCaption = `INSTRUCTION: Use the input image ONLY to preserve the product/person identity (shape, color, material, lace, perforations, stitching). Do NOT copy its background, floor, shadows or wall — recreate the product with pixel-perfect edges on the new scene described below.\n\nSCENE: ${caption}`;
         submittedRatio = baseRatio;
         await replicateClient.postAdImageEditPrediction({
-            model: ReplicateImageModelId.NANO_BANANA,
             prompt: wrappedCaption,
             imageUrls: originalImageUrls,
             aspectRatio: baseRatio,
