@@ -12,7 +12,7 @@ import { downloadItemsAsZip, downloadRawItemsAsZip, type CompositeDownloadOption
 import { fontMap } from "@/lib/fonts";
 import { adProjectClientAPI, getProjectProgress } from "@/lib/api/client/ad/adProjectClientAPI";
 import { AdCreativeResult, AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
-import { AdDesignLayout } from "@/lib/api/client/ad/adClientAPI";
+import { AdDesignLayout } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { supabase } from "@/lib/supabase/supabaseClient";
 
 type DetailStatus = 'loading' | 'ready' | 'error';

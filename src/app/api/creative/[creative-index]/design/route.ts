@@ -4,7 +4,7 @@ import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatchServerAPI";
 import { fontMap } from "@/lib/fonts";
 import { isValidHexColor, normalizeHeadlineColor } from "@/lib/colorUtils";
-import { AdDesignLayout } from "@/lib/api/client/ad/adClientAPI";
+import { AdDesignLayout } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { AdCreativeResult, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 
 /**

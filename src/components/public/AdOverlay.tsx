@@ -1,7 +1,7 @@
 'use client'
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AdDesignLayout } from "@/lib/api/client/ad/adClientAPI";
+import { AdDesignLayout } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { needsDarkScrim, normalizeHeadlineColor, defaultScrimStrength } from "@/lib/colorUtils";
 import { estimateWrappedLines } from "@/lib/textMeasure";
 

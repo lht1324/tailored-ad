@@ -15,7 +15,7 @@ import { fontMap } from "@/lib/fonts";
 import { adProjectClientAPI } from "@/lib/api/client/ad/adProjectClientAPI";
 import { patchFetch } from "@/lib/api/client/baseFetch";
 import { AdCreativeResult, AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
-import type { AdDesignLayout } from "@/lib/api/client/ad/adClientAPI";
+import type { AdDesignLayout } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { supabase } from "@/lib/supabase/supabaseClient";
 
 const EditorCanvas = dynamic(

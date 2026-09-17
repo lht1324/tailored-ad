@@ -8,7 +8,7 @@ import CreateForm from "@/components/page/ad/create/components/CreateForm";
 import {
     AdAspectRatio,
     AdUploadedComponent,
-} from "@/lib/api/client/ad/adClientAPI";
+} from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { adProjectClientAPI, BalanceExhaustedError } from "@/lib/api/client/ad/adProjectClientAPI";
 import { postFormFetch } from "@/lib/api/client/baseFetch";
 

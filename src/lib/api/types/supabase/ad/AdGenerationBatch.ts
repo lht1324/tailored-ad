@@ -9,8 +9,47 @@
  * 모델 단위 오토스케일이라 동시 폭이 수요에 따라 결정됨. (2026-08-24 확정)
  */
 
-import { AdDesignLayout } from "@/lib/api/client/ad/adClientAPI";
+/**
+ * 오버레이 지오메트리 타입 — adClientAPI 임시 정의에서 이관.
+ * 좌표 계약: x/폭계열=너비%, y/글자계열=높이%. 렌더 참조 구현은 AdOverlay.
+ */
+export interface AdHeadlineSpec {
+    text: string;
+    x: number;
+    y: number;
+    maxWidth: number;
+    align: 'left' | 'center' | 'right';
+    fontSizePct: number;
+    /** 헤드라인 색 — LLM은 white/black 출력, 에디터는 hex 저장 가능. 렌더·저장 시 정규화 */
+    color?: string | null;
+}
 
+export interface AdCtaSpec {
+    text: string;
+    x: number;
+    y: number;
+    widthPct: number;
+    fontSizePct: number;
+}
+
+export interface AdLogoSpec {
+    brand: string;
+    x: number;
+    y: number;
+    widthPct: number;
+    fontSizePct: number;
+}
+
+export interface AdDesignLayout {
+    headline: AdHeadlineSpec | null;
+    cta: AdCtaSpec | null;
+    logo: AdLogoSpec | null;
+    scrim: boolean;
+    /** scrim 농도 0-100 — 에디터 전용 확장 (LLM은 출력 안 함). 미지정 시 글자색 기준 기본값 */
+    scrimStrength?: number | null;
+}
+
+/** 생성 입력 비율 — 사용자 노출 표기 ('1:1'). 저장 키는 AdRatioKey */
 export type AdAspectRatio = '1:1' | '4:5' | '9:16' | '16:9' | '2:3';
 
 /**
@@ -20,6 +59,44 @@ export type AdAspectRatio = '1:1' | '4:5' | '9:16' | '16:9' | '2:3';
 export type AdRatioKey = '1_1' | '4_5' | '9_16' | '16_9' | '2_3';
 
 export type AdBatchStatus = 'queued' | 'generating' | 'designing' | 'rendering' | 'completed' | 'failed';
+
+/** 레거시 AdTaskStatus 별칭 — create 미리보기 상태용 (값은 AdBatchStatus와 동일) */
+export type AdTaskStatus = AdBatchStatus;
+
+export interface AdUploadedComponent {
+    id: string;
+    fileName: string;
+    previewUrl: string;
+    /**
+     * 업로드 파일의 원본 픽셀 크기 — 로드 시점에 측정해 저장.
+     * 배경 업로드 모드에서는 이 비율이 생성 비율(원본 보존)이 된다.
+     */
+    width?: number;
+    height?: number;
+    /**
+     * 사용자가 이미지에 덧붙인 선택적 설명.
+     * 원칙: 프롬프트에 직접 주입 금지 — 설계 생성 단계(해석 레이어)에서
+     * 이미지+첨언+템플릿을 결합해 구조적 지시문으로 변환한 뒤 사용할 것.
+     */
+    note?: string;
+    /** 원본 File — 클라이언트 메모리 전용, 전송 시 FormData로 함께 업로드 */
+    file?: File;
+}
+
+export type AdBrandLogoComponent = AdUploadedComponent;
+
+/**
+ * 비율별 사용자 노출 정보 — 어디서 쓰이는지(플랫폼)를 UI에서 함께 보여주기 위한 단일 소스.
+ */
+export const AD_ASPECT_RATIO_INFO: Record<AdAspectRatio, { label: string; usage: string }> = {
+    '1:1': { label: 'Square', usage: 'Feed · Display' },
+    '4:5': { label: 'Portrait', usage: 'Instagram & Facebook' },
+    '9:16': { label: 'Story', usage: 'Stories · Reels · TikTok' },
+    '16:9': { label: 'Landscape', usage: 'YouTube · Display' },
+    '2:3': { label: 'Pin', usage: 'Pinterest' },
+};
+
+export const AD_CONCEPT_OPTIONS = [1, 2, 4, 10] as const;
 
 export interface AdUploadedComponentRecord {
     /**

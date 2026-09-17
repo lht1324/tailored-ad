@@ -3,9 +3,9 @@
 import { memo, useCallback, useState } from 'react';
 import Image from 'next/image';
 import { AlertTriangle, Download, Loader2, Maximize2, RefreshCw, Sparkles } from 'lucide-react';
-import AdOverlay from "@/components/page/ad/results/components/AdOverlay";
+import AdOverlay from "@/components/public/AdOverlay";
 import { downloadCompositedImage } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
-import { AdDesignLayout } from "@/lib/api/client/ad/adClientAPI";
+import { AdDesignLayout } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { AdRatioKey, AdImageResult } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 
 const RATIO_FACTOR: Record<string, number> = {

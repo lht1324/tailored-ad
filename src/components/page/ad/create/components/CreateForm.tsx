@@ -4,8 +4,8 @@ import { memo, useCallback, useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, Check, Palette, Plus, X } from 'lucide-react';
 import { HexColorPicker } from 'react-colorful';
-import { AdAspectRatio, AdUploadedComponent } from "@/lib/api/client/ad/adClientAPI";
-import { AD_ASPECT_RATIO_INFO, AD_CONCEPT_OPTIONS } from "@/lib/api/client/ad/adClientAPI";
+import { AdAspectRatio, AdUploadedComponent } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+import { AD_ASPECT_RATIO_INFO, AD_CONCEPT_OPTIONS } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import UploadZone from "@/components/page/ad/create/components/UploadZone";
 
 // 한 줄 비율 박스 — 높이 고정 × 너비 비율, 한 줄로 압축해 한 화면 유지

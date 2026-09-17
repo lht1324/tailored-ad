@@ -8,7 +8,7 @@ import { fontMap } from "@/lib/fonts";
 import FONT_FAMILY_LIST from "@/lib/FontFamilyList";
 import { normalizeHeadlineColor, defaultScrimStrength } from "@/lib/colorUtils";
 import { estimateWrappedLines } from "@/lib/textMeasure";
-import type { AdDesignLayout } from "@/lib/api/client/ad/adClientAPI";
+import type { AdDesignLayout } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 
 export interface EditorCopy {
     headline: string | null;

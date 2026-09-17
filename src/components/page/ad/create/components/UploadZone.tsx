@@ -2,7 +2,7 @@
 
 import { memo, useRef, useState, useCallback } from 'react';
 import { ImagePlus, Info, X, Check, ChevronDown, Plus } from 'lucide-react';
-import { AdUploadedComponent } from "@/lib/api/client/ad/adClientAPI";
+import { AdUploadedComponent } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 
 interface UploadZoneProps {
     label: string;

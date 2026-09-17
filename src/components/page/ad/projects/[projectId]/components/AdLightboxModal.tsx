@@ -3,10 +3,10 @@
 import { memo, useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { X, Pencil } from 'lucide-react';
-import AdOverlay from "@/components/page/ad/results/components/AdOverlay";
+import AdOverlay from "@/components/public/AdOverlay";
 import DownloadMenuButton from "@/components/page/ad/projects/[projectId]/components/DownloadMenuButton";
 import { downloadCompositedImage, downloadRawFile, buildRawFileName } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
-import { AdDesignLayout } from "@/lib/api/client/ad/adClientAPI";
+import { AdDesignLayout } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 
 interface AdLightboxModalProps {
     imageUrl: string;

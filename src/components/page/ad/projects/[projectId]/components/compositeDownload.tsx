@@ -4,8 +4,8 @@ import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { toBlob } from 'html-to-image';
 import JSZip from 'jszip';
-import AdOverlay from "@/components/page/ad/results/components/AdOverlay";
-import type { AdDesignLayout } from "@/lib/api/client/ad/adClientAPI";
+import AdOverlay from "@/components/public/AdOverlay";
+import type { AdDesignLayout } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 
 /**
  * 합성본 다운로드 — 화면에 보이는 오버레이 DOM을 그대로 PNG로 뽑는다.

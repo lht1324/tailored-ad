@@ -1,8 +1,8 @@
 'use client';
 
 import { AbsoluteFill, Img } from 'remotion';
-import AdOverlay from "@/components/page/ad/results/components/AdOverlay";
-import type { AdDesignLayout } from "@/lib/api/client/ad/adClientAPI";
+import AdOverlay from "@/components/public/AdOverlay";
+import type { AdDesignLayout } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 
 /**
  * Remotion 스틸 컴포지션 — 프리뷰·다운로드와 같은 AdOverlay를 그대로 쓴다.

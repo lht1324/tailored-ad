@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-09-17 03:44)
+# TailoredAd — 작업 기록 (Last Updated: 2026-09-17 12:00)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -148,11 +148,20 @@
   프롬프트 Unit 2 + 스키마 + 타입 + 렌더 + Inspector 손봐야 함.
 - **크리에이티브 프롬프트 3-way 분리** (단일 파일, 통짜 3벌):
   `PRODUCT_ONLY` / `PERSON_ONLY` / `POST_AD_CREATIVE_PROMPT`(combined) +
-  호출부 `selectCreativePrompt` 선택. 순수 규칙: 상대 input 언급 전면 제거
+  호출부 인라인 선택 (헬퍼 삭제, 중복 소스 제거). 순수 규칙: 상대 input 언급 전면 제거
   (앵커·노트·예시 포함, 축 테이블은 공유 유지). 관계 어휘 4종
   (holding/wearing/using/beside) + 카메라 중재 규칙. Few-shot 13개
   (5/4/4, 단어 수·seed 일관성 검증済み). 출력 스키마 동일이라 파서·DB 무영향.
   별도 결함 수정 포함: logo 서수 하드코딩→order list 참조, Ex2 verbatim 교정.
+- **모드 정합硬化** (의도: 모드별 입력 선확정):
+  `MODE_EXCLUDED_VALUES` 테이블 (product-only: lifestyle_shot·product_in_hand·lifestyle_narrative 제외,
+  person-only: packshot 제외, combined: 없음) + `assignCreativeCombinations(..., mode?)` +
+  `specs/route`에서 batch 이미지로 mode 전달. 반대쪽 노트는 태그째 미전송.
+  PERSON_ONLY Unit 1 person 주어 개역 (packshot은 "미배정" 명시).
+  고정 풀 나열은 유지 (샘플러와 이중 관리 방지).
+- **레거시 정리**: `adClientAPI.ts`·`adServerAPI.ts`(mock)·`/api/tasks` 2종·results 4파일 삭제.
+  실사용 타입은 `AdGenerationBatch.ts`로, `AdOverlay`는 `components/public/`으로 이전 (import 20곳 교체).
+  `AdTaskStatus`는 별칭으로 유지 (PreviewCanvas 사용).
 - **타일 vs 라이트박스 CTA 분쟁 중**: 모달은 공식 일치 실측됨. 타일 측정값이 CSS 산수와
   모순 (em 기준·폰트 혼재) → 노드 혼동 유력. 안쪽 알약 단독 재측정 대기 중.
 - **관측 메모**: `external_id` null로 옴 (metadata fallback으로 커버, 코드 수정 없음).
@@ -240,6 +249,8 @@
 - [x] Trial 10장 + 하드게이트 + Hero CTA + 로딩 오버레이
 - [x] 웹훅 403 해결 + 수신/처리 분리 (E2E grant 적립 확인)
 - [ ] E2E 테스트 (다음 순서 1순위 — 생성→차감→환불 회수 남음, 테스트 계정 정리 후)
+- [x] 모드 정합硬化 (샘플러 필터 + 노트 태그 제외 + PERSON Unit 1)
+- [x] 레거시 정리 (adClientAPI·results 사체 삭제, 타입·AdOverlay 이전)
 - [ ] 프롬프트 3-way eyeball (케이스별 1배치 — product 회귀 우선 → person → combined 순. quota 소모 유의)
 - [ ] 타일 CTA 재측정 판정 (위 분쟁 항목)
 - [ ] CTA 색 enum 추출 (제안됨, 미확정)
