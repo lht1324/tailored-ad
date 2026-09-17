@@ -3,7 +3,8 @@
 // - PERSON_ONLY_CREATIVE_PROMPT: person image only. Zero product language.
 // - POST_AD_CREATIVE_PROMPT: product + person. Relationship vocabulary + arbitration (legacy name kept).
 // Shared sections (keep IDENTICAL across all three when editing): role, objective,
-// target_model_profile, Unit 1 tables, Unit 3, Unit 4, output_schema shape,
+// target_model_profile, Unit 1 tables EXCEPT camera/framing/layout subjects
+// (PERSON_ONLY uses person wording), Unit 3, Unit 4, output_schema shape,
 // constraints (except anchor lines), prompt-injection guard, seed rule.
 // Notes without a corresponding image are ignored in every variant (no text backdoor).
 // Output schema is identical across variants → parser/DB code is unaffected.
@@ -35,7 +36,7 @@ export const PRODUCT_ONLY_CREATIVE_PROMPT = `
       Do NOT output the keywords verbatim. Render them as a living advertising scene.
       seed: integer — creative-level entropy. Same creative's ratios share this seed. Use it to inject micro-variation (texture, scatter, prop jitter) without breaking concept identity.
     - <aspect_ratios>: AdRatioKey[] e.g. ["9_16","1_1","16_9"] — the canvases you must deliver.
-     - Product image: ONE Base64 image attached (the product). This is the primary ground truth for product shape/color/material — always prioritize what you see. There is NO person image in this call — never invent, reference, or imply a person. A note without its image is ignored: if a person_note arrives with no person image, ignore it entirely.
+     - Product image: ONE Base64 image attached (the product). This is the primary ground truth for product shape/color/material — always prioritize what you see.
      - <product_note>: optional user-written hint about the product image. Never ignore, even if contradictory like "modern yet traditional, vivid yet chill" — try to understand intent. First determine if the note is closer to "product description" (material, brand, use, e.g. "White sneakers, Nike" / "vegan leather") or "ad feel/direction" (mood, style, contradictory brief). If product description → use to understand/supplement the image (disambiguate invisible attributes, but do not contradict the image). If ad feel/direction → reflect as much as possible in the caption (Unit 2), even if contradictory, by making one dominant and the other a 5% accent. NEVER inject verbatim. Distill intent (e.g. "eco-friendly bottle" → "sustainable material cues", not the phrase itself).
      - <available_fonts>: grouped as "sans: [...] | serif: [...] | display: [...]". You MUST choose fontFamily from this list verbatim (e.g., "Barlow Condensed"). Category semantics (STRICT):
          * sans (22): Barlow, Barlow Condensed, Fira Sans, Fjalla One, Inter, Lato, League Gothic, League Spartan, Montserrat, Nunito, Open Sans, Oswald, Pathway Gothic One, Poppins, PT Sans, PT Sans Narrow, Raleway, Roboto, Russo One, Source Sans 3, Titillium Web, Work Sans — default for performance/DTC. Use for classic_product, lifestyle_narrative, high_key/studio_soft, neutral/warm/cool palettes. Inter is the safe fallback.
@@ -346,7 +347,7 @@ export const PERSON_ONLY_CREATIVE_PROMPT = `
       Do NOT output the keywords verbatim. Render them as a living advertising scene.
       seed: integer — creative-level entropy. Same creative's ratios share this seed. Use it to inject micro-variation (texture, scatter, prop jitter) without breaking concept identity.
     - <aspect_ratios>: AdRatioKey[] e.g. ["9_16","1_1","16_9"] — the canvases you must deliver.
-     - Person image: ONE Base64 image attached (the person). This is the primary ground truth for face, skin, hair, wardrobe — always prioritize what you see. There is NO product image in this call — never invent, reference, or imply a product object. A note without its image is ignored: if a product_note arrives with no product image, ignore it entirely.
+     - Person image: ONE Base64 image attached (the person). This is the primary ground truth for face, skin, hair, wardrobe — always prioritize what you see.
      - <person_note>: optional user-written hint about the person image. Never ignore, even if contradictory like "modern yet traditional, vivid yet chill" — try to understand intent. First determine if the note is closer to "person description" (appearance, wardrobe, setting, e.g. "linen shirt, freckles" / "morning kitchen") or "ad feel/direction" (mood, style, contradictory brief). If person description → use to understand/supplement the image (disambiguate visible attributes, but do not contradict the image). If ad feel/direction → reflect as much as possible in the caption (Unit 2), even if contradictory, by making one dominant and the other a 5% accent. NEVER inject verbatim. Distill intent (e.g. "glowing bride" → "radiant bridal calm", not the phrase itself).
      - <available_fonts>: grouped as "sans: [...] | serif: [...] | display: [...]". You MUST choose fontFamily from this list verbatim (e.g., "Barlow Condensed"). Category semantics (STRICT):
          * sans (22): Barlow, Barlow Condensed, Fira Sans, Fjalla One, Inter, Lato, League Gothic, League Spartan, Montserrat, Nunito, Open Sans, Oswald, Pathway Gothic One, Poppins, PT Sans, PT Sans Narrow, Raleway, Roboto, Russo One, Source Sans 3, Titillium Web, Work Sans — default for performance/DTC. Use for classic_product, lifestyle_narrative, high_key/studio_soft, neutral/warm/cool palettes. Inter is the safe fallback.
@@ -370,20 +371,20 @@ export const PERSON_ONLY_CREATIVE_PROMPT = `
       Goal: Transform 5 discrete axes into ONE unified creative concept sentence (internal, not output) that will be re-framed per ratio in Unit 2.
 
       1. **Camera Translation (8-way)**:
-         - hero_shot: product as monument, low angle, breathing room, pedestal or plinth, product occupies 35-45% of frame
-         - packshot: clinical, shadowless, product front-facing, 50-60% fill, pure e-commerce legibility
-         - lifestyle_shot: product in use, human context, mid-action, environment tells the story
-         - detail_close: macro texture, material truth, 70-85% fill, tactile surface (stitching, grain, droplet)
-         - flat_lay: top-down, geometric grid, curated props, 90-degree overhead, editorial flat-lay
-         - overhead_angle: 45-degree top-down, depth stacking, shadow play on surface
-         - product_in_hand: human hand as scale anchor, 35mm intimacy, skin texture, grip tension
-         - environment_shot: product as inhabitant of a world, 20-30% fill, environment dominates, atmospheric
+         - hero_shot: person as monument, low angle, breathing room, figure occupies 35-45% of frame
+         - packshot: NOT ASSIGNED in this mode (product-only camera — if it appears, treat as centered portrait)
+         - lifestyle_shot: person in motion, candid mid-action, environment tells the story
+         - detail_close: macro truth (skin texture, freckles, fabric weave, hands), 70-85% fill, tactile
+         - flat_lay: top-down, figure arranged geometrically, 90-degree overhead, editorial flat-lay
+         - overhead_angle: 45-degree top-down, depth stacking, shadow play on figure
+         - product_in_hand: hand as the hero detail, 35mm intimacy, skin texture, grip tension
+         - environment_shot: person as inhabitant of a world, 20-30% fill, environment dominates, atmospheric
         *Constraint*: One camera logic only. Do NOT hybridize.
 
       2. **Lighting Translation (8-way, SINGLE light logic)**:
-         - golden_hour: long warm shadows, rim light on product edge, amber 2800K, 1:4 contrast, nostalgia
+         - golden_hour: long warm shadows, rim light on face edge, amber 2800K, 1:4 contrast, nostalgia
          - blue_hour: desaturated cyan, soft skylight, cool 7500K, quiet melancholy, urban twilight
-         - studio_soft: large diffused source, feathered falloff, 0.5-stop gradient, premium e-com
+         - studio_soft: large diffused source, feathered falloff, 0.5-stop gradient, premium glow
          - studio_hard: small point source, crisp shadow edge, specular highlight, dramatic cut
          - high_key: blown highlights, 90% white, airy, 1:1.5 contrast, clinical optimism
          - low_key: 80% black, single key, 1:8 contrast, mystery, luxury
@@ -399,19 +400,19 @@ export const PERSON_ONLY_CREATIVE_PROMPT = `
          - muted: 30% saturation, dusty, Scandinavian, desaturated film, quiet confidence
          - mono: single-hue monochrome + 1 accent (5% pop), editorial daring
          - earth_tones: clay, moss, sand, bark, biophilic, sustainable cue, matte
-        *Constraint*: Palette is NOT a filter. It must be embodied in materials (wall, fabric, liquid, sky).
-         *brand_palette conditional*: If <brand_palette> is null/empty → use the 7-way keyword as sole palette authority. If <brand_palette> has 3-5 hex → override: pick the 7-way keyword NEAREST to the brand hex average (e.g. #E25E2C dominant → warm/earth_tones bias) and then inject the exact hex materials into the caption (e.g. "#E25E2C as terracotta plaster, #0A0A0A as soft charcoal shadow"). Brand hex must appear as material, not as literal text. Ensure chosen lighting still harmonizes (e.g. brand vivid red + night_low → shift palette toward muted/cool and use red as 5% accent, not dominant).
+        *Constraint*: Palette is NOT a filter. It must be embodied in materials (wall, fabric, skin glow, sky).
+         *brand_palette conditional*: If <brand_palette> is null/empty → use the 7-way keyword as sole palette authority. If <brand_palette> has 3-5 hex → override: pick the 7-way keyword NEAREST to the brand hex average (e.g. #E25E2C dominant → warm/earth_tones bias) and then inject the exact hex materials into the caption (e.g. "#E25E2C as terracotta glow, #0A0A0A as soft charcoal shadow"). Brand hex must appear as material, not as literal text. Ensure chosen lighting still harmonizes (e.g. brand vivid red + night_low → shift palette toward muted/cool and use red as 5% accent, not dominant).
 
       4. **Framing Translation (5-way)**:
-         - centered: product dead center, 10% margin all sides, symmetrical authority
-         - left_of_frame: product on left third, negative space right 55-60% (copy zone), Z-pattern
-         - right_of_frame: mirrored, product right third, negative space left
-         - negative_space: product 25-30% fill, 60%+ breathing room, luxury pause
+         - centered: person dead center, 10% margin all sides, symmetrical authority
+         - left_of_frame: person on left third, negative space right 55-60% (copy zone), Z-pattern
+         - right_of_frame: mirrored, person right third, negative space left
+         - negative_space: person 25-30% fill, 60%+ breathing room, luxury pause
          - tight_crop: 65-75% fill, edge bleed, impact, texture-forward
         *Constraint*: Framing defines the copy battleground. left/right_of_frame and negative_space implicitly reserve clean copy zones — you must honor them in Unit 2.
 
       5. **Layout Tone Translation (5-way) — the invisible grid**:
-         - classic_product: centered pedestal, symmetry, trust, retail shelf logic
+         - classic_product: centered figure, symmetry, trust, portrait-shelf logic
          - lifestyle_narrative: candid moment, human truth, before/after implication, story
          - editorial_statement: fashion magazine, negative space as luxury, typographic pause, 1 hero line only
          - minimal_modern: 60% white, 1 material, 1 shadow, brutal reduction, Apple logic
@@ -915,11 +916,3 @@ export const POST_AD_CREATIVE_PROMPT = `
   </constraint>
 </developer_instruction>
 `;
-
-export function selectCreativePrompt(hasProduct: boolean, hasPerson: boolean): string {
-    // person+product → combined (legacy default). person-only / product-only → purified variants.
-    // Neither (UI-gated, unreachable) → product-only fallback.
-    if (hasProduct && hasPerson) return POST_AD_CREATIVE_PROMPT;
-    if (hasPerson) return PERSON_ONLY_CREATIVE_PROMPT;
-    return PRODUCT_ONLY_CREATIVE_PROMPT;
-}

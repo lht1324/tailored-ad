@@ -1,8 +1,12 @@
 import { AdCopySpec, AdCreativeSpec, AdImageResult, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
-import { AdDesignLayout } from "@/lib/api/client/ad/adClientAPI";
+import { AdDesignLayout } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { cleanAndParseJSON } from "@/lib/utils/jsonUtils";
 import { OpenRouterClient, OpenRouterModel } from "@/lib/OpenRouterClient";
-import { selectCreativePrompt } from "@/lib/llm-prompts/ad/POST_AD_CREATIVE_PROMPT";
+import {
+    POST_AD_CREATIVE_PROMPT,
+    PRODUCT_ONLY_CREATIVE_PROMPT,
+    PERSON_ONLY_CREATIVE_PROMPT,
+} from "@/lib/llm-prompts/ad/POST_AD_CREATIVE_PROMPT";
 import { POST_AD_IMAGE_ANALYSIS_PROMPT } from "@/lib/llm-prompts/ad/POST_AD_IMAGE_ANALYSIS_PROMPT";
 import { fontMap } from "@/lib/fonts";
 
@@ -65,6 +69,14 @@ export const llmServerAPI = {
             const displayFonts = ['Anton', 'Archivo Black', 'Bebas Neue', 'Fredoka', 'Paytone One', 'Staatliches', 'Syne', 'Teko', 'Unbounded'];
             const availableFontsGrouped = `sans: ${sansFonts.join(', ')} | serif: ${serifFonts.join(', ')} | display: ${displayFonts.join(', ')}`;
 
+            // 모드 선확정: 해당 모드 노트 태그만 전송 (반대쪽은 태그째 생략)
+            const hasProductImage = Boolean(productImageBase64);
+            const hasPersonImage = Boolean(personImageBase64);
+            const noteLines = [
+                hasProductImage ? `  <product_note>${productNote ?? ""}</product_note>` : null,
+                hasPersonImage ? `  <person_note>${personNote ?? ""}</person_note>` : null,
+            ].filter((line): line is string => line !== null).join("\n");
+
             const userMessage = `
 <input_data>
   <creative_spec>
@@ -76,8 +88,7 @@ export const llmServerAPI = {
     <seed>${seed}</seed>
   </creative_spec>
   <aspect_ratios>${JSON.stringify(aspectRatios)}</aspect_ratios>
-  <product_note>${productNote ?? ""}</product_note>
-  <person_note>${personNote ?? ""}</person_note>
+${noteLines}
   <cta_enabled>${ctaEnabled}</cta_enabled>
   <brand_palette>${brandPalette && brandPalette.length > 0 ? JSON.stringify(brandPalette) : "null"}</brand_palette>
   <brand_logo>${brandLogoBase64 ? 'true' : 'false'}</brand_logo>
@@ -90,12 +101,18 @@ ${attachedInfo}
 Instruction: Generate ratio-specific I2I captions and ad copy according to the system prompt.
 `;
 
+            const systemMessage = hasProductImage && hasPersonImage
+                ? POST_AD_CREATIVE_PROMPT
+                : hasPersonImage
+                    ? PERSON_ONLY_CREATIVE_PROMPT
+                    : PRODUCT_ONLY_CREATIVE_PROMPT;
+
             const client = new OpenRouterClient();
 
             const generatedContent = await client.createCompletion(
                 {
                     model: OpenRouterModel.GLM_5_3_FLASH,
-                    systemMessage: selectCreativePrompt(Boolean(productImageBase64), Boolean(personImageBase64)),
+                    systemMessage: systemMessage,
                     userMessage,
                     imageBase64List: imageBase64List.length > 0 ? imageBase64List : undefined,
                     imageDetail: "high",
@@ -162,7 +179,7 @@ Instruction: Generate ratio-specific I2I captions and ad copy according to the s
     /**
      * Vision 분석 — creative에 속한 생성 이미지 묶음을 보고
      * 비율별 design(오버레이 지오메트리) + score(0.0~10.0)를 평가한다.
-     * 호출 단위 = creative 묶음 완료(isLastCreative) 시 1회, 모델 = QWEN_3_8_27B.
+     * 호출 단위 = creative 묶음 완료(isLastCreative) 시 1회, 모델 = GLM_5_3_FLASH.
      */
     async postAdImageAnalysis(params: {
         creativeIndex: number;
