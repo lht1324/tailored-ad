@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import AdPageServer from "@/components/page/ad/AdPageServer";
+import LandingPageServer from "@/components/page/ad/landing/LandingPageServer";
 
 export const metadata: Metadata = {
     title: "TailoredAd | AI Ad Creatives That Don't Look Like AI Stock",
@@ -32,5 +32,5 @@ export const metadata: Metadata = {
 };
 
 export default function AdPage() {
-    return <AdPageServer />;
+    return <LandingPageServer />;
 }

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import HeroWall from "@/components/page/ad/hero-section/HeroWall";
+import HeroWall from "@/components/page/ad/landing/hero-section/HeroWall";
 import { useAuth } from "@/context/AuthContext";
 import { usersClientAPI, type UserUsageSummary } from "@/lib/api/client/usersClientAPI";
 

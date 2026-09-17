@@ -3,7 +3,7 @@
 import ReactMarkdown from 'react-markdown';
 import {memo, useMemo} from "react";
 import { PRIVACY_POLICY, TERMS_OF_SERVICE } from "@/components/page/legal/LegalPageMarkdownData";
-import AdFooter from "@/components/page/ad/footer/AdFooter";
+import AdFooter from "@/components/page/ad/public/AdFooter";
 import { LegalDataType } from "@/components/page/legal/LegalDataType";
 
 interface LegalPageClientProps {

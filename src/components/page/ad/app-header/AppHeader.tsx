@@ -3,7 +3,7 @@
 import { memo, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
-import ThemeToggle from "@/components/page/ad/ThemeToggle";
+import ThemeToggle from "@/components/page/ad/public/ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
 import { usersClientAPI, type UserUsageSummary } from "@/lib/api/client/usersClientAPI";
 
