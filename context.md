@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-09-17 12:00)
+# TailoredAd — 작업 기록 (Last Updated: 2026-09-18 01:00)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -155,10 +155,19 @@
   별도 결함 수정 포함: logo 서수 하드코딩→order list 참조, Ex2 verbatim 교정.
 - **모드 정합硬化** (의도: 모드별 입력 선확정):
   `MODE_EXCLUDED_VALUES` 테이블 (product-only: lifestyle_shot·product_in_hand·lifestyle_narrative 제외,
-  person-only: packshot 제외, combined: 없음) + `assignCreativeCombinations(..., mode?)` +
-  `specs/route`에서 batch 이미지로 mode 전달. 반대쪽 노트는 태그째 미전송.
-  PERSON_ONLY Unit 1 person 주어 개역 (packshot은 "미배정" 명시).
+  person-only: packshot 제외, combined: hero·lifestyle·product_in_hand·environment만 허용) +
+  `assignCreativeCombinations(..., mode?)` + `specs/route`에서 batch 이미지로 mode 전달.
+  반대쪽 노트는 태그째 미전송. PERSON_ONLY Unit 1 person 주어 개역 (packshot은 "미배정" 명시).
   고정 풀 나열은 유지 (샘플러와 이중 관리 방지).
+- **카피·인물 재생성 규칙** (09-17): CTA 수학 선택 폐기 → 헤드라인 프레임워크 페어링표
+  (PAS→See Results/Try Today, BAB→See Results/Start Free, 4U→Shop/Get Yours,
+  AIDA→Learn More, Social→See Results/Shop Now, Mechanism→Learn More/Try Today).
+  인물은 얼굴 유지 + 포즈·표정·의상·장신구 새로 (원본 그대로 금지),
+  구체 묘사 강제 ("같은 여자"식 참조형 금지). 포즈 동일 제약 4곳을 얼굴 동일로 교정.
+- **프롬프트 전수 감사 잔량**: Ex2 PRODUCT 캡션 35단어 (18~32 위반) — 예시가 규칙 깸, 수정 대기.
+  seed 모듈러(`%6`·`%N`)는 실행 불가 판정 (결정적 선택인 척, 실제 랜덤).
+  예시 모방 금지 가드 없음. `ad_variation_study.md` 파일 없음 (인용만).
+  PRODUCT 16:9 예시 없음, 전 변형 2:3 예시 없음.
 - **레거시 정리**: `adClientAPI.ts`·`adServerAPI.ts`(mock)·`/api/tasks` 2종·results 4파일 삭제.
   실사용 타입은 `AdGenerationBatch.ts`로, `AdOverlay`는 `components/public/`으로 이전 (import 20곳 교체).
   `AdTaskStatus`는 별칭으로 유지 (PreviewCanvas 사용).
@@ -251,6 +260,9 @@
 - [ ] E2E 테스트 (다음 순서 1순위 — 생성→차감→환불 회수 남음, 테스트 계정 정리 후)
 - [x] 모드 정합硬化 (샘플러 필터 + 노트 태그 제외 + PERSON Unit 1)
 - [x] 레거시 정리 (adClientAPI·results 사체 삭제, 타입·AdOverlay 이전)
+- [x] 카피·인물 재생성 규칙 (CTA 페어링표, 얼굴유지 리스타일+구체묘사, 결합 카메라 allowlist)
+- [ ] E2E 테스트 (다음 순서 1순위 — 생성→차감→환불 회수 남음, 테스트 계정 정리 후)
+- [ ] B9 c01-1:1 실패분 재생성 + 19칸 선정 매핑 + `public/preview` 배치
 - [ ] 프롬프트 3-way eyeball (케이스별 1배치 — product 회귀 우선 → person → combined 순. quota 소모 유의)
 - [ ] 타일 CTA 재측정 판정 (위 분쟁 항목)
 - [ ] CTA 색 enum 추출 (제안됨, 미확정)
@@ -285,5 +297,31 @@ npm run deploy   # opennext build + deploy (master에서)
   웹훅 endpoint는 대시보드 등록 (dev는 ngrok URL + `/api/webhook/polar`, raw, 2026-04).
   `.env.local` 필요 키: `POLAR_API_KEY` + `POLAR_WEBHOOK_SECRET` +
   `POLAR_FIRST_ORDER_DISCOUNT_ID` (사장님이 직접 입력, 채팅 금지).
+
+## 10. 랜딩 실생성 배치 기록 (09-18, 41장 수령)
+
+- 소스: S1 텀블러(네이비 무지), S2 스니커즈(화이트), S3 향수(블랙 무각인),
+  S4 머그(무광), M1 여성(린넨), M2 남성1(수염), M3 남성2(숏헤어 네온).
+  탈락 소스: MIZU·나이키·랄리크(브랜드 마크), S1-1 목업(자이언트 타이포 전이 위험).
+
+| 폴더 | 배치id | 모드 | 비율 | c수 | CTA | 결과 |
+|---|---|---|---|---|---|---|
+| batch-1 | 821c37 | product(병) | 1:1,4:5,16:9 | c2 | on | 6장 OK |
+| batch-2 | 18a520 | product(스니커즈) | 1:1,4:5,9:16 | c2 | on | 6장 OK |
+| batch-3 | 1b13d1 | product(향수) | 1:1 | c2 | off | 2장 OK |
+| batch-4 | 803a2b | product(머그) | 1:1,4:5 | c2(계획 c1 초과) | off | 4장 OK |
+| batch-5 | d76e60 | person(여성) | 9:16,4:5,1:1 | c2 | on | 6장 OK |
+| batch-6 | 976fde | person(남성1) | 9:16,1:1,4:5 | c2(계획 c1 초과) | on | 6장 OK |
+| batch-7 | 83c7fc | person(남성2) | 9:16,4:5 | c2(계획 c1 초과) | off | 4장 OK |
+| batch-8 | 5434bd | combined(향수+남성1) | 1:1,9:16 | c2(계획 c1 초과) | off(계획 on과 다름) | 4장 OK |
+| batch-9 | 8f0087 | combined(병+여성) | 1:1,9:16 | c2(계획 c1 초과) | off(계획 on과 다름) | c01-1:1 Replicate failed 1장 결손, 3장 OK |
+
+- 품질 킬 5장 (랜딩 부적격): 목 없는 남자 머리 2장, 나이키 손 1장, ALL CAPS 2장.
+- 원인 분석 (rows JSON): 인물 원본 유지 = 포즈동일 규칙 탓 (위 얼굴유지 리스타일로 수정됨).
+  결합 인물 탈락 = flat_lay·overhead 배정 탓 (allowlist로 수정됨).
+  CTA Get Yours 독식 = 선택기 부재 탓 (페어링표로 수정됨).
+- 슬롯 계획: Portfolio 1:1×4·9:16×3·4:5×3·16:9×1 + Hero 8칸(4:5 크롭, 원본 무관).
+  파일은 Final PNG → WebP 변환 후 기존 파일명 매핑 (코드 무수정).
+- **다음**: B9 c01-1:1 실패분 재생성 → 19칸 선정 매핑 → 배치.
 
 (End of file)
