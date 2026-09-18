@@ -5,7 +5,7 @@ import { internalFireAndForgetFetch } from "@/lib/utils/internalFetch";
 import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatchServerAPI";
 import { adImageServerAPI } from "@/lib/api/server/ad/imageServerAPI";
 import { selectBaseRatio } from "@/lib/api/server/ad/creativeCombinationSampler";
-import { replicateClient } from "@/lib/ReplicateClient";
+import { replicateClient, selectImageModel } from "@/lib/ReplicateClient";
 import { AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 
 /**
@@ -113,6 +113,7 @@ export async function POST(request: NextRequest) {
             imageUrls: originalImageUrls,
             aspectRatio: baseRatio,
             seed: creativeSpec.seed,
+            model: selectImageModel(batch.aspect_ratios as string[]),
             webhookUrl,
         });
 

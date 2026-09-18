@@ -11,34 +11,51 @@ import { acquireReplicateSlot } from "@/lib/replicateRateLimit";
  */
 
 /**
- * ad 이미지 생성 모델 — Black Forest Labs FLUX.2 Dev 단일.
- * {owner}/{name} 식별자로 최신 버전이 실행된다. 모델 교체는 이 상수 + buildFluxInput만 바꾸면 된다.
+ * ad 이미지 생성 모델 — Seedream 하이브리드 (ByteDance).
+ * - 5.0 Lite (`bytedance/seedream-5-lite`, $0.035/장 고정): 기본. 4:5 미지원.
+ * - 4.5 (`bytedance/seedream-4.5`, $0.04/장 고정): 배치에 4:5 포함 시 통째로.
+ * 비율 단위 분기는 금지 — 같은 creative 내 모델 혼재 시 "같은 개념" 보장이 깨짐.
+ * (FLUX.2 Dev에서 이전: MP 과금이라 base $0.04/ratio $0.06 실측 → 정액제로 교체)
  */
-const FLUX_IMAGE_MODEL = "black-forest-labs/flux-2-dev";
+export const SEEDREAM_5_LITE = "bytedance/seedream-5-lite";
+export const SEEDREAM_4_5 = "bytedance/seedream-4.5";
+
+export type SeedreamModel = typeof SEEDREAM_5_LITE | typeof SEEDREAM_4_5;
 
 /**
- * FLUX.2 Dev 입력 조립 (실측 스키마 확인됨).
- * aspect 값("4:5" 등)과 웹훅·output 파싱은 공용 (collectOutputUrls가 형태 흡수).
+ * 배치 단위 모델 판정 — aspect_ratios에 4_5가 하나라도 있으면 배치 전체 4.5.
+ * 호출마다 같은 답이 나오므로 base·ratios 어디서 호출해도 일관.
  */
-function buildFluxInput(
+export function selectImageModel(aspectRatios: string[]): SeedreamModel {
+    return aspectRatios.includes("4_5") ? SEEDREAM_4_5 : SEEDREAM_5_LITE;
+}
+
+/**
+ * Seedream 입력 조립 (4.5·5.0 공통 분모만 사용).
+ * - seed: 양쪽 스키마 미지원이라 input에 넣지 않음. params 배선만 유지 중 (PoC 확정 후 제거).
+ * - output_format=png는 5.0에만 (4.5 스키마 없음 → 오는 대로 받고 inferFileExtension이 흡수).
+ * - disable_safety_checker=false는 4.5에만 (5.0 스키마 없음).
+ */
+function buildSeedreamInput(
     prompt: string,
     imageUrls: string[],
     aspectRatio?: string,
-    seed?: number,
+    model: SeedreamModel = SEEDREAM_5_LITE,
 ): Record<string, unknown> {
     const input: Record<string, unknown> = {
         prompt,
-        disable_safety_checker: true,
-        // regular variant ($0.014/MP) — go_fast($0.012)는 최적화 경로라 최종 품질 우선으로 고정
-        go_fast: false,
-        // PNG 고정 — 원본 위에 글자를 얹으므로 JPEG 링잉 누적 방지 (표시용은 WebP 별도 변환)
-        output_format: "png",
+        size: "2K",
+        sequential_image_generation: "disabled",
+        max_images: 1,
     };
-    if (imageUrls.length > 0) input.input_images = imageUrls;
+    if (imageUrls.length > 0) input.image_input = imageUrls;
     const ratio = aspectRatio ? aspectRatio.replace('_', ':') : undefined;
     if (ratio) input.aspect_ratio = ratio;
-    // 재현성 — spec.seed가 DB에 보관되므로 Regenerate 시 동일 결과 재현 가능
-    if (seed !== undefined) input.seed = seed;
+    if (model === SEEDREAM_4_5) {
+        input.disable_safety_checker = false;
+    } else {
+        input.output_format = "png";
+    }
     return input;
 }
 
@@ -64,7 +81,9 @@ export interface AdImageEditPredictionParams {
     imageUrls: string[];
     /** 출력 비율 ('9_16' → '9:16' 형태로 변환해서 전달) */
     aspectRatio?: string;
-    /** 재현용 시드 — creativeSpec.seed (DB 보관됨) */
+    /** 배치 단위 판정 모델 (selectImageModel) — 미지정 시 5.0 Lite */
+    model?: SeedreamModel;
+    /** 재현용 시드 — 스키마 미지원이라 현재 미전송, 배선만 유지 (PoC 확정 후 제거) */
     seed?: number;
     /** 완료 웹훅 URL — batch_id·creative_index 등 식별자를 query로 붙여서 전달 */
     webhookUrl: string;
@@ -153,11 +172,11 @@ export const replicateClient = {
     async postAdImageEditPrediction(params: AdImageEditPredictionParams): Promise<ReplicatePredictionSubmission> {
         const replicate = createReplicateInstance();
 
-        const input = buildFluxInput(
+        const input = buildSeedreamInput(
             params.prompt,
             params.imageUrls,
             params.aspectRatio,
-            params.seed,
+            params.model,
         );
 
         await acquireReplicateSlot();
@@ -166,7 +185,7 @@ export const replicateClient = {
         for (let attempt = 1; attempt <= MAX_SUBMIT_ATTEMPTS; attempt++) {
             try {
                 const prediction = await replicate.predictions.create({
-                    model: FLUX_IMAGE_MODEL,
+                    model: params.model ?? SEEDREAM_5_LITE,
                     input: input,
                     webhook: params.webhookUrl,
                     webhook_events_filter: WEBHOOK_EVENTS_FILTER,
