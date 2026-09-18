@@ -141,6 +141,7 @@ export async function POST(request: NextRequest) {
                     prompt: wrappedCaptionForRetry,
                     imageUrls: referenceUrlsForRetry,
                     aspectRatio: retryRatioKey,
+                    seed: creativeSpec.seed,
                     webhookUrl,
                 });
             } catch (submitError) {
@@ -180,6 +181,7 @@ export async function POST(request: NextRequest) {
                     prompt: wrappedCaptionForSingle,
                     imageUrls: originalImageUrls,
                     aspectRatio: singleRatio,
+                    seed: creativeSpec.seed,
                     webhookUrl,
                 });
             } catch (submitError) {
@@ -251,6 +253,7 @@ export async function POST(request: NextRequest) {
                     prompt: wrappedCaptionForRatio,
                     imageUrls: referenceUrlsWithBase,
                     aspectRatio: ratioKey,
+                    seed: creativeSpec.seed,
                     webhookUrl,
                 });
             } catch (submitError) {

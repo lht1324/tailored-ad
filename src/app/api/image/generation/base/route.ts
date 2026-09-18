@@ -112,6 +112,7 @@ export async function POST(request: NextRequest) {
             prompt: wrappedCaption,
             imageUrls: originalImageUrls,
             aspectRatio: baseRatio,
+            seed: creativeSpec.seed,
             webhookUrl,
         });
 

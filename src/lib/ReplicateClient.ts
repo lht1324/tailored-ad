@@ -24,16 +24,21 @@ function buildFluxInput(
     prompt: string,
     imageUrls: string[],
     aspectRatio?: string,
+    seed?: number,
 ): Record<string, unknown> {
     const input: Record<string, unknown> = {
         prompt,
         disable_safety_checker: true,
         // regular variant ($0.014/MP) — go_fast($0.012)는 최적화 경로라 최종 품질 우선으로 고정
         go_fast: false,
+        // PNG 고정 — 원본 위에 글자를 얹으므로 JPEG 링잉 누적 방지 (표시용은 WebP 별도 변환)
+        output_format: "png",
     };
     if (imageUrls.length > 0) input.input_images = imageUrls;
     const ratio = aspectRatio ? aspectRatio.replace('_', ':') : undefined;
     if (ratio) input.aspect_ratio = ratio;
+    // 재현성 — spec.seed가 DB에 보관되므로 Regenerate 시 동일 결과 재현 가능
+    if (seed !== undefined) input.seed = seed;
     return input;
 }
 
@@ -59,6 +64,8 @@ export interface AdImageEditPredictionParams {
     imageUrls: string[];
     /** 출력 비율 ('9_16' → '9:16' 형태로 변환해서 전달) */
     aspectRatio?: string;
+    /** 재현용 시드 — creativeSpec.seed (DB 보관됨) */
+    seed?: number;
     /** 완료 웹훅 URL — batch_id·creative_index 등 식별자를 query로 붙여서 전달 */
     webhookUrl: string;
 }
@@ -150,6 +157,7 @@ export const replicateClient = {
             params.prompt,
             params.imageUrls,
             params.aspectRatio,
+            params.seed,
         );
 
         await acquireReplicateSlot();
