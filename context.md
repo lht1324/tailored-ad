@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-09-18 04:03)
+# TailoredAd — 작업 기록 (Last Updated: 2026-09-19 00:45)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -240,6 +240,32 @@
 - **Cloudflare Free로 시작, Paid($5/월)는 트래픽 보고 전환**: Free 제한 실측 정리 — CPU 10ms(홀딩은 CPU 안 먹어서 무관), 서브리퀘스트 50/요청(가장 먼저 걸릴 후보), waitUntil 응답 후 30초, 요청 10만/일.
 - **Replicate 계정**: auto-reload 설정됨. 잔액·결제수단은 사장님 관리.
 - **폰트 셀프호스팅 보류**: public 레포 + GitKraken 무료 제약. Google 34종은 OFL로 가능하나 Satoshi(ITF)가 public 재배포 금지. B안(Google만)도 대기 중 — 폰트 이슈 재발 시 재개. link 이전으로 우선 해결.
+- **이미지 모델 Seedream 하이브리드** (09-18/19): FLUX.2 Dev 교체 — MP 과금 실측
+  base $0.04/ratio $0.06이라 정액제로 전환. 5.0 Lite($0.035, Replicate `bytedance/seedream-5-lite`)
+  기본 + 배치에 4_5 포함 시 통째로 4.5($0.04, `bytedance/seedream-4.5`)
+  (`selectImageModel`, 비율 단위 분기 금지 — 같은 creative 내 모델 혼재 방지).
+  5.0 지원 비율: 1:1·4:3·3:4·16:9·9:16·3:2·2:3·21:9 (4:5 없음 — 하이브리드 이유).
+  공통 input {prompt, image_input, size 2K, aspect_ratio} + 5.0만 output_format png +
+  4.5만 disable_safety_checker=false. seed는 양쪽 스키마 미지원이라 미전송, 배선만 유지.
+  PoC 실측: 5.0 기가 막힘 / 4.5 인물 흑백 이슈 (원인 "charcoal" 단어 유력 — 아래 Full-color 규칙으로 대응).
+- **base 집중 + ratios 간섭 최소화** (09-19, 방향 확정 — ratios route 재설계 예정):
+  base 1장에 올인 (플레이스홀더 완벽 적용 base 프롬프트로 생성)하고,
+  ratios는 base 결과물 1장만 받아 고정 문구로 재구성. LLM 개입 없음, 원본 보조 없음.
+  근거: (1) 비율은 `aspect_ratio` 파라미터가 강제하므로 LLM 구도 설계는 중복.
+  (2) "전부 동일" 원칙 — base 멀쩡+ratio 개판보다 전부 동일하게 망하는 게 낫다.
+  유저 UX: 일부만 망하면 개별 재생성 지옥(기능 없음), 전부 동일하면 다시 돌리기 1번.
+  고정 문구 (`buildReframePrompt`, `{ratio}`는 1:1식 실제 표기):
+  `Reframe image_input[0] into a {ratio} still-advertisement composition. Preserve its identity, palette, and lighting exactly. Rearrange framing and negative space for the new canvas, keeping clean room for headline text.`
+  현 ratios route(재시도·직통·뒤따름 3모드 + 폴백 분기)는 이 방향으로 싹 재설계 예정 (미커밋).
+- **프롬프트 컴포지션 + 태그·스키마 분리** (09-18/19):
+  통짜 3벌 → BASE_TEMPLATE + 모드 섹션 + `buildPrompt` 조립 (바이트 동일 검증済み).
+  이미지 태그 3종 (PRODUCT_IMAGE / PERSON_IMAGE / BASE_IMAGE) — GLM은 순서 몰라도 됨,
+  전송 직전 코드가 image_input[n]으로 치환 (`resolveImageInputTags`, 미지정·오타는 throw).
+  스키마: `baseRatio` + `ratioReframeRecord`(base 제외) 추가, 신규 RPC `update_creative_reframe_outputs`
+  (기존 형식 맞춤, 실행됨). 단, ratios 고정 문구로 가면서 LLM ratio 발주는 단계적 축소 예정.
+  2순위 잔량: softbox 기구명사 금지, levitating→grounded, Full-color 강제
+  (`Full-color photograph, natural skin tones — NEVER monochrome unless palette=mono`),
+  Note 복장 강제, C 단위 LLM 2회 분리 (base·ratio mutual blind) 후보.
 - **모바일 분리 전제**: 공유 파일에 반응형 추가 금지 (split 때 삭제 대상). 모바일은 현상 동결, 백로그만 기록. UA 감지 → `(mobile)` 라우트 그룹 후보.
 
 ## 5. 렌더 계약 (에디터 작업 전 필독)
@@ -287,13 +313,16 @@
 - [x] 체크아웃 생성 API + 요금제 버튼 배선 + 성공 페이지
 - [x] Trial 10장 + 하드게이트 + Hero CTA + 로딩 오버레이
 - [x] 웹훅 403 해결 + 수신/처리 분리 (E2E grant 적립 확인)
-- [ ] E2E 테스트 (다음 순서 1순위 — 생성→차감→환불 회수 남음, 테스트 계정 정리 후)
-- [x] 모드 정합硬化 (샘플러 필터 + 노트 태그 제외 + PERSON Unit 1)
-- [x] 레거시 정리 (adClientAPI·results 사체 삭제, 타입·AdOverlay 이전)
-- [x] 카피·인물 재생성 규칙 (CTA 페어링표, 얼굴유지 리스타일+구체묘사, 결합 카메라 allowlist)
-- [ ] E2E 테스트 (다음 순서 1순위 — 생성→차감→환불 회수 남음, 테스트 계정 정리 후)
+- [x] 생성·업로드 단일 요청 합치기 (multipart 1요청 — 완료, 푸시됨)
+- [x] Seedream 하이브리드 (5.0 Lite + 4.5 — 코드·SQL 완료, 푸시됨)
+- [x] 프롬프트 컴포지션 1순위 (구조만 — 바이트 동일 검증, 푸시됨)
+- [x] 태그 정의·치환 + 스키마 분리 + reframe RPC (코드·SQL 완료)
+- [ ] ratios route 재설계 (base 집중 + 고정 문구 — 작업 중, 미커밋)
+- [ ] E2E 테스트 (생성→차감→환불 회수, 테스트 계정 정리 후)
+- [ ] 2순위 내용 작업: softbox 기구명사 금지 + levitating→grounded + Full-color 강제 + Note 복장 강제
+- [ ] C 단위 LLM 2회 분리 검토 (base·ratio mutual blind — 재구성 품질 보고 결정)
+- [ ] 프롬프트 eyeball (Seedream 기준 — FLUX 시절 항목 대체)
 - [ ] B9 c01-1:1 실패분 재생성 + 19칸 선정 매핑 + `public/preview` 배치
-- [ ] 프롬프트 3-way eyeball (케이스별 1배치 — product 회귀 우선 → person → combined 순. quota 소모 유의)
 - [ ] 타일 CTA 재측정 판정 (위 분쟁 항목)
 - [ ] CTA 색 enum 추출 (제안됨, 미확정)
 - [ ] 낱장 Regenerate (실패 타일 살리기 + 재추첨. 뒷단 재제출 경로 존재, UI 배선만 — 제안됨, 미확정)
