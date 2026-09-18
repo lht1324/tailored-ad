@@ -4,8 +4,16 @@ import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatchServerAPI";
 import { adImageServerAPI } from "@/lib/api/server/ad/imageServerAPI";
 import { selectBaseRatio } from "@/lib/api/server/ad/creativeCombinationSampler";
-import { replicateClient, selectImageModel } from "@/lib/ReplicateClient";
-import { AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+import { replicateClient, selectImageModel, type ImageInputTag } from "@/lib/ReplicateClient";
+import { AdRatioKey, type AdGenerationBatch } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+
+/** 원본 전용 태그 순서 = [product?, person?] (getAdOriginalImageSignedUrls와 동일) */
+function buildOriginalTagOrder(batch: AdGenerationBatch): ImageInputTag[] {
+    return [
+        ...(batch.product_image ? ["PRODUCT_IMAGE" as const] : []),
+        ...(batch.person_image ? ["PERSON_IMAGE" as const] : []),
+    ];
+}
 
 /**
  * 제출 실패 가시화 — prediction이 없으면 웹훅이 안 와 영구 pending 유령이 되므로
@@ -108,7 +116,8 @@ export async function POST(request: NextRequest) {
                     error: `Retry ratioKey ${retryRatioKey} is not in batch aspect_ratios.`
                 });
             }
-            const caption = creativeSpec.imagePromptRecord[retryRatioKey];
+            const caption = creativeSpec.ratioReframeRecord?.[retryRatioKey]
+                ?? creativeSpec.imagePromptRecord[retryRatioKey];
             if (!caption || typeof caption !== 'string' || caption.trim().length === 0) {
                 return getNextBaseResponse({
                     success: false,
@@ -143,6 +152,7 @@ export async function POST(request: NextRequest) {
                     aspectRatio: retryRatioKey,
                     seed: creativeSpec.seed,
                     model: selectImageModel(batch.aspect_ratios as string[]),
+                    imageTags: buildOriginalTagOrder(batch),
                     webhookUrl,
                 });
             } catch (submitError) {
@@ -159,7 +169,8 @@ export async function POST(request: NextRequest) {
         // 직통 모드: 비율 1개 — 원본 참조로 1장만 제출
         if (batch.aspect_ratios.length === 1) {
             const singleRatio = batch.aspect_ratios[0] as AdRatioKey;
-            const caption = creativeSpec.imagePromptRecord[singleRatio];
+            const caption = creativeSpec.ratioReframeRecord?.[singleRatio]
+                ?? creativeSpec.imagePromptRecord[singleRatio];
 
             if (!caption || typeof caption !== 'string' || caption.trim().length === 0) {
                 return getNextBaseResponse({
@@ -184,6 +195,7 @@ export async function POST(request: NextRequest) {
                     aspectRatio: singleRatio,
                     seed: creativeSpec.seed,
                     model: selectImageModel(batch.aspect_ratios as string[]),
+                    imageTags: buildOriginalTagOrder(batch),
                     webhookUrl,
                 });
             } catch (submitError) {
@@ -238,7 +250,8 @@ export async function POST(request: NextRequest) {
         }
 
         for (const ratioKey of remainingRatios) {
-            const caption = creativeSpec.imagePromptRecord[ratioKey];
+            const caption = creativeSpec.ratioReframeRecord?.[ratioKey]
+                ?? creativeSpec.imagePromptRecord[ratioKey];
 
             if (!caption || typeof caption !== 'string' || caption.trim().length === 0) {
                 return getNextBaseResponse({
@@ -257,6 +270,7 @@ export async function POST(request: NextRequest) {
                     aspectRatio: ratioKey,
                     seed: creativeSpec.seed,
                     model: selectImageModel(batch.aspect_ratios as string[]),
+                    imageTags: ["BASE_IMAGE", ...buildOriginalTagOrder(batch)],
                     webhookUrl,
                 });
             } catch (submitError) {

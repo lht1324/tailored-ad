@@ -24,6 +24,7 @@ export const llmServerAPI = {
         creativeIndex: number;
         creativeSpec: AdCreativeSpec;
         aspectRatios: AdRatioKey[];
+        baseRatio: AdRatioKey;
         productNote: string | null;
         personNote: string | null;
         ctaEnabled: boolean;
@@ -35,6 +36,7 @@ export const llmServerAPI = {
     }): Promise<{
         success: boolean;
         imagePromptRecord?: Partial<Record<AdRatioKey, string>>;
+        ratioReframeRecord?: Partial<Record<AdRatioKey, string>>;
         copy?: AdCopySpec;
         reasoning?: string;
         ratioReasonings?: Partial<Record<AdRatioKey, string>>;
@@ -45,6 +47,7 @@ export const llmServerAPI = {
                 creativeIndex,
                 creativeSpec,
                 aspectRatios,
+                baseRatio,
                 productNote,
                 personNote,
                 ctaEnabled,
@@ -88,6 +91,7 @@ export const llmServerAPI = {
     <seed>${seed}</seed>
   </creative_spec>
   <aspect_ratios>${JSON.stringify(aspectRatios)}</aspect_ratios>
+  <base_ratio>${baseRatio}</base_ratio>
 ${noteLines}
   <cta_enabled>${ctaEnabled}</cta_enabled>
   <brand_palette>${brandPalette && brandPalette.length > 0 ? JSON.stringify(brandPalette) : "null"}</brand_palette>
@@ -137,6 +141,7 @@ Instruction: Generate ratio-specific I2I captions and ad copy according to the s
                     reasoning: string;
                     ratio_reasonings: Partial<Record<AdRatioKey, string>>;
                     image_prompt_record: Partial<Record<AdRatioKey, string>>;
+                    ratio_reframe_record?: Partial<Record<AdRatioKey, string>>;
                     copy: AdCopySpec;
                 } = cleanAndParseJSON(generatedContent);
 
@@ -151,6 +156,7 @@ Instruction: Generate ratio-specific I2I captions and ad copy according to the s
                 return {
                     success: true,
                     imagePromptRecord: parsed.image_prompt_record,
+                    ratioReframeRecord: parsed.ratio_reframe_record,
                     copy: parsed.copy,
                     reasoning: parsed.reasoning,
                     ratioReasonings: parsed.ratio_reasonings,

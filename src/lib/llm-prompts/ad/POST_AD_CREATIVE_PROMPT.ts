@@ -1,9 +1,22 @@
 // Creative prompt — composition structure (1순위: 구조만, 내용 불변).
 // - BASE_TEMPLATE 1개 + 모드별 섹션(차별점) + buildPrompt 조립.
-// - 공통부에 {{PLACEHOLDER}} 자리를 마련해 둠. {{GRAMMAR}}는 2순위(base/ratio 문법) 자리 (현재 빈 문자열).
-// - 기존 export 3개는 조립 결과라 호출부 무변경. 동등성은 esbuild 번들 비교로 검증됨.
+// - 공통부에 {{PLACEHOLDER}} 자리를 마련해 둠. {{GRAMMAR}}는 호출 시점 공통 블록 (아래 GRAMMAR_BLOCK).
+// - 기존 export 3개는 조립 결과라 호출부 무변경.
 // - Notes without a corresponding image are ignored in every variant (no text backdoor).
 // - Output schema is identical across variants → parser/DB code is unaffected.
+
+// 호출 시점 공통 블록 — base 창작형 + ratio 재구성형 + 태그 정의 (3모드 공통).
+const GRAMMAR_BLOCK = `
+      Image Reference Tags (verbatim — ALWAYS use these in captions, NEVER image_input[n] or "the reference"):
+      - PRODUCT_IMAGE: the attached product photo. Identity source for the object.
+      - PERSON_IMAGE: the attached person photo. Identity source for the human.
+      - BASE_IMAGE: the finished base-ratio image. Ratio reframing only (never in image_prompt_record).
+      Code replaces each tag with image_input[n] before submission. Unknown tags fail validation — do not invent tags.
+
+      Caption Grammars (two kinds in ONE call):
+      - BASE (image_prompt_record, ALL ratios): creation — "use the references to CREATE this scene". Full scene description with Background+Lighting + Composition.
+      - REFRAME (ratio_reframe_record, base ratio EXCLUDED): recomposition — "take BASE_IMAGE and REFRAME it into this canvas". Keep BASE_IMAGE's identity, palette, and composition; rearrange framing and negative space for the ratio token. PRODUCT_IMAGE / PERSON_IMAGE are auxiliary detail anchors only, never the primary subject.
+`;
 
 interface ModeSections {
     inputSubjects: string;
@@ -206,6 +219,7 @@ const BASE_TEMPLATE = `
       - [ ] Headline 3-8 words, English, no period, cta null iff cta_enabled=false? (headline always present; raw render is a display toggle)
       - [ ] All aspect_ratios keys present, no missing, no extra, exact AdRatioKey spelling ("9_16" not "9:16")?
       - [ ] Palette and lighting embodied as material/physics, not adjective? If brand_palette present, its hex materials appear in caption?
+      - [ ] ratio_reframe_record keys = aspect_ratios minus base, each references BASE_IMAGE verbatim?
 {{UNIT4_GATE_UNIFICATION}}
       - Pass all or regenerate internally before emitting JSON.
     </unit_4_seed_injection__quality_gate>
@@ -221,7 +235,10 @@ const BASE_TEMPLATE = `
       },
       "image_prompt_record": {
         "9_16": "18-32 word single sentence I2I caption with vertical 9_16 token and explicit negative space / material / light physics.",
-        "1_1":  "18-32 word single sentence I2I caption with square 1_1 token..."
+        "1_1": "18-32 word single sentence I2I caption with square 1_1 token..."
+      },
+      "ratio_reframe_record": {
+        "9_16": "18-32 word single sentence REFRAME caption: take BASE_IMAGE and reframe it into vertical 9_16 canvas, keep identity/palette/composition, rearrange framing and negative space."
       },
       "copy": {
         "headline": "3-8 word English headline, no period (always generated; rendering may be toggled off)",
@@ -233,6 +250,8 @@ const BASE_TEMPLATE = `
     }
     - "ratio_reasonings" keys MUST exactly match aspect_ratios input (no missing, no extra). If only one ratio requested, only that key appears.
     - "image_prompt_record" keys MUST exactly match aspect_ratios input (no missing, no extra). B안 개명 — old image_specs is deprecated.
+    - "ratio_reframe_record" keys MUST exactly match aspect_ratios MINUS <base_ratio> (no base key, no missing, no extra). Single-ratio batches → empty object {}.
+    - REFRAME captions MUST reference BASE_IMAGE verbatim and use recomposition grammar. NEVER write image_input[n] — code substitutes tags.
     - "reasoning" is global, "ratio_reasonings" is per-ratio. Both are for audit, not for rendering.
     - If cta_enabled is false, copy.cta MUST be null (JSON null, not string "null"). copy.headline is always generated for now; raw download is a Remotion render toggle, not a generation skip.
     - If brand_palette is present, image_prompt_record captions MUST embody its hex as material (e.g. #E25E2C → terracotta plaster), not as literal hex text.
@@ -274,7 +293,7 @@ function buildPrompt(s: ModeSections): string {
         UNIT1_FRAMING: s.unit1Framing,
         UNIT1_LAYOUT_CLASSIC: s.unit1LayoutClassic,
         SYNTHESIS_EXAMPLE: s.synthesisExample,
-        GRAMMAR: "",
+        GRAMMAR: GRAMMAR_BLOCK,
         UNIT2_CANVAS_PHYSICS: s.unit2CanvasPhysics,
         UNIT2_ARCHITECTURE: s.unit2Architecture,
         UNIT2_GOOD_EXAMPLES: s.unit2GoodExamples,

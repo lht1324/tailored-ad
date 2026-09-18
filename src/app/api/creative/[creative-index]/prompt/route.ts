@@ -4,6 +4,7 @@ import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { internalFireAndForgetFetch } from "@/lib/utils/internalFetch";
 import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatchServerAPI";
 import { adImageServerAPI } from "@/lib/api/server/ad/imageServerAPI";
+import { selectBaseRatio } from "@/lib/api/server/ad/creativeCombinationSampler";
 import { llmServerAPI } from "@/lib/api/server/ad/llmServerAPI";
 import { fontMap } from "@/lib/fonts";
 import FONT_FAMILY_LIST from "@/lib/FontFamilyList";
@@ -101,11 +102,14 @@ export async function POST(
             console.warn(`[prompt] failed to fetch original images for batch ${batchId} creative ${creativeIndex}:`, e);
         }
 
-        // 1) GLM 5.3 Flash 호출 — 5축 + aspect_ratios + notes + cta + brandPalette + brandLogo + seed + images
+        // 1) GLM 5.3 Flash 호출 — 5축 + aspect_ratios + base_ratio + notes + cta + brandPalette + brandLogo + seed + images
+        //    base 캡션(imagePromptRecord 전체) + ratio 재구성 캡션(ratio_reframe_record, base 제외)을 한 번에 발주
+        const baseRatio = selectBaseRatio(batch.aspect_ratios);
         const llmResult = await llmServerAPI.postAdCreativePrompt({
             creativeIndex,
             creativeSpec,
             aspectRatios: batch.aspect_ratios,
+            baseRatio,
             productNote: batch.product_image?.note ?? null,
             personNote: batch.person_image?.note ?? null,
             ctaEnabled: batch.cta_enabled,
@@ -163,6 +167,18 @@ export async function POST(
             llmResult.imagePromptRecord as Record<string, string>,
             llmResult.copy,
         );
+
+        // 2-2) 재구성 캡션 저장 — 별도 RPC. 실패해도 구 동작 폴백(imagePromptRecord)이라 warn만.
+        try {
+            await adGenerationBatchServerAPI.updateCreativeReframeOutputs(
+                batchId,
+                creativeIndex,
+                baseRatio,
+                (llmResult.ratioReframeRecord ?? {}) as Record<string, string>,
+            );
+        } catch (reframeError) {
+            console.warn(`[prompt] reframe save failed (batch=${batchId}, creative=${creativeIndex}), fallback to base captions:`, reframeError);
+        }
 
         // 3) 비율 갯수 판정 → generation 분기 (fire-and-forget, creative 격리)
         const baseUrl = process.env.BASE_URL;

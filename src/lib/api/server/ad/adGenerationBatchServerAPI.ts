@@ -141,6 +141,27 @@ export const adGenerationBatchServerAPI = {
         }
     },
 
+    // RPC - 재구성 캡션 저장 (baseRatio + ratioReframeRecord) — 별도 함수, 기존 prompt outputs와 분리
+    async updateCreativeReframeOutputs(
+        batchId: string,
+        creativeIndex: number,
+        baseRatio: string,
+        ratioReframeRecord: Record<string, string>,
+    ): Promise<void> {
+        const supabase = createSupabaseServiceRoleClient();
+
+        const { error } = await supabase.rpc('update_creative_reframe_outputs', {
+            p_batch_id: batchId,
+            p_creative_index: creativeIndex,
+            p_base_ratio: baseRatio,
+            p_ratio_reframe_record: ratioReframeRecord,
+        });
+
+        if (error) {
+            throw new Error(`Failed to update creative reframe outputs: ${error.message}`);
+        }
+    },
+
     // RPC - 분석 결과 저장 (design/score 슬라이스 교체, completed 전이)
     async updateCreativeImageAnalysis(
         batchId: string,

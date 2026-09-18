@@ -22,6 +22,33 @@ export const SEEDREAM_4_5 = "bytedance/seedream-4.5";
 
 export type SeedreamModel = typeof SEEDREAM_5_LITE | typeof SEEDREAM_4_5;
 
+/** 캡션 내 의미 태그 — 전송 직전 image_input[n]으로 치환. GLM은 순서 몰라도 됨. */
+export type ImageInputTag = "PRODUCT_IMAGE" | "PERSON_IMAGE" | "BASE_IMAGE";
+
+const IMAGE_TAG_PATTERN = /\b(PRODUCT_IMAGE|PERSON_IMAGE|BASE_IMAGE)\b/g;
+/** 알려진 태그 외 대문자 _IMAGE (오타·환각) 검출용 */
+const UNKNOWN_TAG_PATTERN = /\b[A-Z][A-Z0-9]*_IMAGE\b/g;
+
+/**
+ * 의미 태그 → image_input[n] 치환. order는 호출 시점 image_input 배열의 태그 순서.
+ * 모르는 태그(오타·환각)는 전송 전 throw — 엉뚱한 이미지 참조 방지.
+ */
+export function resolveImageInputTags(prompt: string, order: ImageInputTag[]): string {
+    const indexOf = new Map<ImageInputTag, number>(order.map((tag, i) => [tag, i] as const));
+    const resolved = prompt.replace(IMAGE_TAG_PATTERN, (tag) => {
+        const idx = indexOf.get(tag as ImageInputTag);
+        if (idx === undefined) {
+            throw new Error(`Image tag not in this call's order: ${tag} (order: ${order.join(",")})`);
+        }
+        return `image_input[${idx}]`;
+    });
+    const unknown = resolved.match(UNKNOWN_TAG_PATTERN);
+    if (unknown) {
+        throw new Error(`Unknown image tags in caption: ${unknown.join(",")}`);
+    }
+    return resolved;
+}
+
 /**
  * 배치 단위 모델 판정 — aspect_ratios에 4_5가 하나라도 있으면 배치 전체 4.5.
  * 호출마다 같은 답이 나오므로 base·ratios 어디서 호출해도 일관.
@@ -83,6 +110,8 @@ export interface AdImageEditPredictionParams {
     aspectRatio?: string;
     /** 배치 단위 판정 모델 (selectImageModel) — 미지정 시 5.0 Lite */
     model?: SeedreamModel;
+    /** image_input 배열의 태그 순서 — 캡션 내 태그 치환용. 미지정 시 치환 생략. */
+    imageTags?: ImageInputTag[];
     /** 재현용 시드 — 스키마 미지원이라 현재 미전송, 배선만 유지 (PoC 확정 후 제거) */
     seed?: number;
     /** 완료 웹훅 URL — batch_id·creative_index 등 식별자를 query로 붙여서 전달 */
@@ -172,8 +201,11 @@ export const replicateClient = {
     async postAdImageEditPrediction(params: AdImageEditPredictionParams): Promise<ReplicatePredictionSubmission> {
         const replicate = createReplicateInstance();
 
+        const resolvedPrompt = params.imageTags
+            ? resolveImageInputTags(params.prompt, params.imageTags)
+            : params.prompt;
         const input = buildSeedreamInput(
-            params.prompt,
+            resolvedPrompt,
             params.imageUrls,
             params.aspectRatio,
             params.model,
