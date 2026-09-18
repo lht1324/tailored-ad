@@ -165,6 +165,12 @@
   AIDA→Learn More, Social→See Results/Shop Now, Mechanism→Learn More/Try Today).
   인물은 얼굴 유지 + 포즈·표정·의상·장신구 새로 (원본 그대로 금지),
   구체 묘사 강제 ("같은 여자"식 참조형 금지). 포즈 동일 제약 4곳을 얼굴 동일로 교정.
+  단, REDRAWN 규칙이 실측 미준수 (sage tee 베낌) — 강제 장치 없이 선언만 있음.
+- **크리에이티브 프롬프트 컴포지션** (09-18, 1순위): 통짜 3벌 → BASE_TEMPLATE 1개 +
+  모드 섹션 3종 + `buildPrompt` 조립. 차별점 25종 플레이스홀더
+  (INPUT·카메라·조명·프레이밍·팔레트·문장구조·예시·REDRAWN·노트·게이트 등).
+  3개 export 바이트 동일 검증済み (esbuild 번들 비교). `{{GRAMMAR}}`는 2순위 자리 (빈 문자열).
+  호출부 무변경. 2순위: base/ratio 문법 섹션 + softbox 금지 + levitating 삭제 + 태그 정의·치환.
 - **프롬프트 전수 감사 잔량**: Ex2 PRODUCT 캡션 35단어 (18~32 위반) — 예시가 규칙 깸, 수정 대기.
   seed 모듈러(`%6`·`%N`)는 실행 불가 판정 (결정적 선택인 척, 실제 랜덤).
   예시 모방 금지 가드 없음. `ad_variation_study.md` 파일 없음 (인용만).
