@@ -201,6 +201,12 @@
 - **go_fast=false 고정** (09-18): FLUX_2_DEV 제출에 `go_fast: false` 명시 (regular $0.014/MP).
   true($0.012)는 별도 최적화 경로라 품질 불확실 → 최종 품질 우선. 장당 차이 $0.006 수준이라 비용 논외.
   `buildModelInput()` 1곳이라 base·ratios 일괄 적용.
+- **생성·업로드 단일 요청 합치기** (09-18): `POST /api/image`가 multipart 1요청으로
+  주문+원본을 함께 받음 (검증→batch 생성→Storage 업로드→specs 체이닝, 한 함수 내 순차).
+  원인: batch 생성과 업로드가 별도 요청이라 prompt가 파일 도착 전에 조회해 "Object not found"
+  (오늘 imageResize로 업로드가 느려지며 역전 실측). 구 images route 삭제.
+  실제 저장 확장자(MIME 기준)로 DB 기록 정정해 경로 일치도 보장. 고아 batch도 해소
+  (검증 실패 시 batch 자체 미생성).
 - **seed 전달 + PNG 고정** (09-18): `spec.seed`를 FLUX input에 전달 (DB 보관 → Regenerate 시 재현 가능).
   `output_format: "png"` 명시 (기존 기본 webp) — 글자 얹기 전 원본이라 JPEG 링잉 누적 방지, 표시용은 WebP 별도 변환.
   파이프라인은 `inferFileExtension` 추론이라 형식 무관.
