@@ -201,6 +201,9 @@
 - **go_fast=false 고정** (09-18): FLUX_2_DEV 제출에 `go_fast: false` 명시 (regular $0.014/MP).
   true($0.012)는 별도 최적화 경로라 품질 불확실 → 최종 품질 우선. 장당 차이 $0.006 수준이라 비용 논외.
   `buildModelInput()` 1곳이라 base·ratios 일괄 적용.
+- **seed 전달 + PNG 고정** (09-18): `spec.seed`를 FLUX input에 전달 (DB 보관 → Regenerate 시 재현 가능).
+  `output_format: "png"` 명시 (기존 기본 webp) — 글자 얹기 전 원본이라 JPEG 링잉 누적 방지, 표시용은 WebP 별도 변환.
+  파이프라인은 `inferFileExtension` 추론이라 형식 무관.
 - **원본 이미지 다운스케일** (09-18): Generate 클릭 시점에 긴 변 1024px로 축소 후 업로드
   (미리보기는 원본 유지, 실제 전송만 축소). 근거: Gemini 768 타일·Flux 입력 1MP 상한·
   Replicate 입력 $0.014/MP (3000×1200 1장이 입력비 $0.05→$0.006).
