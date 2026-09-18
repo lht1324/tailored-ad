@@ -207,9 +207,12 @@
   (오늘 imageResize로 업로드가 느려지며 역전 실측). 구 images route 삭제.
   실제 저장 확장자(MIME 기준)로 DB 기록 정정해 경로 일치도 보장. 고아 batch도 해소
   (검증 실패 시 batch 자체 미생성).
-- **seed 전달 + PNG 고정** (09-18): `spec.seed`를 FLUX input에 전달 (DB 보관 → Regenerate 시 재현 가능).
-  `output_format: "png"` 명시 (기존 기본 webp) — 글자 얹기 전 원본이라 JPEG 링잉 누적 방지, 표시용은 WebP 별도 변환.
-  파이프라인은 `inferFileExtension` 추론이라 형식 무관.
+- **Seedream 하이브리드** (09-18): FLUX.2 Dev 교체 — MP 과금 실측 base $0.04/ratio $0.06이라
+  정액제로 전환. 5.0 Lite($0.035) 기본 + 배치에 4_5 포함 시 통째로 4.5($0.04)
+  (`selectImageModel`, 비율 단위 분기 금지 — 같은 creative 내 모델 혼재 방지).
+  공통 input {prompt, image_input, size 2K, aspect_ratio} + 5.0만 output_format png +
+  4.5만 disable_safety_checker=false. seed는 양쪽 스키마 미지원이라 미전송, 배선만 유지
+  (PoC 확정 후 제거). 5.0 지원 비율: 1:1·4:3·3:4·16:9·9:16·3:2·2:3·21:9 (4:5 없음).
 - **원본 이미지 다운스케일** (09-18): Generate 클릭 시점에 긴 변 1024px로 축소 후 업로드
   (미리보기는 원본 유지, 실제 전송만 축소). 근거: Gemini 768 타일·Flux 입력 1MP 상한·
   Replicate 입력 $0.014/MP (3000×1200 1장이 입력비 $0.05→$0.006).
