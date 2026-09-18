@@ -1,4 +1,4 @@
-import { getFetch, postFetch } from "@/lib/api/client/baseFetch";
+import { getFetch, postFetch, postFormFetch } from "@/lib/api/client/baseFetch";
 import { AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 
 // ---- AdGenerationBatch 클라이언트 API (정석: DB명 유지) ----
@@ -81,9 +81,21 @@ export const adGenerationBatchClientAPI = {
         };
     },
 
-    async createBatch(request: AdPipelineStartClientRequest): Promise<{ batchId: string }> {
+    /**
+     * 배치 생성 + 원본 업로드를 multipart 1요청으로.
+     * 서버가 생성→업로드→specs 순으로 처리해 파이프라인 시작 시 파일 존재가 보장된다.
+     */
+    async createBatch(
+        request: AdPipelineStartClientRequest,
+        files?: { product?: File | null; person?: File | null; brandLogo?: File | null },
+    ): Promise<{ batchId: string }> {
         try {
-            const response = await postFetch('/api/image', request);
+            const formData = new FormData();
+            formData.append("payload", JSON.stringify(request));
+            if (files?.product) formData.append("product", files.product);
+            if (files?.person) formData.append("person", files.person);
+            if (files?.brandLogo) formData.append("brand_logo", files.brandLogo);
+            const response = await postFormFetch('/api/image', formData);
             const result = await response.json();
             if (!result.success || !result.data) {
                 // gateway가 HTTP 상태로 바꿔 내려 body를 못 읽는 경우 — 402 잔액 소진 판별
@@ -123,8 +135,11 @@ export const adProjectClientAPI = {
             brandLogoSignedUrl: data.brandLogoSignedUrl,
         } as AdProjectDetailResponse;
     },
-    async createProject(request: AdPipelineStartClientRequest): Promise<{ batchId: string }> {
-        return adGenerationBatchClientAPI.createBatch(request);
+    async createProject(
+        request: AdPipelineStartClientRequest,
+        files?: { product?: File | null; person?: File | null; brandLogo?: File | null },
+    ): Promise<{ batchId: string }> {
+        return adGenerationBatchClientAPI.createBatch(request, files);
     },
 };
 

@@ -1,6 +1,9 @@
 // ad 하위 기준
 //
-// 1. image/route.ts (app/api/video/route.ts 처럼 넘겨주는 역할)
+// 1. image/route.ts — multipart 1요청으로 주문+원본을 함께 받는다:
+//    검증 → batch 생성 → Storage 업로드 → specs 체이닝. 한 함수 안에서 순서대로라
+//    prompt가 Storage를 읽는 시점에 파일 존재가 보장된다 (경합 원천 제거).
+//    (구: batch 생성(/image)과 업로드(.../batches/{id}/images)가 별도 요청이라 역전 가능했음)
 // 2. creative/specs/route.ts (전체 Creative 조합 뽑아서 한 번에 ad_creative_specs 저장)
 // 3. creative/[creative-index]/prompt/route.ts (POST, OpenRouter로 LLM 호출), 비율이 하나면 4-2-1, 비율이 두 개 이상이면 4-1-1.
 // 4-1-1. image/generation/base/route.ts (POST, I2I 호출)
@@ -15,7 +18,9 @@ import { NextRequest } from "next/server";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { internalFireAndForgetFetch } from "@/lib/utils/internalFetch";
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/supabaseServiceRole";
 import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatchServerAPI";
+import { AD_IMAGE_STORAGE_BUCKET } from "@/lib/api/server/ad/imageServerAPI";
 import { usersServerAPI } from "@/lib/api/server/usersServerAPI";
 import { usageServerAPI } from "@/lib/api/server/usageServerAPI";
 import {
@@ -31,6 +36,23 @@ const CLIENT_RATIO_TO_KEY: Record<string, AdRatioKey> = {
     '16:9': '16_9',
     '2:3': '2_3',
 };
+
+const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+function getExtensionFromFile(file: File): string {
+    const mimeToExt: Record<string, string> = {
+        "image/jpeg": "jpeg",
+        "image/png": "png",
+        "image/webp": "webp",
+    };
+    const fromMime = mimeToExt[file.type];
+    if (fromMime) return fromMime;
+    const fromName = file.name.split(".").pop()?.toLowerCase();
+    if (fromName === "jpg") return "jpeg";
+    if (fromName && ["jpeg", "png", "webp"].includes(fromName)) return fromName;
+    return "png";
+}
 
 export async function POST(request: NextRequest) {
     // client-gateway가 주입한 userId만 통과시킨다 (C2S 진입은 gateway 경유가 원칙)
@@ -71,7 +93,48 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const body: AdPipelineStartRequest = await request.json();
+        // multipart 1요청: payload(JSON 문자열) + 원본 파일들
+        const formData = await request.formData();
+        const rawPayload = formData.get("payload");
+        if (typeof rawPayload !== "string") {
+            return getNextBaseResponse({
+                success: false,
+                status: 400,
+                error: "Missing multipart field: payload (JSON string)."
+            });
+        }
+        let body: AdPipelineStartRequest;
+        try {
+            body = JSON.parse(rawPayload) as AdPipelineStartRequest;
+        } catch {
+            return getNextBaseResponse({
+                success: false,
+                status: 400,
+                error: "Invalid payload JSON."
+            });
+        }
+
+        // 원본 파일 수집 + 검증 (batch 생성 전에 — 실패 시 고아 batch 방지)
+        const files: Partial<Record<"product" | "person" | "brand_logo", File>> = {};
+        for (const key of ["product", "person", "brand_logo"] as const) {
+            const file = formData.get(key);
+            if (!file || !(file instanceof File) || file.size === 0) continue;
+            if (!ALLOWED_TYPES.has(file.type)) {
+                return getNextBaseResponse({
+                    success: false,
+                    status: 400,
+                    error: `${key} must be JPG, PNG, or WebP.`
+                });
+            }
+            if (file.size > MAX_FILE_SIZE) {
+                return getNextBaseResponse({
+                    success: false,
+                    status: 400,
+                    error: `${key} must be under 10 MB.`
+                });
+            }
+            files[key] = file;
+        }
 
         // 비율 검증 + 정규화
         const rawAspectRatios = body.aspectRatios;
@@ -157,7 +220,53 @@ export async function POST(request: NextRequest) {
             ad_creative_results: [],
         });
 
-        // 조합 배분 단계로 fire-and-forget 체이닝
+        // 원본 이미지 업로드 — batch 생성과 같은 요청 안에서, specs 출발 전에.
+        // 실제 저장 확장자(MIME 기준)로 DB 기록을 정정해 조회 경로 일치를 보장한다.
+        const supabase = createSupabaseServiceRoleClient();
+        const recordKey: Record<"product" | "person" | "brand_logo", "product_image" | "person_image" | "brand_logo"> = {
+            product: "product_image",
+            person: "person_image",
+            brand_logo: "brand_logo",
+        };
+        const recordPatch: {
+            product_image?: { imageFileExtension: string; note?: string };
+            person_image?: { imageFileExtension: string; note?: string };
+            brand_logo?: { imageFileExtension: string };
+        } = {};
+        for (const [key, file] of Object.entries(files) as Array<["product" | "person" | "brand_logo", File]>) {
+            const ext = getExtensionFromFile(file);
+            const filePath = `${userId}/${createdBatch.id}/${key}_image.${ext}`;
+            const arrayBuffer = await file.arrayBuffer();
+            const { error: uploadError } = await supabase.storage
+                .from(AD_IMAGE_STORAGE_BUCKET)
+                .upload(filePath, arrayBuffer, {
+                    contentType: file.type,
+                    upsert: true,
+                });
+            if (uploadError) {
+                throw new Error(`Failed to upload ${key} image: ${uploadError.message}`);
+            }
+            const declared = key === "brand_logo"
+                ? body.brandLogo?.imageFileExtension
+                : key === "product"
+                    ? body.productImage?.imageFileExtension
+                    : body.personImage?.imageFileExtension;
+            if (declared !== ext) {
+                const column = recordKey[key];
+                if (column === "brand_logo") {
+                    recordPatch.brand_logo = { imageFileExtension: ext };
+                } else if (column === "product_image") {
+                    recordPatch.product_image = { imageFileExtension: ext, note: body.productImage?.note };
+                } else {
+                    recordPatch.person_image = { imageFileExtension: ext, note: body.personImage?.note };
+                }
+            }
+        }
+        if (Object.keys(recordPatch).length > 0) {
+            await adGenerationBatchServerAPI.patchAdGenerationBatch(createdBatch.id, recordPatch);
+        }
+
+        // 조합 배분 단계로 fire-and-forget 체이닝 (이 시점에 Storage 파일 존재 보장됨)
         internalFireAndForgetFetch(
             `${process.env.BASE_URL}/api/creative/specs?batchId=${createdBatch.id}`,
             { method: "POST" },

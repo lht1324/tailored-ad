@@ -10,7 +10,6 @@ import {
     AdUploadedComponent,
 } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { adProjectClientAPI, BalanceExhaustedError } from "@/lib/api/client/ad/adProjectClientAPI";
-import { postFormFetch } from "@/lib/api/client/baseFetch";
 import { downscaleImageFile } from "@/lib/imageResize";
 
 function inferFileExtension(fileName: string): string {
@@ -77,6 +76,14 @@ export default function CreatePageClient() {
                   }
                 : null;
 
+            // 생성 + 원본 업로드를 multipart 1요청으로 (서버가 생성→업로드→specs 순 처리).
+            // 전송 전에 긴 변 1024px로 다운스케일 (미리보기는 원본 유지, 실제 전송만 축소).
+            // 근거: Gemini 768 타일·Flux 입력 1MP 상한·Replicate 입력 $0.014/MP
+            const [productFile, personFile, logoFile] = await Promise.all([
+                product?.file ? downscaleImageFile(product.file) : null,
+                person?.file ? downscaleImageFile(person.file) : null,
+                brandLogo?.file ? downscaleImageFile(brandLogo.file) : null,
+            ]);
             const { batchId } = await adProjectClientAPI.createProject({
                 productImage,
                 personImage,
@@ -85,29 +92,11 @@ export default function CreatePageClient() {
                 conceptCount,
                 ctaEnabled,
                 brandPalette: validPalette,
+            }, {
+                product: productFile,
+                person: personFile,
+                brandLogo: logoFile,
             });
-
-            // 원본 이미지 업로드 — batch 생성 직후 FormData로 전송 (gateway multipart 지원)
-            // 업로드는 실패해도 batch 생성 자체는 유효하므로 폴백 진행.
-            // 전송 전에 긴 변 1024px로 다운스케일 (미리보기는 원본 유지, 실제 전송만 축소).
-            // 근거: Gemini 768 타일·Flux 입력 1MP 상한·Replicate 입력 $0.014/MP
-            const hasUpload = Boolean(product?.file || person?.file || brandLogo?.file);
-            if (hasUpload) {
-                try {
-                    const [productFile, personFile, logoFile] = await Promise.all([
-                        product?.file ? downscaleImageFile(product.file) : null,
-                        person?.file ? downscaleImageFile(person.file) : null,
-                        brandLogo?.file ? downscaleImageFile(brandLogo.file) : null,
-                    ]);
-                    const formData = new FormData();
-                    if (productFile) formData.append('product', productFile);
-                    if (personFile) formData.append('person', personFile);
-                    if (logoFile) formData.append('brand_logo', logoFile);
-                    await postFormFetch(`/api/ad-generation-batches/${batchId}/images`, formData);
-                } catch (uploadError) {
-                    console.warn('[Create] original image upload failed, fallback to text-only:', uploadError);
-                }
-            }
 
             router.push(`/projects/${batchId}`);
         } catch (err) {
