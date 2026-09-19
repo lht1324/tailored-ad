@@ -35,9 +35,9 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const batch = await adGenerationBatchServerAPI.getAdGenerationBatchById(batchId);
+        const adGenerationBatch = await adGenerationBatchServerAPI.getAdGenerationBatchById(batchId);
 
-        if (!batch) {
+        if (!adGenerationBatch) {
             return getNextBaseResponse({
                 success: false,
                 status: 400,
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 이중 발화 방어 — 배분은 queued 상태에서 1회만 수행
-        if (batch.status !== 'queued') {
+        if (adGenerationBatch.status !== 'queued') {
             return getNextBaseResponse({
                 success: true,
                 status: 200,
@@ -56,13 +56,13 @@ export async function POST(request: NextRequest) {
 
         // 조합 배분 — 코드 소유. 시드는 매 배치 새로 뽑고, 재현은 저장된 specs가 담당한다.
         // 모드는 입력 이미지 기준 (프롬프트 선택과 동일 규칙: 둘 다→combined, 사람만→person, 나머지→product)
-        const batchImages = batch as unknown as { product_image?: unknown; person_image?: unknown };
+        const batchImages = adGenerationBatch as unknown as { product_image?: unknown; person_image?: unknown };
         const hasProductImage = Boolean(batchImages.product_image);
         const hasPersonImage = Boolean(batchImages.person_image);
         const creativeMode: CreativeMode = hasProductImage && hasPersonImage
             ? 'combined'
             : hasPersonImage ? 'person-only' : 'product-only';
-        const creativeSpecs: AdCreativeSpec[] = assignCreativeCombinations(batch.concept_count, undefined, creativeMode);
+        const creativeSpecs: AdCreativeSpec[] = assignCreativeCombinations(adGenerationBatch.concept_count, undefined, creativeMode);
 
         const creativeResults: AdCreativeResult[] = creativeSpecs.map((spec) => ({
             creativeIndex: spec.creativeIndex,

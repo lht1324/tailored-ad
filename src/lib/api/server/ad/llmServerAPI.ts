@@ -20,7 +20,7 @@ export const llmServerAPI = {
      * 비율별 캡션 레코드(imagePromptRecord) + 판매 카피(copy)를 1회 생성한다.
      * 호출 단위 = creative마다 1회 (ad_variation_study.md §3).
      */
-    async postAdCreativePrompt(params: {
+    async postCreativeBaseImagePrompt(params: {
         creativeIndex: number;
         creativeSpec: AdCreativeSpec;
         aspectRatios: AdRatioKey[];

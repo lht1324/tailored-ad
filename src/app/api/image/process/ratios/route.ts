@@ -145,7 +145,13 @@ export async function POST(request: NextRequest) {
         );
 
         const supabase = createSupabaseServiceRoleClient();
-        const uploadContentType = fileExtension === 'jpeg' ? 'image/jpeg' : fileExtension === 'png' ? 'image/png' : fileExtension === 'webp' ? 'image/webp' : `image/${fileExtension}`;
+        const uploadContentType = fileExtension === 'jpeg'
+            ? 'image/jpeg'
+            : fileExtension === 'png'
+                ? 'image/png'
+                : fileExtension === 'webp'
+                    ? 'image/webp'
+                    : `image/${fileExtension}`;
 
         const { error: uploadError } = await supabase.storage
             .from(AD_IMAGE_STORAGE_BUCKET)

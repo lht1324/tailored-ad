@@ -48,9 +48,9 @@ export async function POST(
     }
 
     try {
-        const batch = await adGenerationBatchServerAPI.getAdGenerationBatchById(batchId);
+        const adGenerationBatch = await adGenerationBatchServerAPI.getAdGenerationBatchById(batchId);
 
-        if (!batch) {
+        if (!adGenerationBatch) {
             return getNextBaseResponse({
                 success: false,
                 status: 400,
@@ -58,9 +58,9 @@ export async function POST(
             });
         }
 
-        const creativeSpec = batch.ad_creative_specs[creativeIndex];
+        const adCreativeSpec = adGenerationBatch.ad_creative_specs[creativeIndex];
 
-        if (!creativeSpec || creativeSpec.creativeIndex !== creativeIndex) {
+        if (!adCreativeSpec || adCreativeSpec.creativeIndex !== creativeIndex) {
             return getNextBaseResponse({
                 success: false,
                 status: 400,
@@ -73,7 +73,7 @@ export async function POST(
         let personImageBase64: string | null = null;
         let brandLogoBase64: string | null = null;
         try {
-            const originalUrls = await adImageServerAPI.getAdOriginalImageSignedUrls(batch);
+            const originalUrls = await adImageServerAPI.getAdOriginalImageSignedUrls(adGenerationBatch);
             let urlIdx = 0;
             const fetchBase64 = async (url: string) => {
                 const res = await fetch(url);
@@ -81,18 +81,18 @@ export async function POST(
                 const buf = await res.arrayBuffer();
                 return Buffer.from(buf).toString('base64');
             };
-            if (batch.product_image) {
+            if (adGenerationBatch.product_image) {
                 const url = originalUrls[urlIdx++];
                 if (url) productImageBase64 = await fetchBase64(url);
             }
-            if (batch.person_image) {
+            if (adGenerationBatch.person_image) {
                 const url = originalUrls[urlIdx++];
                 if (url) personImageBase64 = await fetchBase64(url);
             }
-            if ((batch as unknown as { brand_logo?: { imageFileExtension?: string } | null }).brand_logo) {
-                const brandLogoRecord = (batch as unknown as { brand_logo: { imageFileExtension: string } }).brand_logo;
+            if ((adGenerationBatch as unknown as { brand_logo?: { imageFileExtension?: string } | null }).brand_logo) {
+                const brandLogoRecord = (adGenerationBatch as unknown as { brand_logo: { imageFileExtension: string } }).brand_logo;
                 try {
-                    const brandLogoUrl = await adImageServerAPI.getBatchBrandLogoSignedUrl(batch.user_id, batch.id, brandLogoRecord.imageFileExtension);
+                    const brandLogoUrl = await adImageServerAPI.getBatchBrandLogoSignedUrl(adGenerationBatch.user_id, adGenerationBatch.id, brandLogoRecord.imageFileExtension);
                     brandLogoBase64 = await fetchBase64(brandLogoUrl);
                 } catch (e) {
                     console.warn(`[prompt] failed to fetch brand logo for batch ${batchId}:`, e);
@@ -104,17 +104,17 @@ export async function POST(
 
         // 1) GLM 5.3 Flash 호출 — 5축 + aspect_ratios + base_ratio + notes + cta + brandPalette + brandLogo + seed + images
         //    base 캡션(imagePromptRecord 전체) + ratio 재구성 캡션(ratio_reframe_record, base 제외)을 한 번에 발주
-        const baseRatio = selectBaseRatio(batch.aspect_ratios);
-        const llmResult = await llmServerAPI.postAdCreativePrompt({
+        const baseRatio = selectBaseRatio(adGenerationBatch.aspect_ratios);
+        const llmResult = await llmServerAPI.postCreativeBaseImagePrompt({
             creativeIndex,
-            creativeSpec,
-            aspectRatios: batch.aspect_ratios,
+            creativeSpec: adCreativeSpec,
+            aspectRatios: adGenerationBatch.aspect_ratios,
             baseRatio,
-            productNote: batch.product_image?.note ?? null,
-            personNote: batch.person_image?.note ?? null,
-            ctaEnabled: batch.cta_enabled,
-            brandPalette: batch.brand_palette ?? null,
-            seed: creativeSpec.seed,
+            productNote: adGenerationBatch.product_image?.note ?? null,
+            personNote: adGenerationBatch.person_image?.note ?? null,
+            ctaEnabled: adGenerationBatch.cta_enabled,
+            brandPalette: adGenerationBatch.brand_palette ?? null,
+            seed: adCreativeSpec.seed,
             productImageBase64,
             personImageBase64,
             brandLogoBase64,
@@ -187,19 +187,10 @@ export async function POST(
             throw new Error("BASE_URL is not configured.");
         }
 
-        if (batch.aspect_ratios.length === 1) {
-            // 직통: 비율 1개 → ratios가 원본 참조로 1장 제출
-            internalFireAndForgetFetch(
-                `${baseUrl}/api/image/generation/ratios?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}`,
-                { method: "POST" },
-            );
-        } else {
-            // 복수: 기준 1장 먼저 → webhook/process가 나머지 ratios 팬아웃
-            internalFireAndForgetFetch(
-                `${baseUrl}/api/image/generation/base?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}`,
-                { method: "POST" },
-            );
-        }
+        internalFireAndForgetFetch(
+            `${baseUrl}/api/image/generation/base?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}`,
+            { method: "POST" },
+        )
 
         return getNextBaseResponse({
             success: true,

@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-09-19 11:07)
+# TailoredAd — 작업 기록 (Last Updated: 2026-09-20 00:37)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -269,6 +269,13 @@
   2순위 잔량: softbox 기구명사 금지, levitating→grounded, Full-color 강제
   (`Full-color photograph, natural skin tones — NEVER monochrome unless palette=mono`),
   Note 복장 강제, C 단위 LLM 2회 분리 (base·ratio mutual blind) 후보.
+- **파이프라인 정합 1차** (09-19/20, 사장님 직접):
+  변수명 통일 (`batch`→`adGenerationBatch` 등 5파일) + 스타일 정리.
+  prompt는 항상 base로 (분기 삭제 — 판정은 process/base 1곳).
+  process/base에 1장/복수 분기 추가 (1장→analysis 직접, 복수→ratios).
+  `postAdCreativePrompt`→`postCreativeBaseImagePrompt`改名.
+  RPC `update_creative_image_by_ratio_generation_completed`에 error 제거 elsif 추가
+  (base 실패→ratios 부활 성공 시에만, 실행됨).
 - **모바일 분리 전제**: 공유 파일에 반응형 추가 금지 (split 때 삭제 대상). 모바일은 현상 동결, 백로그만 기록. UA 감지 → `(mobile)` 라우트 그룹 후보.
 
 ## 5. 렌더 계약 (에디터 작업 전 필독)
@@ -321,8 +328,9 @@
 - [x] 프롬프트 컴포지션 1순위 (구조만 — 바이트 동일 검증, 푸시됨)
 - [x] 태그 정의·치환 + 스키마 분리 + reframe RPC (코드·SQL 완료)
 - [x] ratios route 재설계 1차 (고정 문구·폴백 삭제·base-only·매퍼 분리 — 완료)
-- [ ] 파이프라인 정합 3곳 (1순위 — 1장 배치 400 버그: prompt 항상 base · process 1장 스킵 · 실패 폴백 ratioKey)
-- [ ] LLM 프롬프트 base-only 갈기 (image_prompt_record base 1장 · reframe 삭제 · Unit 2 대수술)
+- [x] 파이프라인 정합 1차 (prompt 항상 base · process 분기 · 함수改名 · RPC error 제거 — 완료)
+- [ ] LLM 프롬프트 base-only 갈기 (다음 1순위 — image_prompt_record base 1장 · reframe 삭제 · Unit 2 대수술 · ratio_reasonings 처리 · 구 배치 폴백 · llmServerAPI 정리)
+- [ ] E2E 테스트 (생성→차감→환불 회수, 테스트 계정 정리 후)
 - [ ] E2E 테스트 (생성→차감→환불 회수, 테스트 계정 정리 후)
 - [ ] 2순위 내용 작업: softbox 기구명사 금지 + levitating→grounded + Full-color 강제 + Note 복장 강제
 - [ ] C 단위 LLM 2회 분리 검토 (base·ratio mutual blind — 재구성 품질 보고 결정)

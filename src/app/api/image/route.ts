@@ -206,7 +206,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 배치 생성 — specs·results는 각 단계가 채운다
-        const createdBatch = await adGenerationBatchServerAPI.postAdGenerationBatch({
+        const createdAdGenerationBatch = await adGenerationBatchServerAPI.postAdGenerationBatch({
             user_id: userId,
             status: 'queued',
             product_image: body.productImage ?? null,
@@ -235,7 +235,7 @@ export async function POST(request: NextRequest) {
         } = {};
         for (const [key, file] of Object.entries(files) as Array<["product" | "person" | "brand_logo", File]>) {
             const ext = getExtensionFromFile(file);
-            const filePath = `${userId}/${createdBatch.id}/${key}_image.${ext}`;
+            const filePath = `${userId}/${createdAdGenerationBatch.id}/${key}_image.${ext}`;
             const arrayBuffer = await file.arrayBuffer();
             const { error: uploadError } = await supabase.storage
                 .from(AD_IMAGE_STORAGE_BUCKET)
@@ -263,12 +263,12 @@ export async function POST(request: NextRequest) {
             }
         }
         if (Object.keys(recordPatch).length > 0) {
-            await adGenerationBatchServerAPI.patchAdGenerationBatch(createdBatch.id, recordPatch);
+            await adGenerationBatchServerAPI.patchAdGenerationBatch(createdAdGenerationBatch.id, recordPatch);
         }
 
         // 조합 배분 단계로 fire-and-forget 체이닝 (이 시점에 Storage 파일 존재 보장됨)
         internalFireAndForgetFetch(
-            `${process.env.BASE_URL}/api/creative/specs?batchId=${createdBatch.id}`,
+            `${process.env.BASE_URL}/api/creative/specs?batchId=${createdAdGenerationBatch.id}`,
             { method: "POST" },
         );
 
@@ -276,7 +276,7 @@ export async function POST(request: NextRequest) {
             success: true,
             status: 200,
             data: {
-                batchId: createdBatch.id,
+                batchId: createdAdGenerationBatch.id,
             },
             message: "Ad generation batch created and pipeline started.",
         });
