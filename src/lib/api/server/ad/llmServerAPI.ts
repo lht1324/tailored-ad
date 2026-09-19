@@ -90,8 +90,7 @@ export const llmServerAPI = {
     <layout_tone>${creativeSpec.layout_tone}</layout_tone>
     <seed>${seed}</seed>
   </creative_spec>
-  <aspect_ratios>${JSON.stringify(aspectRatios)}</aspect_ratios>
-  <base_ratio>${baseRatio}</base_ratio>
+  <aspect_ratio>${baseRatio}</aspect_ratio>
 ${noteLines}
   <cta_enabled>${ctaEnabled}</cta_enabled>
   <brand_palette>${brandPalette && brandPalette.length > 0 ? JSON.stringify(brandPalette) : "null"}</brand_palette>

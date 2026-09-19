@@ -8,6 +8,15 @@ import { replicateClient } from "@/lib/ReplicateClient";
 import { selectImageModel, type ImageInputTag } from "@/lib/replicateInputMapper";
 import { AdRatioKey, type AdGenerationBatch } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 
+/**
+ * ratios 고정 문구 — base 1장을 비율만 바꿔 재구성. LLM 개입 없음.
+ * base 캡션 여백 + 확장 방향(1:1 우선)이라 여백 지시 없음. 금지 3종(미러·텍스트·패딩)만 명시.
+ */
+function buildReframePrompt(ratioKey: AdRatioKey): string {
+    const ratio = ratioKey.replace('_', ':');
+    return `Reframe image_input[0] into a ${ratio} composition by expanding or cropping the canvas. Extend the scene naturally to fill the frame — do NOT add solid-color bars, borders, or letterboxing. Preserve its identity, palette, lighting, subject placement, and orientation exactly — do NOT mirror, flip, or rearrange elements. Do NOT add any text, letters, logos, or watermarks.`;
+}
+
 /** 원본 전용 태그 순서 = [product?, person?] (getAdOriginalImageSignedUrls와 동일) */
 function buildOriginalTagOrder(batch: AdGenerationBatch): ImageInputTag[] {
     return [
@@ -142,7 +151,7 @@ export async function POST(request: NextRequest) {
                 retryTags = ["BASE_IMAGE"];
             }
             const webhookUrl = `${baseUrl}/webhook/replicate/image/ratios?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}&ratioKey=${encodeURIComponent(retryRatioKey)}&attempt=${encodeURIComponent(String(attempt))}`;
-            const prompt = `Reframe image_input[0] into a ${retryRatioKey.replace('_', ':')} still-advertisement composition. Preserve its identity, palette, and lighting exactly. Rearrange framing and negative space for the new canvas, keeping clean room for headline text.`
+            const prompt = buildReframePrompt(retryRatioKey);
             try {
                 await replicateClient.postAdImageEditPrediction({
                     prompt: prompt,
@@ -206,7 +215,7 @@ export async function POST(request: NextRequest) {
         }
 
         for (const ratioKey of remainingRatios) {
-            const prompt = `Reframe image_input[0] into a ${ratioKey.replace('_', ':')} still-advertisement composition. Preserve its identity, palette, and lighting exactly. Rearrange framing and negative space for the new canvas, keeping clean room for headline text.`
+            const prompt = buildReframePrompt(ratioKey);
 
             const webhookUrl = `${baseUrl}/webhook/replicate/image/ratios?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}&ratioKey=${encodeURIComponent(ratioKey)}&attempt=${encodeURIComponent(String(attempt))}`;
             try {

@@ -118,7 +118,6 @@ export async function POST(request: NextRequest) {
             prompt: wrappedCaption,
             imageUrls: originalImageUrls,
             aspectRatio: baseRatio,
-            seed: creativeSpec.seed,
             model: selectImageModel(batch.aspect_ratios as string[]),
             imageTags: tagOrder,
             webhookUrl,

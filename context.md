@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-09-20 00:37)
+# TailoredAd — 작업 기록 (Last Updated: 2026-09-20 04:34)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -276,6 +276,17 @@
   `postAdCreativePrompt`→`postCreativeBaseImagePrompt`改名.
   RPC `update_creative_image_by_ratio_generation_completed`에 error 제거 elsif 추가
   (base 실패→ratios 부활 성공 시에만, 실행됨).
+- **프롬프트 1장 체제 전환 검토** (09-20, 미커밋):
+  ratios 고정 문구 eyeball 10장 — 텍스트 삽입 3건(gibberish 2·오타 1 "QUILHT")·
+  좌우 미러 1건·흰 패딩 1건. 원인: "Rearrange"(미러 유도) + "headline text"(텍스트 유도) +
+  "clean room"(패딩 유도). `buildReframePrompt` 함수화 완료, v2 문구(금지 3종만, 여백 문구 삭제) 확정 — 미적용.
+  base 프롬프트 실측 4장 — 스키마 준수 양호, 전원 32단어 상한 경계, hero+right_of_frame 미묘한 불일치 1건.
+  32단어 상한은 short_real 최초 커밋부터 있던 경험칙 (근거 없음) → 제한 제거 완료 (한 문장·마침표·ratio token만 유지).
+  Seedream vs Imagen 4 직접 비교 데이터 없음 (4.5 Arena #9). 32단어급 이해력 병목 없음 (실측).
+  프롬프트 통째 3개 교체 (바이트 동일 실측) + Stop Rule + base 어휘 제거 + `<aspect_ratio>` 주입.
+  복장 구체 묘사 (Imagen급) 보류 — 취소됨.
+  **Few-shot 결함 (무조건 수정)**: 예시에 image_input[n] 치환용 플레이스홀더가 없고,
+  비율도 1:1·9:16 등이 아닌 square 1_1·vertical 9_16 등 자연어형으로 표기되고 있었다.
 - **모바일 분리 전제**: 공유 파일에 반응형 추가 금지 (split 때 삭제 대상). 모바일은 현상 동결, 백로그만 기록. UA 감지 → `(mobile)` 라우트 그룹 후보.
 
 ## 5. 렌더 계약 (에디터 작업 전 필독)
