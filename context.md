@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-09-19 00:45)
+# TailoredAd — 작업 기록 (Last Updated: 2026-09-19 11:07)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -24,7 +24,8 @@
   `api/types/supabase/ad`, `api/types/supabase/Users.ts`(포크),
   `api/types/api/BaseResponse.ts`, `api/server/ad`, `usersServerAPI.ts`,
   `supabase/*`, `utils/{getIsValidRequest,getNextBaseResponse,internalFetch,jsonUtils}`,
-  `llm-prompts/ad`, `OpenRouterClient.ts`, `FontFamilyList.ts`, `ReplicateClient.ts`, `fonts.ts`
+   `llm-prompts/ad`, `OpenRouterClient.ts`, `FontFamilyList.ts`, `ReplicateClient.ts`, `fonts.ts`
+   + `replicateInputMapper.ts` (모델별 input 조립 — `ReplicateModelId` enum + 1:1 switch)
 - `context/AuthContext.tsx`, 전역 레이아웃/globals
 - **세션 중 추가**: `proxy.ts` (로그인 가드), `app/api/client-gateway/` (C2S→S2S),
   `app/api/user/[userId]/` (GET+PATCH, S2S+IDOR 가드), `public/logo/logo-64.png`,
@@ -213,12 +214,6 @@
   (오늘 imageResize로 업로드가 느려지며 역전 실측). 구 images route 삭제.
   실제 저장 확장자(MIME 기준)로 DB 기록 정정해 경로 일치도 보장. 고아 batch도 해소
   (검증 실패 시 batch 자체 미생성).
-- **Seedream 하이브리드** (09-18): FLUX.2 Dev 교체 — MP 과금 실측 base $0.04/ratio $0.06이라
-  정액제로 전환. 5.0 Lite($0.035) 기본 + 배치에 4_5 포함 시 통째로 4.5($0.04)
-  (`selectImageModel`, 비율 단위 분기 금지 — 같은 creative 내 모델 혼재 방지).
-  공통 input {prompt, image_input, size 2K, aspect_ratio} + 5.0만 output_format png +
-  4.5만 disable_safety_checker=false. seed는 양쪽 스키마 미지원이라 미전송, 배선만 유지
-  (PoC 확정 후 제거). 5.0 지원 비율: 1:1·4:3·3:4·16:9·9:16·3:2·2:3·21:9 (4:5 없음).
 - **원본 이미지 다운스케일** (09-18): Generate 클릭 시점에 긴 변 1024px로 축소 후 업로드
   (미리보기는 원본 유지, 실제 전송만 축소). 근거: Gemini 768 타일·Flux 입력 1MP 상한·
   Replicate 입력 $0.014/MP (3000×1200 1장이 입력비 $0.05→$0.006).
@@ -248,15 +243,23 @@
   공통 input {prompt, image_input, size 2K, aspect_ratio} + 5.0만 output_format png +
   4.5만 disable_safety_checker=false. seed는 양쪽 스키마 미지원이라 미전송, 배선만 유지.
   PoC 실측: 5.0 기가 막힘 / 4.5 인물 흑백 이슈 (원인 "charcoal" 단어 유력 — 아래 Full-color 규칙으로 대응).
-- **base 집중 + ratios 간섭 최소화** (09-19, 방향 확정 — ratios route 재설계 예정):
+- **base 집중 + ratios 간섭 최소화** (09-19, 1차 완료):
   base 1장에 올인 (플레이스홀더 완벽 적용 base 프롬프트로 생성)하고,
   ratios는 base 결과물 1장만 받아 고정 문구로 재구성. LLM 개입 없음, 원본 보조 없음.
   근거: (1) 비율은 `aspect_ratio` 파라미터가 강제하므로 LLM 구도 설계는 중복.
   (2) "전부 동일" 원칙 — base 멀쩡+ratio 개판보다 전부 동일하게 망하는 게 낫다.
   유저 UX: 일부만 망하면 개별 재생성 지옥(기능 없음), 전부 동일하면 다시 돌리기 1번.
-  고정 문구 (`buildReframePrompt`, `{ratio}`는 1:1식 실제 표기):
+  고정 문구 (`{ratio}`는 1:1식 실제 표기):
   `Reframe image_input[0] into a {ratio} still-advertisement composition. Preserve its identity, palette, and lighting exactly. Rearrange framing and negative space for the new canvas, keeping clean room for headline text.`
-  현 ratios route(재시도·직통·뒤따름 3모드 + 폴백 분기)는 이 방향으로 싹 재설계 예정 (미커밋).
+  ratios route 정리 — 직통 모드 삭제, 뒤따름·재시도 고정 문구,
+  base 실패 시 파생 전원 error 스킵 (원본 폴백 삭제 — FLUX 시절 fail-soft 잔재),
+  참조 base-only (재시도 중 base 자체 재시도만 원본 예외), 재시도 caption 검증 삭제.
+  `replicateInputMapper.ts` 신규 (`ReplicateModelId` enum + 1:1 switch 통짜 반환, default throw) —
+  ReplicateClient는 제출 전담으로 축소, seed 배선 제거 (스키마 미지원).
+  잔량: 파이프라인 정합 3곳 (prompt 항상 base · process 1장 스킵 · 실패 폴백 ratioKey) —
+  미완이면 1장 배치가 ratios 뒤따름에서 400 ("No remaining ratios").
+  LLM 프롬프트 base-only 갈기 (image_prompt_record base 1장 · reframe 삭제 · Unit 2 대수술,
+  ratio_reasonings 처리 · 구 배치 폴백 · llmServerAPI 정리 포함).
 - **프롬프트 컴포지션 + 태그·스키마 분리** (09-18/19):
   통짜 3벌 → BASE_TEMPLATE + 모드 섹션 + `buildPrompt` 조립 (바이트 동일 검증済み).
   이미지 태그 3종 (PRODUCT_IMAGE / PERSON_IMAGE / BASE_IMAGE) — GLM은 순서 몰라도 됨,
@@ -317,7 +320,9 @@
 - [x] Seedream 하이브리드 (5.0 Lite + 4.5 — 코드·SQL 완료, 푸시됨)
 - [x] 프롬프트 컴포지션 1순위 (구조만 — 바이트 동일 검증, 푸시됨)
 - [x] 태그 정의·치환 + 스키마 분리 + reframe RPC (코드·SQL 완료)
-- [ ] ratios route 재설계 (base 집중 + 고정 문구 — 작업 중, 미커밋)
+- [x] ratios route 재설계 1차 (고정 문구·폴백 삭제·base-only·매퍼 분리 — 완료)
+- [ ] 파이프라인 정합 3곳 (1순위 — 1장 배치 400 버그: prompt 항상 base · process 1장 스킵 · 실패 폴백 ratioKey)
+- [ ] LLM 프롬프트 base-only 갈기 (image_prompt_record base 1장 · reframe 삭제 · Unit 2 대수술)
 - [ ] E2E 테스트 (생성→차감→환불 회수, 테스트 계정 정리 후)
 - [ ] 2순위 내용 작업: softbox 기구명사 금지 + levitating→grounded + Full-color 강제 + Note 복장 강제
 - [ ] C 단위 LLM 2회 분리 검토 (base·ratio mutual blind — 재구성 품질 보고 결정)
