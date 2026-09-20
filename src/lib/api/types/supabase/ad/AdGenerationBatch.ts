@@ -134,12 +134,10 @@ export interface AdCreativeSpec {
     palette: string;
     framing: string;
     layout_tone: string;
-    /** 이미지(비율)별 최종 I2I 캡션 레코드. 같은 creative의 비율 파생마다 다른 캡션. */
-    imagePromptRecord: Partial<Record<AdRatioKey, string>>;
-    /** 기준 비율 — base 1장을 이 비율 캡션으로 생성, 나머지는 ratioReframeRecord로 재구성 */
+    /** base 1장 전용 프롬프트 문자열 */
+    creativePrompt: string | null;
+    /** 기준 비율 — base 1장을 이 비율 프롬프트로 생성 */
     baseRatio?: AdRatioKey;
-    /** 비율 파생 재구성 캡션 (base 제외 키만). BASE_IMAGE 중심 "재구성하라" 문법. 없으면 imagePromptRecord 폴백. */
-    ratioReframeRecord?: Partial<Record<AdRatioKey, string>>;
     /** creative 공통 시드 — 비율 파생들이 같은 seed를 공유해 "같은 개념"을 맞추는 신호 */
     seed: number;
 }

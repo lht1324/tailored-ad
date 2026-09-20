@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
             ? baseRatioParam
             : selectBaseRatio(batch.aspect_ratios as AdRatioKey[]);
 
-        const caption = creativeSpec.imagePromptRecord[baseRatio];
+        const caption = creativeSpec.creativePrompt;
 
         if (!caption || typeof caption !== 'string' || caption.trim().length === 0) {
             return getNextBaseResponse({

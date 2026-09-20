@@ -14,16 +14,30 @@ import { fontMap } from "@/lib/fonts";
  * ad 도메인 전용 LLM 서버 API — creative 디렉터(텍스트) / Vision 분석(이미지) 분리.
  * 기존 llmServerAPI 패턴을 따른다.
  */
+
+/**
+ * 빈 응답 시 1회 재시도 (GLM이 추론만 하고 content 없이 끊기는 케이스 대응).
+ * PARSE_ERROR는 호출부에서 별도 판단 (재시도 의미 있음 — 호출부가 결정).
+ */
+async function completeWithRetry(
+    client: OpenRouterClient,
+    params: Parameters<OpenRouterClient["createCompletion"]>[0],
+    label: string,
+): Promise<string | null> {
+    const first = await client.createCompletion(params, label);
+    if (first) return first;
+    console.warn(`[${label}] empty response, retrying once`);
+    return client.createCompletion(params, `${label} (retry)`);
+}
 export const llmServerAPI = {
     /**
      * Creative 디렉터 — 코드가 배정한 5축 조합 + 유저 입력을 받아
-     * 비율별 캡션 레코드(imagePromptRecord) + 판매 카피(copy)를 1회 생성한다.
-     * 호출 단위 = creative마다 1회 (ad_variation_study.md §3).
+     * creative 1장 전용 프롬프트 1회 생성 — creativePrompt 문자열 + 판매 카피(copy).
+     * 호출 단위 = creative마다 1회.
      */
     async postCreativeBaseImagePrompt(params: {
         creativeIndex: number;
         creativeSpec: AdCreativeSpec;
-        aspectRatios: AdRatioKey[];
         baseRatio: AdRatioKey;
         productNote: string | null;
         personNote: string | null;
@@ -35,8 +49,7 @@ export const llmServerAPI = {
         brandLogoBase64?: string | null;
     }): Promise<{
         success: boolean;
-        imagePromptRecord?: Partial<Record<AdRatioKey, string>>;
-        ratioReframeRecord?: Partial<Record<AdRatioKey, string>>;
+        creativePrompt?: string;
         copy?: AdCopySpec;
         reasoning?: string;
         ratioReasonings?: Partial<Record<AdRatioKey, string>>;
@@ -46,7 +59,6 @@ export const llmServerAPI = {
             const {
                 creativeIndex,
                 creativeSpec,
-                aspectRatios,
                 baseRatio,
                 productNote,
                 personNote,
@@ -112,7 +124,7 @@ Instruction: Generate ratio-specific I2I captions and ad copy according to the s
 
             const client = new OpenRouterClient();
 
-            const generatedContent = await client.createCompletion(
+            const generatedContent = await completeWithRetry(client,
                 {
                     model: OpenRouterModel.GLM_5_3_FLASH,
                     systemMessage: systemMessage,
@@ -139,8 +151,7 @@ Instruction: Generate ratio-specific I2I captions and ad copy according to the s
                 const parsed: {
                     reasoning: string;
                     ratio_reasonings: Partial<Record<AdRatioKey, string>>;
-                    image_prompt_record: Partial<Record<AdRatioKey, string>>;
-                    ratio_reframe_record?: Partial<Record<AdRatioKey, string>>;
+                    creative_prompt: string;
                     copy: AdCopySpec;
                 } = cleanAndParseJSON(generatedContent);
 
@@ -154,8 +165,7 @@ Instruction: Generate ratio-specific I2I captions and ad copy according to the s
 
                 return {
                     success: true,
-                    imagePromptRecord: parsed.image_prompt_record,
-                    ratioReframeRecord: parsed.ratio_reframe_record,
+                    creativePrompt: parsed.creative_prompt,
                     copy: parsed.copy,
                     reasoning: parsed.reasoning,
                     ratioReasonings: parsed.ratio_reasonings,
@@ -230,7 +240,7 @@ Each of the first ${imageInputs.length} images corresponds to the ratio at the s
 
             const client = new OpenRouterClient();
 
-            const generatedContent = await client.createCompletion(
+            const generatedContent = await completeWithRetry(client,
                 {
                     model: OpenRouterModel.GLM_5_3_FLASH,
                     systemMessage: POST_AD_IMAGE_ANALYSIS_PROMPT,

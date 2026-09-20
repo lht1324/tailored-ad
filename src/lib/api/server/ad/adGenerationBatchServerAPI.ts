@@ -120,11 +120,12 @@ export const adGenerationBatchServerAPI = {
         return adGenerationBatchServerAPI.patchAdGenerationBatch(batchId, { status });
     },
 
-    // RPC - 프롬프트 산출물 저장 (imagePromptRecord + copy) — creative당 1회, 행 잠금
+    // RPC - 프롬프트 산출물 저장 (creativePrompt + copy) — creative당 1회
     async updateCreativePromptOutputs(
         batchId: string,
         creativeIndex: number,
-        imagePromptRecord: Record<string, string>,
+        creativePrompt: string,
+        baseRatio: string,
         copy: { headline: string | null; cta: string | null },
     ): Promise<void> {
         const supabase = createSupabaseServiceRoleClient();
@@ -132,33 +133,13 @@ export const adGenerationBatchServerAPI = {
         const { error } = await supabase.rpc('update_creative_prompt_outputs', {
             p_batch_id: batchId,
             p_creative_index: creativeIndex,
-            p_image_prompt_record: imagePromptRecord,
+            p_creative_prompt: creativePrompt,
+            p_base_ratio: baseRatio,
             p_copy: copy,
         });
 
         if (error) {
             throw new Error(`Failed to update creative prompt outputs: ${error.message}`);
-        }
-    },
-
-    // RPC - 재구성 캡션 저장 (baseRatio + ratioReframeRecord) — 별도 함수, 기존 prompt outputs와 분리
-    async updateCreativeReframeOutputs(
-        batchId: string,
-        creativeIndex: number,
-        baseRatio: string,
-        ratioReframeRecord: Record<string, string>,
-    ): Promise<void> {
-        const supabase = createSupabaseServiceRoleClient();
-
-        const { error } = await supabase.rpc('update_creative_reframe_outputs', {
-            p_batch_id: batchId,
-            p_creative_index: creativeIndex,
-            p_base_ratio: baseRatio,
-            p_ratio_reframe_record: ratioReframeRecord,
-        });
-
-        if (error) {
-            throw new Error(`Failed to update creative reframe outputs: ${error.message}`);
         }
     },
 

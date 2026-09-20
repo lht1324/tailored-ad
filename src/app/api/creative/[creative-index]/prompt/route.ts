@@ -11,7 +11,7 @@ import FONT_FAMILY_LIST from "@/lib/FontFamilyList";
 
 /**
  * Creative별 프롬프트(LLM) 단계 — Creative마다 1회 호출 (ad_variation_study.md §3).
- * 코드가 배정한 5축 조합 + 사용자 입력을 받아 비율별 캡션 레코드(imagePromptRecord)와
+ * 코드가 배정한 5축 조합 + 사용자 입력을 받아 creative 프롬프트(creativePrompt)와
  * 판매 카피(headline/CTA, headline은 조건부 — 무헤드라인 원본 렌더도 지원)를 한 번에 생성한다.
  */
 export async function POST(
@@ -103,12 +103,11 @@ export async function POST(
         }
 
         // 1) GLM 5.3 Flash 호출 — 5축 + aspect_ratios + base_ratio + notes + cta + brandPalette + brandLogo + seed + images
-        //    base 캡션(imagePromptRecord 전체) + ratio 재구성 캡션(ratio_reframe_record, base 제외)을 한 번에 발주
+        //    creative 프롬프트(creative_prompt 문자열) 1장 발주
         const baseRatio = selectBaseRatio(adGenerationBatch.aspect_ratios);
         const llmResult = await llmServerAPI.postCreativeBaseImagePrompt({
             creativeIndex,
             creativeSpec: adCreativeSpec,
-            aspectRatios: adGenerationBatch.aspect_ratios,
             baseRatio,
             productNote: adGenerationBatch.product_image?.note ?? null,
             personNote: adGenerationBatch.person_image?.note ?? null,
@@ -120,7 +119,7 @@ export async function POST(
             brandLogoBase64,
         });
 
-        if (!llmResult.success || !llmResult.imagePromptRecord || !llmResult.copy) {
+        if (!llmResult.success || !llmResult.creativePrompt || !llmResult.copy) {
             console.error(`[prompt] LLM failed creative #${creativeIndex} batch ${batchId}:`, llmResult.error);
 
             // fail-soft: creative 단위 실패는 배치 전체 failed로 전이하지 않음 — 호출자가 재시도
@@ -159,26 +158,14 @@ export async function POST(
             llmResult.copy.headlineColor = 'white';
         }
 
-        // 2) RPC로 저장 — imagePromptRecord + copy (headline nullable, cta nullable)
-        //    B안 키(imagePromptRecord) 우선, 구 키(imageSpecs) 폴백은 RPC에서 처리
+        // 2) RPC로 저장 — creativePrompt + copy
         await adGenerationBatchServerAPI.updateCreativePromptOutputs(
             batchId,
             creativeIndex,
-            llmResult.imagePromptRecord as Record<string, string>,
+            llmResult.creativePrompt,
+            baseRatio,
             llmResult.copy,
         );
-
-        // 2-2) 재구성 캡션 저장 — 별도 RPC. 실패해도 구 동작 폴백(imagePromptRecord)이라 warn만.
-        try {
-            await adGenerationBatchServerAPI.updateCreativeReframeOutputs(
-                batchId,
-                creativeIndex,
-                baseRatio,
-                (llmResult.ratioReframeRecord ?? {}) as Record<string, string>,
-            );
-        } catch (reframeError) {
-            console.warn(`[prompt] reframe save failed (batch=${batchId}, creative=${creativeIndex}), fallback to base captions:`, reframeError);
-        }
 
         // 3) 비율 갯수 판정 → generation 분기 (fire-and-forget, creative 격리)
         const baseUrl = process.env.BASE_URL;
@@ -198,7 +185,7 @@ export async function POST(
             message: "Creative prompt generated and generation dispatched.",
             data: {
                 creativeIndex,
-                imagePromptRecord: llmResult.imagePromptRecord,
+                creativePrompt: llmResult.creativePrompt,
                 copy: llmResult.copy,
             },
         });

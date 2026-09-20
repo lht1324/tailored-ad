@@ -37,7 +37,7 @@ function createReplicateInstance(): Replicate {
 }
 
 export interface AdImageEditPredictionParams {
-    /** I2I 지시문 — creative의 캡션(imagePromptRecord) */
+    /** I2I 지시문 — creative의 프롬프트(creativePrompt) */
     prompt: string;
     /** 참조 이미지 URL 목록 — [원본 상품/인물] 또는 [기준 이미지 + 원본] */
     imageUrls: string[];

@@ -209,7 +209,7 @@ export function assignCreativeCombinations(conceptCount: number, seed?: number, 
             palette: combo.palette,
             framing: combo.framing,
             layout_tone: combo.layout_tone,
-            imagePromptRecord: {}, // 캡션 레코드는 프롬프트 단계(LLM)가 선택 비율만 채운다
+            creativePrompt: null, // 프롬프트 단계(LLM)가 base 1장분을 채운다
             seed: Math.floor(random() * 0x7fffffff),
         });
     }

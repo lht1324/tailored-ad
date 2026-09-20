@@ -5,7 +5,7 @@ import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatc
 import { adImageServerAPI } from "@/lib/api/server/ad/imageServerAPI";
 import { selectBaseRatio } from "@/lib/api/server/ad/creativeCombinationSampler";
 import { replicateClient } from "@/lib/ReplicateClient";
-import { selectImageModel, type ImageInputTag } from "@/lib/replicateInputMapper";
+import { selectImageModel, ReplicateModelId, type ImageInputTag } from "@/lib/replicateInputMapper";
 import { AdRatioKey, type AdGenerationBatch } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 
 /**
@@ -16,6 +16,8 @@ function buildReframePrompt(ratioKey: AdRatioKey): string {
     const ratio = ratioKey.replace('_', ':');
     return `Reframe image_input[0] into a ${ratio} composition by expanding or cropping the canvas. Extend the scene naturally to fill the frame — do NOT add solid-color bars, borders, or letterboxing. Preserve its identity, palette, lighting, subject placement, and orientation exactly — do NOT mirror, flip, or rearrange elements. Do NOT add any text, letters, logos, or watermarks.`;
 }
+
+/** 원본 전용 태그 순서 = [product?, person?] (getAdOriginalImageSignedUrls와 동일) */
 
 /** 원본 전용 태그 순서 = [product?, person?] (getAdOriginalImageSignedUrls와 동일) */
 function buildOriginalTagOrder(batch: AdGenerationBatch): ImageInputTag[] {
@@ -195,7 +197,7 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        // 참조는 base 1장만 (원본 보조 없음)
+        // 참조는 base 1장만 (원본 보조 없음). 치수는 1회 읽고 비율별 기하 계산.
         const baseImageSignedUrl = await adImageServerAPI.getAdResultImageSignedUrl(
             adGenerationBatch.user_id,
             adGenerationBatch.id,
@@ -215,16 +217,14 @@ export async function POST(request: NextRequest) {
         }
 
         for (const ratioKey of remainingRatios) {
-            const prompt = buildReframePrompt(ratioKey);
-
+            // BRIA 전문 확장 — 원본 앵커 고정 + 주변만 생성. 프롬프트는 매퍼 고정.
             const webhookUrl = `${baseUrl}/webhook/replicate/image/ratios?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}&ratioKey=${encodeURIComponent(ratioKey)}&attempt=${encodeURIComponent(String(attempt))}`;
             try {
                 await replicateClient.postAdImageEditPrediction({
-                    prompt: prompt,
+                    prompt: "",
                     imageUrls: referenceUrlsWithBase,
                     aspectRatio: ratioKey,
-                    model: selectImageModel(aspectRatios as string[]),
-                    imageTags: ["BASE_IMAGE"],
+                    model: ReplicateModelId.BRIA_EXPAND,
                     webhookUrl,
                 });
             } catch (submitError) {

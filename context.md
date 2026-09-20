@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-09-20 04:34)
+# TailoredAd — 작업 기록 (Last Updated: 2026-09-21 01:10)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -287,6 +287,25 @@
   복장 구체 묘사 (Imagen급) 보류 — 취소됨.
   **Few-shot 결함 (무조건 수정)**: 예시에 image_input[n] 치환용 플레이스홀더가 없고,
   비율도 1:1·9:16 등이 아닌 square 1_1·vertical 9_16 등 자연어형으로 표기되고 있었다.
+- **프롬프트 base 1장 체제 전환** (09-20/21, 미커밋):
+  통짜 3벌 복귀 (컴포지션 구조 삭제 — 검토 용이성). BASE/REFRAME 구분 제거.
+  출력 키 `image_prompt_record`(Record) → `creative_prompt`(문자열 1개).
+  타입 `creativePrompt` + RPC 교체 (`p_creative_prompt`/`p_base_ratio`, 구 `imagePromptRecord` 폐기 — UI 미사용 확인).
+  단어 제한 제거, caption→prompt 용어 통일, ratio token 실제 표기 (vertical 9:16),
+  `<base_ratio>`→`<aspect_ratio>`, userMessage 배열 제거.
+  KEEP vs CREATE 규칙 신설 (유지: 얼굴·상품 형태 무언급 / 생성: 배경·의상·소품·빛·구도 구체 의무).
+  REDRAWN 개정 (얼굴 묘사 금지 + 신체 상태 1줄 + 태그 주어) + Attire & Symbol Guard 신설 +
+  소품 조건 (minimal/editorial 없음 · lifestyle/flat_lay 1-3개) + Note Override 최우선.
+  예시 13개 재작성 (22단어→평균 60단어, 태그 전부, 3층 구조, 질감 클로즈업).
+  UI Note 경고 문구 추가 (copywriting 스킬 적용).
+  LLM 빈 응답 시 1회 재시도 (`completeWithRetry`, prompt·analysis).
+- **ratios BRIA 전환** (09-21, 미커밋):
+  고정 문구 재구성 실패 실측 (짜부라짐·패딩·재배치) → 업계 정석 outpainting으로 전환.
+  `bria/expand-image` (매퍼 case 추가, 가격 미확인 — 첫 실행에서 확인).
+  원본 앵커 고정 + 배경만 확장. prompt는 "extend background" + negative 구체 목록
+  ("no new objects"는 배경 연장까지 막을 수 있어 폐기).
+  canvas 기하 필드는 불필요 판정 (aspect_ratio 주면 중앙 배치+확장, size/location 무시됨 — 공식 문서) → 제거.
+  `image-size` 패키지 추가 후 제거 (package.json에서 제거됨, `npm uninstall` 필요).
 - **모바일 분리 전제**: 공유 파일에 반응형 추가 금지 (split 때 삭제 대상). 모바일은 현상 동결, 백로그만 기록. UA 감지 → `(mobile)` 라우트 그룹 후보.
 
 ## 5. 렌더 계약 (에디터 작업 전 필독)
@@ -340,10 +359,10 @@
 - [x] 태그 정의·치환 + 스키마 분리 + reframe RPC (코드·SQL 완료)
 - [x] ratios route 재설계 1차 (고정 문구·폴백 삭제·base-only·매퍼 분리 — 완료)
 - [x] 파이프라인 정합 1차 (prompt 항상 base · process 분기 · 함수改名 · RPC error 제거 — 완료)
-- [ ] LLM 프롬프트 base-only 갈기 (다음 1순위 — image_prompt_record base 1장 · reframe 삭제 · Unit 2 대수술 · ratio_reasonings 처리 · 구 배치 폴백 · llmServerAPI 정리)
+- [ ] **Bria 테스트 돌리기** (다음 1순위 — ratios 확장 실측, 가격 확인, Sync/webhook 정합)
+- [ ] LLM 프롬프트 base-only 잔량 (2순위 내용: softbox 기구명사 금지 + levitating→grounded + Full-color 강제 — Note 강제는 완료)
+- [ ] 상대 크기 앵커 규칙 (인물 있으면 신체 대비 · 없으면 fill — 미적용)
 - [ ] E2E 테스트 (생성→차감→환불 회수, 테스트 계정 정리 후)
-- [ ] E2E 테스트 (생성→차감→환불 회수, 테스트 계정 정리 후)
-- [ ] 2순위 내용 작업: softbox 기구명사 금지 + levitating→grounded + Full-color 강제 + Note 복장 강제
 - [ ] C 단위 LLM 2회 분리 검토 (base·ratio mutual blind — 재구성 품질 보고 결정)
 - [ ] 프롬프트 eyeball (Seedream 기준 — FLUX 시절 항목 대체)
 - [ ] B9 c01-1:1 실패분 재생성 + 19칸 선정 매핑 + `public/preview` 배치

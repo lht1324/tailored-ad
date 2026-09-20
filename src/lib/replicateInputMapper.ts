@@ -13,6 +13,7 @@
 export enum ReplicateModelId {
     SEEDREAM_5_LITE = "bytedance/seedream-5-lite",
     SEEDREAM_4_5 = "bytedance/seedream-4.5",
+    BRIA_EXPAND = "bria/expand-image",
 }
 
 /** 캡션 내 의미 태그 — 전송 직전 image_input[n]으로 치환. GLM은 순서 몰라도 됨. */
@@ -92,6 +93,24 @@ export function buildReplicateImageInput(
                 ...(ratio && { aspect_ratio: ratio }),
                 disable_safety_checker: false,
             };
+
+        case ReplicateModelId.BRIA_EXPAND: {
+            // 전문 outpainting — 원본 앵커 고정 + 주변만 확장. prompt는 확장 영역 지시만.
+            // "no new objects"는 배경 연장까지 막을 수 있어 구체 금지 목록으로 대체.
+            const imageUrl = imageUrls[0];
+            if (!imageUrl) {
+                throw new Error("BRIA_EXPAND requires exactly 1 base image URL.");
+            }
+            return {
+                image_url: imageUrl,
+                ...(ratio && { aspect_ratio: ratio }),
+                prompt: "extend the existing background naturally to fill the canvas",
+                negative_prompt: "no people, no hands, no text, no new products",
+                preserve_alpha: false,
+                content_moderation: false,
+                sync: false,
+            };
+        }
 
         default:
             throw new Error(`Unknown Replicate model: ${model as string}`);

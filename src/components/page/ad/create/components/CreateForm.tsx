@@ -152,6 +152,7 @@ function CreateForm({
                             <h3 className="text-[15px] font-semibold tracking-tight text-text1">Subjects</h3>
                             <p className="mt-0.5 text-[12px] leading-relaxed text-text2">
                                 Upload your product or person — the AI paints a different background for each creative.
+                                Be specific in notes — the AI follows them literally. Vague notes waste image credits.
                             </p>
                         </div>
                         <span className="shrink-0 rounded-full border border-hairline bg-canvas px-2.5 py-1 text-[10px] font-medium text-text2">
