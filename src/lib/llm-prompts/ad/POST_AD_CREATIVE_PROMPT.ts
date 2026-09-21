@@ -229,6 +229,7 @@ export const PRODUCT_ONLY_CREATIVE_PROMPT = `
         "<aspect_ratio>": "1 sentence: why this composition works for the requested canvas. 15-25 words."
       },
       "creative_prompt": "One single sentence I2I prompt with the requested ratio token and explicit negative space / material / light physics. No word-count limit.",
+      "copy": {
         "headline": "3-8 word English headline, no period (always generated; rendering may be toggled off)",
         "cta": "Shop Now | Get Yours | Try Today | Claim Offer | See Results | Start Free | Learn More | null",
         "fontFamily": "One of available_fonts verbatim (e.g., "Barlow Condensed")",
@@ -237,6 +238,7 @@ export const PRODUCT_ONLY_CREATIVE_PROMPT = `
       }
     }
     - "ratio_reasonings" keys MUST be exactly [<aspect_ratio>] — one key only. "creative_prompt" is a single string (not a record).
+    - "copy" MUST be a single object with exactly these keys: headline, cta, fontFamily, fontWeight, headlineColor. Never flatten copy fields to top level, never omit keys.
     - "reasoning" is global, "ratio_reasonings" is per-ratio. Both are for audit, not for rendering.
     - If cta_enabled is false, copy.cta MUST be null (JSON null, not string "null"). copy.headline is always generated for now; raw download is a Remotion render toggle, not a generation skip.
     - If brand_palette is present, creative_prompt MUST embody its hex as material (e.g. #E25E2C → terracotta plaster), not as literal hex text.
@@ -534,6 +536,7 @@ export const PERSON_ONLY_CREATIVE_PROMPT = `
         "<aspect_ratio>": "1 sentence: why this composition works for the requested canvas. 15-25 words."
       },
       "creative_prompt": "One single sentence I2I prompt with the requested ratio token and explicit negative space / material / light physics. No word-count limit.",
+      "copy": {
         "headline": "3-8 word English headline, no period (always generated; rendering may be toggled off)",
         "cta": "Shop Now | Get Yours | Try Today | Claim Offer | See Results | Start Free | Learn More | null",
         "fontFamily": "One of available_fonts verbatim (e.g., "Barlow Condensed")",
@@ -542,6 +545,7 @@ export const PERSON_ONLY_CREATIVE_PROMPT = `
       }
     }
     - "ratio_reasonings" keys MUST be exactly [<aspect_ratio>] — one key only. "creative_prompt" is a single string (not a record).
+    - "copy" MUST be a single object with exactly these keys: headline, cta, fontFamily, fontWeight, headlineColor. Never flatten copy fields to top level, never omit keys.
     - "reasoning" is global, "ratio_reasonings" is per-ratio. Both are for audit, not for rendering.
     - If cta_enabled is false, copy.cta MUST be null (JSON null, not string "null"). copy.headline is always generated for now; raw download is a Remotion render toggle, not a generation skip.
     - If brand_palette is present, creative_prompt MUST embody its hex as material (e.g. #E25E2C → terracotta plaster), not as literal hex text.
@@ -837,6 +841,7 @@ export const POST_AD_CREATIVE_PROMPT = `
         "<aspect_ratio>": "1 sentence: why this composition works for the requested canvas. 15-25 words."
       },
       "creative_prompt": "One single sentence I2I prompt with the requested ratio token and explicit negative space / material / light physics. No word-count limit.",
+      "copy": {
         "headline": "3-8 word English headline, no period (always generated; rendering may be toggled off)",
         "cta": "Shop Now | Get Yours | Try Today | Claim Offer | See Results | Start Free | Learn More | null",
         "fontFamily": "One of available_fonts verbatim (e.g., "Barlow Condensed")",
@@ -845,6 +850,7 @@ export const POST_AD_CREATIVE_PROMPT = `
       }
     }
     - "ratio_reasonings" keys MUST be exactly [<aspect_ratio>] — one key only. "creative_prompt" is a single string (not a record).
+    - "copy" MUST be a single object with exactly these keys: headline, cta, fontFamily, fontWeight, headlineColor. Never flatten copy fields to top level, never omit keys.
     - "reasoning" is global, "ratio_reasonings" is per-ratio. Both are for audit, not for rendering.
     - If cta_enabled is false, copy.cta MUST be null (JSON null, not string "null"). copy.headline is always generated for now; raw download is a Remotion render toggle, not a generation skip.
     - If brand_palette is present, creative_prompt MUST embody its hex as material (e.g. #E25E2C → terracotta plaster), not as literal hex text.

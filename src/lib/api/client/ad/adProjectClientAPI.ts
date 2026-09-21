@@ -12,13 +12,13 @@ export interface AdGenerationBatchListResponse {
         offset: number;
         count: number;
     };
-    thumbnailSignedUrls: Record<string, string>;
+    thumbnailCreativeIndexes: Record<string, number>;
     thumbnailRatioKeys: Record<string, AdRatioKey>;
 }
 
 export interface AdGenerationBatchDetailResponse {
     batch: AdGenerationBatch;
-    signedUrls: Record<string, string>; // key: `${creativeIndex}_${ratioKey}`
+    signedUrls: Record<string, string>; // key: `${creativeIndex}_${ratioKey}` — 원본
     brandLogoSignedUrl: string | null;
 }
 
@@ -61,7 +61,7 @@ export const adGenerationBatchClientAPI = {
         return {
             batches,
             pagination: data.pagination as AdGenerationBatchListResponse['pagination'],
-            thumbnailSignedUrls: (data.thumbnailSignedUrls as Record<string, string>) ?? {},
+            thumbnailCreativeIndexes: (data.thumbnailCreativeIndexes as Record<string, number>) ?? {},
             thumbnailRatioKeys: (data.thumbnailRatioKeys as Record<string, AdRatioKey>) ?? {},
         };
     },
@@ -122,7 +122,7 @@ export const adProjectClientAPI = {
             projects: data.batches,
             batches: data.batches,
             pagination: data.pagination,
-            thumbnailSignedUrls: data.thumbnailSignedUrls,
+            thumbnailCreativeIndexes: data.thumbnailCreativeIndexes,
             thumbnailRatioKeys: data.thumbnailRatioKeys,
         } as unknown as AdProjectListResponse;
     },

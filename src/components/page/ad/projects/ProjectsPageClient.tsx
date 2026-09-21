@@ -7,6 +7,7 @@ import AppHeader from "@/components/page/ad/app-header/AppHeader";
 import ProjectCard from "@/components/page/ad/projects/components/ProjectCard";
 import { adProjectClientAPI } from "@/lib/api/client/ad/adProjectClientAPI";
 import { AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+import { buildProjectImageUrl } from "@/lib/projectImageUrl";
 import { supabase } from "@/lib/supabase/supabaseClient";
 
 type FilterKey = 'all' | 'running' | 'completed';
@@ -24,7 +25,7 @@ function isRunningStatus(status: string): boolean {
 export default function ProjectsPageClient() {
     const router = useRouter();
     const [projects, setProjects] = useState<AdGenerationBatch[]>([]);
-    const [thumbnailSignedUrls, setThumbnailSignedUrls] = useState<Record<string, string>>({});
+    const [thumbnailCreativeIndexes, setThumbnailCreativeIndexes] = useState<Record<string, number>>({});
     const [thumbnailRatioKeys, setThumbnailRatioKeys] = useState<Record<string, AdRatioKey>>({});
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -44,7 +45,7 @@ export default function ProjectsPageClient() {
         try {
             const data = await adProjectClientAPI.listProjects({ limit: 20, offset: 0 });
             setProjects(data.projects);
-            setThumbnailSignedUrls((data as unknown as { thumbnailSignedUrls?: Record<string, string> }).thumbnailSignedUrls ?? {});
+            setThumbnailCreativeIndexes((data as unknown as { thumbnailCreativeIndexes?: Record<string, number> }).thumbnailCreativeIndexes ?? {});
             setThumbnailRatioKeys((data as unknown as { thumbnailRatioKeys?: Record<string, AdRatioKey> }).thumbnailRatioKeys ?? {});
             setHasMore(data.pagination.count === 20);
         } catch (err) {
@@ -91,7 +92,7 @@ export default function ProjectsPageClient() {
                             fetchProjects(true);
                         } else if (payload.eventType === 'DELETE') {
                             setProjects((prev) => prev.filter((p) => p.id !== (payload.old as AdGenerationBatch).id));
-                            setThumbnailSignedUrls((prev) => {
+                            setThumbnailCreativeIndexes((prev) => {
                                 const next = { ...prev };
                                 delete next[(payload.old as AdGenerationBatch).id];
                                 return next;
@@ -134,9 +135,9 @@ export default function ProjectsPageClient() {
         try {
             const data = await adProjectClientAPI.listProjects({ limit: 20, offset: projects.length });
             setProjects((prev) => [...prev, ...data.projects]);
-            const moreThumbs = (data as unknown as { thumbnailSignedUrls?: Record<string, string> }).thumbnailSignedUrls ?? {};
+            const moreThumbs = (data as unknown as { thumbnailCreativeIndexes?: Record<string, number> }).thumbnailCreativeIndexes ?? {};
             const moreRatios = (data as unknown as { thumbnailRatioKeys?: Record<string, AdRatioKey> }).thumbnailRatioKeys ?? {};
-            setThumbnailSignedUrls((prev) => ({ ...prev, ...moreThumbs }));
+            setThumbnailCreativeIndexes((prev) => ({ ...prev, ...moreThumbs }));
             setThumbnailRatioKeys((prev) => ({ ...prev, ...moreRatios }));
             setHasMore(data.pagination.count === 20);
         } catch (err) {
@@ -277,7 +278,9 @@ export default function ProjectsPageClient() {
                                 <ProjectCard
                                     key={project.id}
                                     project={project}
-                                    thumbnailUrl={thumbnailSignedUrls[project.id] ?? null}
+                                    thumbnailUrl={thumbnailRatioKeys[project.id] != null && thumbnailCreativeIndexes[project.id] != null
+                                        ? buildProjectImageUrl(project.id, thumbnailCreativeIndexes[project.id], thumbnailRatioKeys[project.id], 'list')
+                                        : null}
                                     thumbnailRatio={thumbnailRatioKeys[project.id] ?? null}
                                     onClick={() => onClickProject(project.id)}
                                     onEdit={() => onClickEditProject(project.id)}

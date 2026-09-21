@@ -62,3 +62,11 @@ export const PLAN_IMAGE_LIMIT: Record<PaidPlan, number> = {
     [SubscriptionPlan.PLAN_3]: 1000,
     [SubscriptionPlan.PLAN_4]: 0,
 };
+
+/** 플랜 → 바깥 노출 표시명 (헤더 등. plan-4 미사용이라 원값 폴백) */
+export const PLAN_DISPLAY_NAME: Record<string, string> = {
+    [SubscriptionPlan.NONE]: "Free plan",
+    [SubscriptionPlan.PLAN_1]: "Starter",
+    [SubscriptionPlan.PLAN_2]: "Growth",
+    [SubscriptionPlan.PLAN_3]: "Pro",
+};

@@ -6,6 +6,7 @@ import FormatTile from "@/components/page/ad/projects/[projectId]/components/For
 import { downloadItemsAsZip } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
 import { AdCreativeSpec, AdCreativeResult, AdGenerationBatch, AdImageResult, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { fontMap } from "@/lib/fonts";
+import { buildProjectImageUrl } from "@/lib/projectImageUrl";
 
 function formatAxisLabel(value: string): string {
     return value
@@ -244,6 +245,7 @@ function CreativeRow({ creativeIndex, spec, result, batch, signedUrls, brandLogo
                                     const ir = imageResults?.[ratioKey] as import("@/lib/api/types/supabase/ad/AdGenerationBatch").AdImageResult | undefined;
                                     const tileKey = `${creativeIndex}_${ratioKey}`;
                                     const signedUrl = signedUrls[tileKey] ?? null;
+                                    const displayUrl = signedUrl ? buildProjectImageUrl(batch.id, creativeIndex, ratioKey, 'thumb') : null;
                                     return (
                                         <FormatTile
                                             key={ratioKey}
@@ -251,6 +253,7 @@ function CreativeRow({ creativeIndex, spec, result, batch, signedUrls, brandLogo
                                             ratioKey={ratioKey}
                                             imageResult={ir ?? null}
                                             signedUrl={signedUrl}
+                                            displayUrl={displayUrl}
                                             brandLogoUrl={brandLogoUrl ?? null}
                                             isProjectRunning={isProjectRunning}
                                             creativeIndex={creativeIndex}

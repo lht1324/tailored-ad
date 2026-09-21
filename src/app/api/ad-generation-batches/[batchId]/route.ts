@@ -47,7 +47,8 @@ export async function GET(
             });
         }
 
-        // 결과 이미지 signed URL 맵 생성: key = `${creativeIndex}_${ratioKey}`
+        // 결과 이미지 signed URL 맵 생성: key = `${creativeIndex}_${ratioKey}` (원본 — 다운로드용)
+        // 표시용은 클라가 예쁜 경로(/projects/[id]/image)로 조립하므로 여기서 발급하지 않음
         const signedUrls: Record<string, string> = {};
 
         for (const creativeResult of batch.ad_creative_results ?? []) {

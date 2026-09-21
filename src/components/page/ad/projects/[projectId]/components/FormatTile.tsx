@@ -28,7 +28,8 @@ interface FormatTileProps {
     projectShortId: string;
     ratioKey: AdRatioKey;
     imageResult?: AdImageResult | null;
-    signedUrl?: string | null;
+    signedUrl?: string | null; // 원본 (다운로드용)
+    displayUrl?: string | null; // 타일 표시용 경량 변환 (없으면 signedUrl)
     brandLogoUrl?: string | null;
     isProjectRunning: boolean;
     creativeIndex: number;
@@ -38,7 +39,7 @@ interface FormatTileProps {
     headlineColor?: string | null;
 }
 
-function FormatTile({ projectShortId, ratioKey, imageResult, signedUrl, brandLogoUrl, isProjectRunning, creativeIndex, onExpand, headlineFontFamily, headlineFontWeight, headlineColor }: FormatTileProps) {
+function FormatTile({ projectShortId, ratioKey, imageResult, signedUrl, displayUrl, brandLogoUrl, isProjectRunning, creativeIndex, onExpand, headlineFontFamily, headlineFontWeight, headlineColor }: FormatTileProps) {
     const ratioLabel = RATIO_LABEL[ratioKey] ?? ratioKey;
     const factor = RATIO_FACTOR[ratioKey] ?? 1;
 
@@ -162,10 +163,11 @@ function FormatTile({ projectShortId, ratioKey, imageResult, signedUrl, brandLog
             className="group relative shrink-0 cursor-pointer overflow-hidden rounded-[1.25rem] border border-hairline text-left transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-text2/30 hover:shadow-lg hover:shadow-black/5"
         >
             <Image
-                src={signedUrl ?? ''}
+                src={displayUrl ?? signedUrl ?? ''}
                 alt={`Creative ${creativeIndex + 1} · ${ratioLabel}`}
                 fill
                 sizes="(max-width: 768px) 100vw, 33vw"
+                unoptimized
                 className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
             />
             <AdOverlay design={design} headlineFontFamily={headlineFontFamily ?? null} headlineFontWeight={headlineFontWeight ?? null} headlineColor={overlayHeadlineColor} brandLogoUrl={brandLogoUrl ?? null} />

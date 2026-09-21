@@ -6,10 +6,11 @@ import { Plus } from 'lucide-react';
 import ThemeToggle from "@/components/page/ad/public/ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
 import { usersClientAPI, type UserUsageSummary } from "@/lib/api/client/usersClientAPI";
+import { PLAN_DISPLAY_NAME } from "@/lib/polar";
 
 function planLabel(plan: string | null | undefined): string {
-    if (!plan || plan === 'none') return 'Free plan';
-    return plan;
+    if (!plan) return 'Free plan';
+    return PLAN_DISPLAY_NAME[plan] ?? plan;
 }
 
 function AppHeader({ onUsageLoaded }: { onUsageLoaded?: () => void }) {

@@ -11,6 +11,7 @@ import DownloadMenuButton from "@/components/page/ad/projects/[projectId]/compon
 import { downloadItemsAsZip, downloadRawItemsAsZip, type CompositeDownloadOptions, type RawDownloadItem } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
 import { fontMap } from "@/lib/fonts";
 import { adProjectClientAPI, getProjectProgress } from "@/lib/api/client/ad/adProjectClientAPI";
+import { buildProjectImageUrl } from "@/lib/projectImageUrl";
 import { AdCreativeResult, AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { AdDesignLayout } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { supabase } from "@/lib/supabase/supabaseClient";
@@ -571,10 +572,9 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
 
                 {/* 라이트박스 — WorkspaceEditor와 동일 패턴 */}
                 {lightboxKey && (() => {
-                    const url = signedUrls[lightboxKey];
-                    if (!url) return null;
                     const { creativeIndex: cIdx, ratioKey } = parseTileKey(lightboxKey);
                     if (Number.isNaN(cIdx)) return null;
+                    const url = buildProjectImageUrl(projectId, cIdx, ratioKey, 'full');
                     const ratioLabel = ratioKey.replace('_', ':');
                     const creative = sortedCreatives.find((c) => c.creativeIndex === cIdx);
                     const ir = creative?.result?.imageResults?.[ratioKey as AdRatioKey] as { design?: import("@/lib/api/types/supabase/ad/AdGenerationBatch").AdImageResult['design']; score?: number | null } | undefined;

@@ -6,6 +6,23 @@ import { adImageServerAPI } from "@/lib/api/server/ad/imageServerAPI";
 import { llmServerAPI } from "@/lib/api/server/ad/llmServerAPI";
 import { AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 
+/** Vision 출력 형 검증 — 각 비율 항목이 {design:{headline.text, scrim}, score:number}인가 */
+function isValidAnalysisShape(results: unknown, ratioKeys: AdRatioKey[]): boolean {
+    if (!results || typeof results !== 'object') return false;
+    const record = results as Record<string, unknown>;
+    for (const key of ratioKeys) {
+        const entry = record[key] as { design?: unknown; score?: unknown } | undefined;
+        if (!entry || typeof entry !== 'object') return false;
+        if (typeof entry.score !== 'number' || Number.isNaN(entry.score)) return false;
+        const design = entry.design as { headline?: unknown; scrim?: unknown } | null;
+        if (!design || typeof design !== 'object') return false;
+        const headline = design.headline as { text?: unknown } | null;
+        if (!headline || typeof headline.text !== 'string') return false;
+        if (typeof design.scrim !== 'boolean') return false;
+    }
+    return true;
+}
+
 /**
  * Creative 묶음 분석 단계 — process/ratios가 RPC#2에서 isLastCreative=true를 받았을 때만 호출.
  * 이 creative의 선택 비율 이미지 전부를 Qwen Vision으로 보고
@@ -168,7 +185,7 @@ export async function POST(
 
         // 2) Qwen Vision 묶음 평가 — 성공한 비율만 (fail-soft)
         const successfulRatios = imageInputs.map((i) => i.ratioKey);
-        const llmResult = await llmServerAPI.postAdImageAnalysis({
+        const analysisParams = {
             creativeIndex,
             aspectRatios: successfulRatios as AdRatioKey[],
             creativeSpec,
@@ -176,7 +193,22 @@ export async function POST(
             brandPalette: batch.brand_palette ?? null,
             imageInputs,
             brandLogoBase64,
-        });
+        };
+        let llmResult = await llmServerAPI.postAdImageAnalysis(analysisParams);
+
+        // 2b) 형 검증 — 깨진 채 저장 금지 (design 래퍼·score 누락). 불량이면 Vision 1회 재시도.
+        if (llmResult.success && llmResult.imageResults && !isValidAnalysisShape(llmResult.imageResults, successfulRatios)) {
+            console.error(`[analysis] malformed shape creative #${creativeIndex} batch ${batchId}, retrying vision once`);
+            llmResult = await llmServerAPI.postAdImageAnalysis(analysisParams);
+        }
+        if (llmResult.success && llmResult.imageResults && !isValidAnalysisShape(llmResult.imageResults, successfulRatios)) {
+            console.error(`[analysis] malformed shape persists creative #${creativeIndex} batch ${batchId}, refusing to store`);
+            return getNextBaseResponse({
+                success: false,
+                status: 500,
+                error: "Vision analysis returned malformed shape (missing design wrapper or score)",
+            });
+        }
 
         if (!llmResult.success || !llmResult.imageResults) {
             console.error(`[analysis] Vision failed creative #${creativeIndex} batch ${batchId}:`, llmResult.error);

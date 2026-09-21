@@ -13,6 +13,7 @@ import { COMPOSITE_SIZES } from "@/components/page/ad/projects/[projectId]/compo
 import { downloadCompositedImage } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
 import { fontMap } from "@/lib/fonts";
 import { adProjectClientAPI } from "@/lib/api/client/ad/adProjectClientAPI";
+import { buildProjectImageUrl } from "@/lib/projectImageUrl";
 import { patchFetch } from "@/lib/api/client/baseFetch";
 import { AdCreativeResult, AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import type { AdDesignLayout } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
@@ -156,7 +157,7 @@ export default function EditorPageClient() {
                 return {
                     ratioKey: rk as string,
                     label: (rk as string).replace('_', ':'),
-                    thumbUrl: signedUrls[`${idx}_${rk}`] ?? null,
+                    thumbUrl: signedUrls[`${idx}_${rk}`] ? buildProjectImageUrl(projectId, idx, rk as string, 'thumb') : null,
                     completed: isTileCompleted(result, rk as string, signedUrls, idx),
                     score: ir?.score ?? null,
                 };
@@ -181,7 +182,7 @@ export default function EditorPageClient() {
             const ir = result.imageResults?.[rk as AdRatioKey] as unknown as { design?: AdDesignLayout | null } | undefined;
             const designValue = (ir?.design as AdDesignLayout) ?? null;
             if (!designValue) return null;
-            return { creativeIndex: ci, ratioKey: rk, imageUrl: url, design: designValue, copy: toEditorCopy(result.copy) };
+            return { creativeIndex: ci, ratioKey: rk, imageUrl: buildProjectImageUrl(projectId, ci, rk, 'full'), design: designValue, copy: toEditorCopy(result.copy) };
         };
         const ci = paramCreative != null ? Number.parseInt(paramCreative, 10) : Number.NaN;
         if (!Number.isNaN(ci) && paramRatio && (project.aspect_ratios as string[]).includes(paramRatio)) {

@@ -35,8 +35,8 @@ export async function GET(request: NextRequest) {
             offset,
         });
 
-        // 썸네일: 현재 점수 최고 1장의 signedUrl + 비율(크롭 위치 결정용) — 최고점 갱신 시 리스트 커버도 갱신
-        const thumbnailSignedUrls: Record<string, string> = {};
+        // 썸네일: 현재 점수 최고 1장의 위치 (URL은 클라가 예쁜 경로로 조립 — 토큰 노출 없음)
+        const thumbnailCreativeIndexes: Record<string, number> = {};
         const thumbnailRatioKeys: Record<string, AdRatioKey> = {};
 
         await Promise.all(
@@ -64,19 +64,8 @@ export async function GET(request: NextRequest) {
                 const target = best ?? firstCompleted;
                 if (!target) return;
 
-                try {
-                    const signedUrl = await adImageServerAPI.getAdResultImageSignedUrl(
-                        batch.user_id,
-                        batch.id,
-                        target.creativeIndex,
-                        target.ratioKey,
-                        target.ext,
-                    );
-                    thumbnailSignedUrls[batch.id] = signedUrl;
-                    thumbnailRatioKeys[batch.id] = target.ratioKey;
-                } catch {
-                    // 개별 썸네일 실패는 전체를 실패로 만들지 않음
-                }
+                thumbnailCreativeIndexes[batch.id] = target.creativeIndex;
+                thumbnailRatioKeys[batch.id] = target.ratioKey;
             }),
         );
 
@@ -90,7 +79,7 @@ export async function GET(request: NextRequest) {
                     offset,
                     count: batches.length,
                 },
-                thumbnailSignedUrls,
+                thumbnailCreativeIndexes,
                 thumbnailRatioKeys,
             },
         });
