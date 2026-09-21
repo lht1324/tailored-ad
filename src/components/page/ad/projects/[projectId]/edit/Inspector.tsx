@@ -9,6 +9,7 @@ import FONT_FAMILY_LIST from "@/lib/FontFamilyList";
 import { normalizeHeadlineColor, defaultScrimStrength } from "@/lib/colorUtils";
 import { estimateWrappedLines } from "@/lib/textMeasure";
 import type { AdDesignLayout } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+import ElementPopover from "@/components/page/ad/projects/[projectId]/edit/ElementPopover";
 
 export interface EditorCopy {
     headline: string | null;
@@ -25,8 +26,10 @@ interface InspectorProps {
     disabled: boolean;
     aspectRatio: number;
     brandPalette: string[] | null;
+    selectedElement: 'headline' | 'cta' | null;
     onChangeDesign: (next: AdDesignLayout) => void;
     onChangeCopy: (next: EditorCopy) => void;
+    onCloseSelection: () => void;
 }
 
 type HeadlineAlign = 'left' | 'center' | 'right';
@@ -122,10 +125,12 @@ function computeHeadlineYMax(args: { text: string; fontSizePct: number; maxWidth
     return Math.max(0, 100 - args.fontSizePct * 1.05 * lines);
 }
 
-function Inspector({ design, copy, score, disabled, aspectRatio, brandPalette, onChangeDesign, onChangeCopy }: InspectorProps) {
+function Inspector({ design, copy, score, disabled, aspectRatio, brandPalette, selectedElement, onChangeDesign, onChangeCopy, onCloseSelection }: InspectorProps) {
     const headline = design.headline;
     const cta = design.cta;
     const [customOpen, setCustomOpen] = useState(false);
+    // 편집 범위 — 전 비율(공통 문구, 분기된 비율 제외) vs 현재 비율만(분기 생성)
+    const [scopeAll, setScopeAll] = useState(true);
 
     const availableWeights = useMemo(() => {
         const entry = FONT_FAMILY_LIST.find((f) => f.name === copy.fontFamily);
@@ -140,18 +145,6 @@ function Inspector({ design, copy, score, disabled, aspectRatio, brandPalette, o
     }, [copy.fontFamily]);
 
     const currentWeight = typeof copy.fontWeight === 'number' ? copy.fontWeight : 700;
-
-    const yMaxHeadline = useMemo(() => {
-        if (!headline) return 100;
-        return computeHeadlineYMax({
-            text: copy.headline ?? '',
-            fontSizePct: headline.fontSizePct,
-            maxWidth: headline.maxWidth,
-            familyStack: currentFamilyStack,
-            weight: currentWeight,
-            aspectRatio,
-        });
-    }, [headline, copy.headline, currentFamilyStack, currentWeight, aspectRatio]);
 
     const clampYFor = useCallback((y: number, over: { text: string; fontSizePct: number; maxWidth: number }): number => {
         const max = computeHeadlineYMax({
@@ -282,6 +275,27 @@ function Inspector({ design, copy, score, disabled, aspectRatio, brandPalette, o
         }
     }, [copy, headline, design, currentFamilyStack, aspectRatio, onChangeCopy, onChangeDesign]);
 
+    // 요소 선택 시 패널을 슬라이더 전용으로 교체 — 해제되면 정보로 복귀
+    const selectedTarget = selectedElement === 'headline' ? headline : selectedElement === 'cta' ? cta : null;
+    if (selectedElement && selectedTarget) {
+        return (
+            <div className="space-y-4">
+                <button type="button" onClick={onCloseSelection} className="inline-flex items-center gap-1 text-[12px] font-medium text-text2 hover:text-text1">
+                    ← Back
+                </button>
+                <ElementPopover
+                    design={design}
+                    element={selectedElement}
+                    headlineText={copy.headline ?? ''}
+                    fontFamily={copy.fontFamily ?? null}
+                    fontWeight={typeof copy.fontWeight === 'number' ? copy.fontWeight : null}
+                    aspectRatio={aspectRatio}
+                    onChangeDesign={onChangeDesign}
+                />
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -289,6 +303,26 @@ function Inspector({ design, copy, score, disabled, aspectRatio, brandPalette, o
                 <span className="font-mono text-[11px] text-text2">
                     {score != null ? `${score.toFixed(1)} / 10` : 'no score'}
                 </span>
+            </div>
+
+            {/* 편집 범위 — 문구 수정이 전 비율에 퍼지는지, 현재 비율에만 남는지 */}
+            <div className="grid grid-cols-2 gap-1 rounded-xl border border-hairline bg-canvas p-1" role="group" aria-label="Edit scope">
+                {(['all', 'one'] as const).map((mode) => {
+                    const active = scopeAll === (mode === 'all');
+                    return (
+                        <button
+                            key={mode}
+                            type="button"
+                            aria-pressed={active}
+                            onClick={() => setScopeAll(mode === 'all')}
+                            className={`rounded-lg px-3 py-2 text-[12px] font-medium transition-colors ${
+                                active ? 'bg-surface text-text1 shadow-sm' : 'text-text2 hover:text-text1'
+                            }`}
+                        >
+                            {mode === 'all' ? 'All images' : 'This image'}
+                        </button>
+                    );
+                })}
             </div>
 
             {disabled && (
@@ -322,29 +356,19 @@ function Inspector({ design, copy, score, disabled, aspectRatio, brandPalette, o
                                     rows={2}
                                     onChange={(e) => {
                                         const text = e.target.value;
-                                        onChangeCopy({ ...copy, headline: text });
                                         const y = clampYFor(headline.y, { text, fontSizePct: headline.fontSizePct, maxWidth: headline.maxWidth });
-                                        onChangeDesign({ ...design, headline: { ...headline, text, y: y !== headline.y ? y : headline.y } });
+                                        if (scopeAll) {
+                                            onChangeCopy({ ...copy, headline: text });
+                                            onChangeDesign({ ...design, headline: { ...headline, text, y: y !== headline.y ? y : headline.y } });
+                                        } else {
+                                            // 현재 비율만 분기 — copy는 그대로, 서버 전파도 건너뜀
+                                            onChangeDesign({ ...design, headline: { ...headline, text, y: y !== headline.y ? y : headline.y } });
+                                        }
                                     }}
                                     className="w-full resize-none rounded-xl border border-hairline bg-canvas px-3 py-2.5 text-[13px] text-text1 outline-none placeholder:text-text2/50 focus:border-accent"
                                 />
                             </label>
-                            <SliderRow label="Position X" value={headline.x} display={`${headline.x}`} min={0} max={Math.max(headline.x, Math.max(0, 100 - headline.maxWidth))} step={1} disabled={disabled}
-                                onChange={(v) => onChangeDesign({ ...design, headline: { ...headline, x: v } })} />
-                            <SliderRow label="Position Y" value={headline.y} display={`${headline.y}`} min={0} max={Math.max(headline.y, Math.max(0, yMaxHeadline))} step={1} disabled={disabled}
-                                onChange={(v) => onChangeDesign({ ...design, headline: { ...headline, y: v } })} />
-                            <SliderRow label="Max width" value={headline.maxWidth} display={`${headline.maxWidth}%`} min={10} max={100} step={1} disabled={disabled}
-                                onChange={(v) => {
-                                    const x = Math.min(headline.x, Math.max(0, 100 - v));
-                                    const y = clampYFor(headline.y, { text: copy.headline ?? '', fontSizePct: headline.fontSizePct, maxWidth: v });
-                                    onChangeDesign({ ...design, headline: { ...headline, maxWidth: v, x, y } });
-                                }} />
-                            <SliderRow label="Size" value={headline.fontSizePct} display={`${headline.fontSizePct.toFixed(1)}`} min={2} max={6} step={0.1} disabled={disabled}
-                                onChange={(v) => {
-                                    const size = Math.round(v * 10) / 10;
-                                    const y = clampYFor(headline.y, { text: copy.headline ?? '', fontSizePct: size, maxWidth: headline.maxWidth });
-                                    onChangeDesign({ ...design, headline: { ...headline, fontSizePct: size, y } });
-                                }} />
+                            <p className="text-[11px] leading-relaxed text-text2">Adjust position and size from the popover — click the element on the canvas.</p>
                             <div>
                                 <span className="mb-1.5 block text-[12px] font-medium text-text2">Align</span>
                                 <div className="grid grid-cols-3 gap-1 rounded-xl border border-hairline bg-canvas p-1">
@@ -511,21 +535,12 @@ function Inspector({ design, copy, score, disabled, aspectRatio, brandPalette, o
                                     onChange={(e) => {
                                         const text = e.target.value;
                                         onChangeDesign({ ...design, cta: { ...cta, text } });
-                                        onChangeCopy({ ...copy, cta: text });
+                                        if (scopeAll) onChangeCopy({ ...copy, cta: text });
                                     }}
                                     className="w-full rounded-xl border border-hairline bg-canvas px-3 py-2.5 text-[13px] text-text1 outline-none placeholder:text-text2/50 focus:border-accent"
                                 />
                             </label>
-                            <SliderRow label="Position X" value={cta.x} display={`${cta.x}`} min={0} max={Math.max(cta.x, Math.max(0, 100 - cta.widthPct))} step={1} disabled={disabled}
-                                onChange={(v) => onChangeDesign({ ...design, cta: { ...cta, x: v } })} />
-                            <SliderRow label="Position Y" value={cta.y} display={`${cta.y}`} min={0} max={Math.max(cta.y, Math.max(0, 100 - cta.fontSizePct * 2.4))} step={1} disabled={disabled}
-                                onChange={(v) => onChangeDesign({ ...design, cta: { ...cta, y: v } })} />
-                            <SliderRow label="Size" value={cta.fontSizePct} display={`${cta.fontSizePct.toFixed(1)}`} min={1} max={4} step={0.1} disabled={disabled}
-                                onChange={(v) => {
-                                    const size = Math.round(v * 10) / 10;
-                                    const y = Math.min(cta.y, Math.max(0, 100 - size * 2.4));
-                                    onChangeDesign({ ...design, cta: { ...cta, fontSizePct: size, y } });
-                                }} />
+                            <p className="text-[11px] leading-relaxed text-text2">Adjust position and size from the popover — click the element on the canvas.</p>
                         </>
                     ) : (
                         <p className="text-[12px] text-text2">No CTA pill on this asset.</p>

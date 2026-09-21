@@ -80,6 +80,8 @@ export default function EditorPageClient() {
     const [isDownloadingCanvas, setIsDownloadingCanvas] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [savedAt, setSavedAt] = useState<string | null>(null);
+    // 캔버스 요소 선택 (팝오버용) — 에셋 바뀌면 해제
+    const [selectedElement, setSelectedElement] = useState<'headline' | 'cta' | null>(null);
 
     const fetchProject = useCallback(async () => {
         try {
@@ -130,6 +132,16 @@ export default function EditorPageClient() {
             if (channel) supabase.removeChannel(channel);
         };
     }, [projectId, status, fetchProject]);
+
+    // Esc — 팝오버 닫기
+    useEffect(() => {
+        if (!selectedElement) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setSelectedElement(null);
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [selectedElement]);
 
     const treeItems = useMemo<AssetTreeCreative[]>(() => {
         if (!project) return [];
@@ -194,6 +206,7 @@ export default function EditorPageClient() {
         setBaseline(resolved ? JSON.stringify({ design: resolved.design, copy: resolved.copy }) : null);
         setSaveError(null);
         setSavedAt(null);
+        setSelectedElement(null);
     }
 
     const isDirty = baseline != null && design != null && copy != null
@@ -400,17 +413,25 @@ export default function EditorPageClient() {
                         {/* Canvas */}
                         <div className="order-1 min-w-0 lg:order-2 lg:h-full lg:min-h-0 lg:overflow-y-auto">
                             <div className="flex w-full justify-center">
-                                <EditorCanvas ratioKey={resolved.ratioKey} input={canvasInput ?? {
-                                    imageUrl: resolved.imageUrl,
-                                    design,
-                                    headlineFontFamily: null,
-                                    headlineFontWeight: null,
-                                    headlineColor: 'white',
-                                    brandLogoUrl: null,
-                                }}
-                                onDragHeadline={isEditable ? onDragHeadline : undefined}
-                                onDragCta={isEditable ? onDragCta : undefined}
-                                />
+                                <div
+                                    className="relative"
+                                    style={{ width: `min(100%, calc((100vh - 300px) * ${canvasAspect.toFixed(4)}))` }}
+                                >
+                                    <EditorCanvas ratioKey={resolved.ratioKey} input={canvasInput ?? {
+                                        imageUrl: resolved.imageUrl,
+                                        design,
+                                        headlineFontFamily: null,
+                                        headlineFontWeight: null,
+                                        headlineColor: 'white',
+                                        brandLogoUrl: null,
+                                    }}
+                                    onDragHeadline={isEditable ? onDragHeadline : undefined}
+                                    onDragCta={isEditable ? onDragCta : undefined}
+                                    selectedElement={selectedElement}
+                                    onSelectHeadline={isEditable && design.headline ? () => setSelectedElement((prev) => (prev === 'headline' ? null : 'headline')) : undefined}
+                                    onSelectCta={isEditable && design.cta ? () => setSelectedElement((prev) => (prev === 'cta' ? null : 'cta')) : undefined}
+                                    />
+                                </div>
                             </div>
                             <p className="mt-3 text-center font-mono text-[11px] uppercase tracking-[0.08em] text-text2">
                                 Creative {String(resolved.creativeIndex + 1).padStart(2, '0')} · {resolved.ratioKey.replace('_', ':')}
@@ -425,8 +446,10 @@ export default function EditorPageClient() {
                                 disabled={!isEditable}
                                 aspectRatio={canvasAspect}
                                 brandPalette={project.brand_palette ?? null}
+                                selectedElement={selectedElement}
                                 onChangeDesign={setDesign}
                                 onChangeCopy={setCopy}
+                                onCloseSelection={() => setSelectedElement(null)}
                             />
                         </div>
                     </div>

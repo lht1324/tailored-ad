@@ -225,7 +225,8 @@ export async function PATCH(
                 }
                 current[ratioKey] = { ...prev, design: nextDesign };
             }
-            // copy 문구 변경 시 같은 creative 전 비율의 design 텍스트에 전파
+            // copy 문구 변경 시 같은 creative 전 비율의 design 텍스트에 전파.
+            // 단, 이미 분기된 비율(기존 copy와 다르던 design 텍스트)은 건너뜀.
             // (캔버스는 design.headline.text / design.cta.text를 렌더 — copy만 바꾸면 다른 비율에 미반영)
             const prevCopy = r.copy as unknown as Record<string, unknown>;
             const nextCopyRec = (nextCopy ?? r.copy) as unknown as Record<string, unknown>;
@@ -236,15 +237,20 @@ export async function PATCH(
                     const ir = current[key];
                     const designValue = (ir as { design?: AdDesignLayout | null })?.design;
                     if (!designValue) continue;
-                    const nextHeadline = headlineChanged && designValue.headline
+                    // 분기 판정 — 기존 공통 문구와 같았던 비율만 따라감
+                    const headlineFollows = headlineChanged && designValue.headline
+                        && designValue.headline.text === (prevCopy.headline as string | null);
+                    const ctaFollows = ctaChanged && designValue.cta
+                        && designValue.cta.text === (prevCopy.cta as string | null)
+                        && typeof nextCopyRec.cta === 'string';
+                    if (!headlineFollows && !ctaFollows) continue;
+                    const nextHeadline = headlineFollows && designValue.headline
                         ? { ...designValue.headline, text: nextCopyRec.headline as string }
                         : designValue.headline;
-                    const nextCta = ctaChanged && designValue.cta && typeof nextCopyRec.cta === 'string'
+                    const nextCta = ctaFollows && designValue.cta
                         ? { ...designValue.cta, text: nextCopyRec.cta as string }
                         : designValue.cta;
-                    if (nextHeadline !== designValue.headline || nextCta !== designValue.cta) {
-                        current[key] = { ...ir, design: { ...designValue, headline: nextHeadline, cta: nextCta } } as typeof current[string];
-                    }
+                    current[key] = { ...ir, design: { ...designValue, headline: nextHeadline, cta: nextCta } } as typeof current[string];
                 }
             }
             return {

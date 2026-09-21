@@ -16,6 +16,12 @@ interface AdOverlayProps {
         onDragHeadline?: ((x: number, y: number) => void) | null;
         onDragCta?: ((x: number, y: number) => void) | null;
     } | null;
+    // 에디터 전용: 박스 클릭 선택 (팝오버용). 드래그와 충돌 없이 이동 5px 미만만 선택.
+    select?: {
+        selected?: 'headline' | 'cta' | null;
+        onSelectHeadline?: (() => void) | null;
+        onSelectCta?: (() => void) | null;
+    } | null;
 }
 
 function clampDrag(value: number, min: number, max: number): number {
@@ -75,7 +81,7 @@ async function waitForHeadlineFont(family: string | null | undefined, weight: nu
     }
 }
 
-function AdOverlay({ design, headlineFontFamily, headlineFontWeight, headlineColor, brandLogoUrl, drag }: AdOverlayProps) {
+function AdOverlay({ design, headlineFontFamily, headlineFontWeight, headlineColor, brandLogoUrl, drag, select }: AdOverlayProps) {
     const ref = useRef<HTMLDivElement>(null);
     const headlineBoxRef = useRef<HTMLDivElement>(null);
     const [size, setSize] = useState({ w: 0, h: 0 });
@@ -103,6 +109,25 @@ function AdOverlay({ design, headlineFontFamily, headlineFontWeight, headlineCol
             live = false;
         };
     }, [headlineFontFamily, headlineFontWeight]);
+
+    // 선택 — down에 선택, 이동 없이 up이면(클릭) 이미 선택된 경우 해제
+    const downState = useRef<{ x: number; y: number; wasSelected: boolean } | null>(null);
+    const onPointerDownSelect = useCallback((e: React.PointerEvent, key: 'headline' | 'cta', selected: 'headline' | 'cta' | null | undefined, fn?: (() => void) | null) => {
+        downState.current = { x: e.clientX, y: e.clientY, wasSelected: selected === key };
+        if (!fn || selected === key) return;
+        fn();
+    }, []);
+    const onPointerUpSelect = useCallback((e: React.PointerEvent, key: 'headline' | 'cta', fn?: (() => void) | null) => {
+        const start = downState.current;
+        downState.current = null;
+        if (!start || !fn) return;
+        const moved = Math.hypot(e.clientX - start.x, e.clientY - start.y);
+        // 클릭(up 이동 없음) + 이미 선택돼 있었으면 해제 토글
+        if (moved < 5 && start.wasSelected) {
+            e.stopPropagation();
+            fn();
+        }
+    }, []);
 
     const { headline, cta, logo, scrim } = design;
 
@@ -236,8 +261,14 @@ function AdOverlay({ design, headlineFontFamily, headlineFontWeight, headlineCol
             {headline && (
                 <div
                     ref={headlineBoxRef}
-                    className="absolute"
-                    onPointerDown={drag?.onDragHeadline ? onPointerDownHeadline : undefined}
+                    className={`absolute ${(drag?.onDragHeadline || select?.onSelectHeadline) ? 'cursor-pointer hover:[outline:2px_dashed_white] hover:[outline-offset:3px] hover:[box-shadow:0_0_0_5px_rgba(0,0,0,0.35)]' : ''}`}
+                    onPointerDown={(e) => {
+                        onPointerDownSelect(e, 'headline', select?.selected, select?.onSelectHeadline);
+                        if (drag?.onDragHeadline) onPointerDownHeadline(e);
+                    }}
+                    onPointerUp={(e) => {
+                        if (select?.onSelectHeadline) onPointerUpSelect(e, 'headline', select.onSelectHeadline);
+                    }}
                     style={{
                         left: `${headline.x}%`,
                         top: `${headline.y}%`,
@@ -246,6 +277,7 @@ function AdOverlay({ design, headlineFontFamily, headlineFontWeight, headlineCol
                         maxWidth: `${headline.maxWidth}%`,
                         textAlign: headline.align,
                         ...(drag?.onDragHeadline ? { touchAction: 'none', pointerEvents: 'auto' as const } : {}),
+                        ...(select?.selected === 'headline' ? { outline: '2px solid var(--ad-accent, #4F8CFF)', outlineOffset: 4, borderRadius: 4 } : {}),
                     }}
                 >
                     <h3
@@ -276,7 +308,13 @@ function AdOverlay({ design, headlineFontFamily, headlineFontWeight, headlineCol
                     >
                         <span
                             className={`inline-flex items-center justify-center rounded-full bg-white font-semibold text-black ${drag?.onDragCta ? 'cursor-grab active:cursor-grabbing hover:[outline:2px_dashed_white] hover:[outline-offset:3px] hover:[box-shadow:0_0_0_5px_rgba(0,0,0,0.35)]' : ''}`}
-                            onPointerDown={drag?.onDragCta ? onPointerDownCta : undefined}
+                            onPointerDown={(e) => {
+                                onPointerDownSelect(e, 'cta', select?.selected, select?.onSelectCta);
+                                if (drag?.onDragCta) onPointerDownCta(e);
+                            }}
+                            onPointerUp={(e) => {
+                                if (select?.onSelectCta) onPointerUpSelect(e, 'cta', select.onSelectCta);
+                            }}
                             style={{
                                 padding: '0.45em 1.1em',
                                 fontSize: size.h > 0 ? (size.h * cta.fontSizePct) / 100 : 12,
@@ -284,6 +322,7 @@ function AdOverlay({ design, headlineFontFamily, headlineFontWeight, headlineCol
                                 whiteSpace: 'nowrap',
                                 visibility: textVisibility,
                                 ...(drag?.onDragCta ? { touchAction: 'none', pointerEvents: 'auto' as const } : {}),
+                                ...(select?.selected === 'cta' ? { outline: '2px solid var(--ad-accent, #4F8CFF)', outlineOffset: 3 } : {}),
                             }}
                         >
                             {cta.text}
