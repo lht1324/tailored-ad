@@ -269,7 +269,7 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
         try {
             const { saved, total } = await downloadItemsAsZip(
                 allCompletedItems,
-                `tailored-ad-${project?.id.slice(0, 6) ?? 'project'}-all.zip`,
+                `tailored-ad-${project?.id.slice(0, 6) ?? 'project'}-finals.zip`,
                 (p) => setAllProgress({ done: p.done, total: p.total, phase: p.phase }),
             );
             setAllResult(`Saved ${saved}/${total}`);

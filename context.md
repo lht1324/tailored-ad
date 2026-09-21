@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-09-21 01:10)
+# TailoredAd — 작업 기록 (Last Updated: 2026-09-22 01:28)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -307,6 +307,32 @@
   canvas 기하 필드는 불필요 판정 (aspect_ratio 주면 중앙 배치+확장, size/location 무시됨 — 공식 문서) → 제거.
   `image-size` 패키지 추가 후 제거 (package.json에서 제거됨, `npm uninstall` 필요).
 - **모바일 분리 전제**: 공유 파일에 반응형 추가 금지 (split 때 삭제 대상). 모바일은 현상 동결, 백로그만 기록. UA 감지 → `(mobile)` 라우트 그룹 후보.
+- **플랜명 표시** (09-22, 미커밋): `lib/polar.ts`에 `PLAN_DISPLAY_NAME` 추가
+  (plan-1→Starter, plan-2→Growth, plan-3→Pro, none→Free plan, plan-4 원값 폴백).
+  `AppHeader planLabel()`이 사용. 바깥 노출이라 영어 유지.
+- **예쁜 이미지 경로** (09-22, 미커밋): `GET /projects/[projectId]/image?c=&r=&v=`
+  (쿠키 세션 + 본인소유 확인 후 중계. v=list 800w / thumb 600h / full 원본).
+  목록 썸네일·Detail 타일·모달·에디터 4면이 토큰 없는 동일 출처 URL 사용.
+  다운로드는 원본 서명 URL 유지 (Final 스냅샷 품질 보장).
+  `lib/projectImageUrl.ts` 조립기. 목록 route는 위치정보만 반환 (토큰 발급 삭제).
+- **표시용 변환** (09-22, 미커밋): Supabase image transformation (Pro, 기능 확인됨).
+  주의 3점: (1) 한 축만 주면 기본 resize=cover가 크롭함 — 반드시 `resize:'contain'` 명시
+  (1:1 원본 + height 600 → 2048×600 잘림 실측). (2) 별도 quota: 월 원본 100개 포함,
+  초과 $5/1,000 (원본 파일당 1개, variants 무관). (3) egress는 별도.
+- **analysis 형 검증** (09-22, 미커밋): Vision이 design 래퍼·score 없이 납작하게 반환한
+  사고 (`4661f3` c1, 3비율 null 저장 → 영구 designing). route에 비율별 스키마 검증 +
+  불량 시 Vision 1회 재시도, 그래도 깨지면 500 저장 거부. 프롬프트 2종도 교정:
+  analysis 예시 소수점 11건 → 정수 (계약 위반), copy 중첩 묘사 교정 + 형태 고정문.
+  CTA `See the Drop` 화이트리스트 이탈 실측 — 랜딩 유지, 코드 강제 백로그.
+- **타일 `unoptimized`** (09-22, 미커밋): 6MB PNG + 서명 URL(캐시 무용) + optimizer 7초
+  타임아웃 = 500. FormatTile에 unoptimized (Lightbox·ProjectCard 선례).
+  근본(파일 다이어트·병렬 다운로드·fetch 타임아웃)은 미착수.
+- **랜딩 실생성 배치** (09-22, 미커밋): B1~B7 56장 전수 eyeball, 킬 0장.
+  Hero 8 + Portfolio 11 매핑 후 `public/preview/`에 의미 파일명으로 배치 (旧 `demo_*` 전량 삭제).
+  HeroWall 4:5 고정 프레임이라 1:1 원본 넣으면 좌우 크롭 — 4:5 네이티브로 교체済み.
+  Hero 레이아웃 반복 조정 중 (110rem→120rem, 카드 `my-auto`→`md:mt-24`, 이미지 확대·분산).
+  w 분업: 사장님은 xl:w만, base w는 코드 담당 (xl÷1.08, 0.5 단위).
+  미해결 quirk: `w-[13.5rem]` 미적용 의심 (원인 미확정, `w-[13rem]`로 회피 — 소수 .5 신규값 주의).
 
 ## 5. 렌더 계약 (에디터 작업 전 필독)
 
@@ -319,7 +345,7 @@
 
 ## 6. 런칭 체크리스트
 
-- [ ] 실생성 이미지 6~8장 → 랜딩 PortfolioSection에 박기 (스테이징에서 생성 → 버킷에서 회수)
+- [x] 실생성 이미지 19장 → 랜딩 배치 완료 (Hero 8 + Portfolio 11, `public/preview/` 실파일, §10 09-21 기록)
 - [ ] `support@tailoredad.com` (+`contact@`) Email Routing (tailoredad.com 도메인에서 별도 설정)
 - [ ] Polar 과금 연결 (블로커 — 진행 중):
   - [x] 상품 3종 + metadata + Checkout Description
@@ -336,7 +362,7 @@
 - [ ] 약관 실체 검토 (한국 조항 유지 여부 포함)
 - [ ] `tailorad.com` 구매 + 리다이렉트
 - [ ] `shortreal.ai/ad` → 301 (런칭 당일)
-- [ ] `tailoredad.com` DNS 연결 (이미지 준비되면)
+- [ ] `tailoredad.com` DNS 연결 (이미지 준비됨 — 연결 가능)
 - [ ] Search Console 등록 (런칭 후)
 - [ ] Supabase 대시보드 확인 (사장님): realtime publication에 `ad_generation_batches` 포함 여부 + RLS SELECT 자가행 허용 여부 (REST는 service_role이라 되고 live만 안 올 수 있음)
 - [ ] Cloudflare Secrets에 `UPSTASH_REDIS_REST_URL`/`TOKEN` 등록 (프로덕션)
@@ -360,6 +386,13 @@
 - [x] ratios route 재설계 1차 (고정 문구·폴백 삭제·base-only·매퍼 분리 — 완료)
 - [x] 파이프라인 정합 1차 (prompt 항상 base · process 분기 · 함수改名 · RPC error 제거 — 완료)
 - [ ] **Bria 테스트 돌리기** (다음 1순위 — ratios 확장 실측, 가격 확인, Sync/webhook 정합)
+- [ ] **HeroWall 잘림·저화질 체감** (09-22 신규 — 원인 1차 특정):
+  `public/` hero 6종이 1:1 구버전이라 4:5 프레임에서 좌우 크롭 ("om Noise", "till Fighting").
+  `landing-final/`에 4:5 WebP 준비됨 → `public/preview/` 덮어쓰기 대기 (사장님 작업).
+  저화질 체감은 optimizer `sizes 260px` 과소 + 크롭 탓 유력 → sizes 480px 상향 후보.
+- [ ] **Portfolio Creative 중복 과다** (09-22 신규):
+  11칸 중 4쌍이 같은 creative의 비율違い (street 1:1+16:9, locker 1:1+9:16, mug 1:1+4:5, sneaker 1:1+4:5).
+  56장 풀에서 creative를分散해 재배정 (미착수).
 - [ ] LLM 프롬프트 base-only 잔량 (2순위 내용: softbox 기구명사 금지 + levitating→grounded + Full-color 강제 — Note 강제는 완료)
 - [ ] 상대 크기 앵커 규칙 (인물 있으면 신체 대비 · 없으면 fill — 미적용)
 - [ ] E2E 테스트 (생성→차감→환불 회수, 테스트 계정 정리 후)
@@ -426,5 +459,30 @@ npm run deploy   # opennext build + deploy (master에서)
 - 슬롯 계획: Portfolio 1:1×4·9:16×3·4:5×3·16:9×1 + Hero 8칸(4:5 크롭, 원본 무관).
   파일은 Final PNG → WebP 변환 후 기존 파일명 매핑 (코드 무수정).
 - **다음**: B9 c01-1:1 실패분 재생성 → 19칸 선정 매핑 → 배치.
+
+## 11. 랜딩 2차 생성 배치 기록 (09-21, 56장 수령, 전원 completed)
+
+- 전 배치 C2 + 4비율(1:1, 4:5, 9:16, 16:9) → Seedream 4.5. 로고 동일 첨부, 팔레트 비움.
+- 노트는 짧은 힌트형 (속성+무드). 장면 문장형 노트는 5축 바리에이션을 깔아뭉개서 금지.
+- B6 소스 M3→M1 교체 (사장님 판단). combined는 노트 2개 (product_note + person_note) 필수.
+
+| 배치 | batchId 앞6 | 모드·소스 | CTA | 대표 점수 |
+|---|---|---|---|---|
+| B1 | 4d693f | product S2 스니커즈 | on | c02 8.8 (1:1) |
+| B2 | 40232e | product S3 향수 | off | c02 8.2 (9:16) |
+| B3 | 4661f3 | product S4 머그 | on | c02 9.0 (1:1) |
+| B4 | af208a | person M1 여성 | off | c01 8.7 (9:16) |
+| B5 | 55f1d0 | person M2 남성 | on | c01 8.5 (9:16) |
+| B6 | 80c3d1 | combined S1+M1 | off | c01 8.5 (9:16) |
+| B7 | 9b7cef | combined S2+M2 | on | c02 8.8 (16:9) |
+
+- `4661f3` c1 analysis 사고: Vision malformed (design·score 누락 3비율) → 200 저장 → 영구 designing.
+  수동 analysis 재실행으로 복구 (8.6~8.7, completed). 위 형 검증 도입 계기.
+- 전수 eyeball 20장, 킬 0장. 텍스트 삽입·미러·패딩 사고 0건.
+- 19칸 매핑 (Hero 8 + Portfolio 11) 후 `public/preview/` 배치, 旧 `demo_*` 삭제.
+  변환: `ffmpeg -i in.png -c:v libwebp -quality 85 -preset photo out.webp` (장당 24~115KB).
+  원본 PNG군은 `/home/jaeho/다운로드/tailored-portfolio/landing-final/` 보관.
+- 미커밋 잔량 (다음 세션 선행): `public/preview` 19종 staged + HeroWall/HeroSection/PortfolioSection/
+  ProjectDetailPageClient(finals.zip 개명) unstaged. `git status` 후 커밋.
 
 (End of file)

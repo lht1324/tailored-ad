@@ -11,19 +11,30 @@ interface WallImageItem {
 }
 
 // 좌표 설계 (max-w-[1440px] 캔버스): 좌 4장(left 기반) / 우 4장(right 기반) 사이에 카드(max-w-2xl, 가운데) 배치.
-// 전 이미지 1.1배 확대(195→215, 90→100 등) 후 y·크기·회전 유지, 커진 만큼 x 분산해 간격 확보.
-// 좌측: physics left-[0%], good_example left-[2%], atmosphere left-[10%], framing left-[11%] top-[30%].
-// 우측: main_left right-[4%], main_right right-[-3%], camera right-[7%] bottom-[35%], main_center right-[6%] bottom-[3%].
-// 카드와 최소 45px 이격, 겹침은 24px 이하 미세 레이어만.
+// 룸 있게: 전 이미지 1.25배 확대 + x 분산 + 잘림 제거(right-[-3%] 폐기).
+// 좌측: library left-[0%] top, midnight left-[10%], beach left-[8%] bottom, gym-woman left-[0%] bottom.
+// 우측: coast right-[2%] top, sneaker right-[0%], bottled right-[7%], bench right-[4%] bottom.
+// 카드와 최소 90px 이격, 겹침은 상하 엇갈림으로만.
+// const WALL_IMAGES: WallImageItem[] = [
+//     { src: '/preview/hero-coast-sunset.webp', pos: 'right-[0%] top-[0%] w-[17rem] xl:w-[18.5rem]', rot: '-rotate-2' },
+//     { src: '/preview/hero-library-woman.webp', pos: 'left-[0%] top-[0%] w-[10.5rem] xl:w-[11.5rem]', rot: 'rotate-[2.6deg]' },
+//     { src: '/preview/hero-gym-sneaker.webp', pos: 'right-[15%] top-[34%] w-[9.5rem] xl:w-[10.25rem]', rot: 'rotate-[1.8deg]' },
+//     { src: '/preview/hero-beach-man.webp', pos: 'left-[2%] bottom-[4%] w-[13rem] xl:w-[14.25rem]', rot: 'rotate-[2deg]' },
+//     { src: '/preview/hero-perfume-bottled.webp', pos: 'right-[3%] bottom-[26%] w-[9rem] xl:w-[9.75rem]', rot: 'rotate-[2.8deg]' },
+//     { src: '/preview/hero-tumbler-bench.webp', pos: 'right-[13%] bottom-[0%] w-[13rem] xl:w-[14.25rem]', rot: '-rotate-[1.6deg]' },
+//     { src: '/preview/hero-gym-woman.webp', pos: 'left-[18%] bottom-[2%] w-[9rem] xl:w-[9.75rem]', rot: '-rotate-[2.6deg]' },
+//     { src: '/preview/hero-perfume-midnight.webp', pos: 'left-[14%] top-[30%] w-[9.5rem] xl:w-[10.25rem]', rot: '-rotate-[2.2deg]' },
+// ];
+
 const WALL_IMAGES: WallImageItem[] = [
-    { src: '/preview/demo_main_left.webp', pos: 'right-[4%] top-[0%] w-[13.4375rem] xl:w-[14.6875rem]', rot: '-rotate-2' },
-    { src: '/preview/demo_good_example.webp', pos: 'left-[2%] top-[6%] w-[7.1875rem] xl:w-[7.8125rem]', rot: 'rotate-[2.6deg]' },
-    { src: '/preview/demo_main_right.webp', pos: 'right-[-3%] top-[32%] w-[7.8125rem] xl:w-[8.4375rem]', rot: 'rotate-[1.8deg]' },
-    { src: '/preview/demo_atmosphere.webp', pos: 'left-[10%] bottom-[10%] w-[12.1875rem] xl:w-[13.4375rem]', rot: 'rotate-[2deg]' },
-    { src: '/preview/demo_camera.webp', pos: 'right-[7%] bottom-[35%] w-[7.5rem] xl:w-[8.125rem]', rot: 'rotate-[2.8deg]' },
-    { src: '/preview/demo_main_center.webp', pos: 'right-[6%] bottom-[3%] w-[10rem] xl:w-[10.9375rem]', rot: '-rotate-[1.6deg]' },
-    { src: '/preview/demo_physics.webp', pos: 'left-[0%] bottom-[3%] w-[6.25rem] xl:w-[6.875rem]', rot: '-rotate-[2.6deg]' },
-    { src: '/preview/demo_framing.webp', pos: 'left-[11%] top-[30%] w-[6.5625rem] xl:w-[7.1875rem]', rot: '-rotate-[2.2deg]' },
+    { src: '/preview/hero-library-woman.webp', pos: 'left-[0%] top-[0%] w-[17rem] xl:w-[18.5rem]', rot: 'rotate-[2.6deg]' },
+    { src: '/preview/hero-perfume-midnight.webp', pos: 'left-[15%] top-[7%] w-[17rem] xl:w-[18.25rem]', rot: '-rotate-[2.2deg]' },
+    { src: '/preview/hero-beach-man.webp', pos: 'left-[0.5%] top-[52%] w-[17rem] xl:w-[18.25rem]', rot: 'rotate-[2deg]' },
+    { src: '/preview/hero-gym-woman.webp', pos: 'left-[16%] top-[61%] w-[17.5rem] xl:w-[18.75rem]', rot: '-rotate-[2.6deg]' },
+    { src: '/preview/hero-gym-sneaker.webp', pos: 'right-[15%] top-[7%] w-[17rem] xl:w-[18.25rem]', rot: 'rotate-[1.8deg]' },
+    { src: '/preview/hero-coast-sunset.webp', pos: 'right-[0%] top-[0%] w-[17rem] xl:w-[18.5rem]', rot: '-rotate-2' },
+    { src: '/preview/hero-tumbler-bench.webp', pos: 'right-[15.5%] top-[57%] w-[17rem] xl:w-[18.25rem]', rot: '-rotate-[1.6deg]' },
+    { src: '/preview/hero-perfume-bottled.webp', pos: 'right-[0.2%] top-[54%] w-[17.5rem] xl:w-[18.75rem]', rot: 'rotate-[2.8deg]' },
 ];
 
 function WallFrame({
