@@ -324,7 +324,7 @@ function Inspector({ design, copy, score, disabled, aspectRatio, brandPalette, o
                                         const text = e.target.value;
                                         onChangeCopy({ ...copy, headline: text });
                                         const y = clampYFor(headline.y, { text, fontSizePct: headline.fontSizePct, maxWidth: headline.maxWidth });
-                                        if (y !== headline.y) onChangeDesign({ ...design, headline: { ...headline, y } });
+                                        onChangeDesign({ ...design, headline: { ...headline, text, y: y !== headline.y ? y : headline.y } });
                                     }}
                                     className="w-full resize-none rounded-xl border border-hairline bg-canvas px-3 py-2.5 text-[13px] text-text1 outline-none placeholder:text-text2/50 focus:border-accent"
                                 />

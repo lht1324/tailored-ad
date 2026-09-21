@@ -225,6 +225,28 @@ export async function PATCH(
                 }
                 current[ratioKey] = { ...prev, design: nextDesign };
             }
+            // copy 문구 변경 시 같은 creative 전 비율의 design 텍스트에 전파
+            // (캔버스는 design.headline.text / design.cta.text를 렌더 — copy만 바꾸면 다른 비율에 미반영)
+            const prevCopy = r.copy as unknown as Record<string, unknown>;
+            const nextCopyRec = (nextCopy ?? r.copy) as unknown as Record<string, unknown>;
+            const headlineChanged = nextCopy !== undefined && nextCopyRec.headline !== prevCopy.headline;
+            const ctaChanged = nextCopy !== undefined && nextCopyRec.cta !== prevCopy.cta;
+            if (headlineChanged || ctaChanged) {
+                for (const key of Object.keys(current)) {
+                    const ir = current[key];
+                    const designValue = (ir as { design?: AdDesignLayout | null })?.design;
+                    if (!designValue) continue;
+                    const nextHeadline = headlineChanged && designValue.headline
+                        ? { ...designValue.headline, text: nextCopyRec.headline as string }
+                        : designValue.headline;
+                    const nextCta = ctaChanged && designValue.cta && typeof nextCopyRec.cta === 'string'
+                        ? { ...designValue.cta, text: nextCopyRec.cta as string }
+                        : designValue.cta;
+                    if (nextHeadline !== designValue.headline || nextCta !== designValue.cta) {
+                        current[key] = { ...ir, design: { ...designValue, headline: nextHeadline, cta: nextCta } } as typeof current[string];
+                    }
+                }
+            }
             return {
                 ...r,
                 imageResults: current,
