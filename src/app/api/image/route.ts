@@ -1,3 +1,4 @@
+import { getServerEnv } from "@/lib/serverEnv";
 // ad 하위 기준
 //
 // 1. image/route.ts — multipart 1요청으로 주문+원본을 함께 받는다:
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
     // client-gateway가 주입한 userId만 통과시킨다 (C2S 진입은 gateway 경유가 원칙)
     const userId = request.nextUrl.searchParams.get('userId');
 
-    if (!getIsValidRequestS2S(request)) {
+    if (!(await getIsValidRequestS2S(request))) {
         return getNextBaseResponse({
             success: false,
             status: 401,
@@ -222,7 +223,7 @@ export async function POST(request: NextRequest) {
 
         // 원본 이미지 업로드 — batch 생성과 같은 요청 안에서, specs 출발 전에.
         // 실제 저장 확장자(MIME 기준)로 DB 기록을 정정해 조회 경로 일치를 보장한다.
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
         const recordKey: Record<"product" | "person" | "brand_logo", "product_image" | "person_image" | "brand_logo"> = {
             product: "product_image",
             person: "person_image",
@@ -268,7 +269,7 @@ export async function POST(request: NextRequest) {
 
         // 조합 배분 단계로 fire-and-forget 체이닝 (이 시점에 Storage 파일 존재 보장됨)
         internalFireAndForgetFetch(
-            `${process.env.BASE_URL}/api/creative/specs?batchId=${createdAdGenerationBatch.id}`,
+            `${await getServerEnv('BASE_URL')}/api/creative/specs?batchId=${createdAdGenerationBatch.id}`,
             { method: "POST" },
         );
 

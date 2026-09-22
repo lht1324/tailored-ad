@@ -1,3 +1,4 @@
+import { getServerEnv } from "@/lib/serverEnv";
 import { NextRequest } from "next/server";
 import { Webhook, WebhookVerificationError } from "standardwebhooks";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
@@ -13,7 +14,7 @@ import { internalFireAndForgetFetch } from "@/lib/utils/internalFetch";
  */
 export async function POST(request: NextRequest) {
     const rawBody = await request.text();
-    const secret = process.env.POLAR_WEBHOOK_SECRET ?? '';
+    const secret = (await getServerEnv('POLAR_WEBHOOK_SECRET')) ?? '';
     if (!secret) {
         console.error('[webhook/polar] missing POLAR_WEBHOOK_SECRET');
         return getNextBaseResponse({
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
     }
 
     internalFireAndForgetFetch(
-        `${process.env.BASE_URL}/api/polar/process`,
+        `${await getServerEnv('BASE_URL')}/api/polar/process`,
         { method: "POST" },
         {
             type: event.type,

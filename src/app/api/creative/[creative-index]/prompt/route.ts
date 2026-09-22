@@ -1,3 +1,4 @@
+import { getServerEnv } from "@/lib/serverEnv";
 import { NextRequest } from "next/server";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
@@ -18,7 +19,7 @@ export async function POST(
     request: NextRequest,
     context: { params: Promise<{ 'creative-index': string }> },
 ) {
-    if (!getIsValidRequestS2S(request)) {
+    if (!(await getIsValidRequestS2S(request))) {
         return getNextBaseResponse({
             success: false,
             status: 401,
@@ -168,7 +169,7 @@ export async function POST(
         );
 
         // 3) 비율 갯수 판정 → generation 분기 (fire-and-forget, creative 격리)
-        const baseUrl = process.env.BASE_URL;
+        const baseUrl = await getServerEnv('BASE_URL');
 
         if (!baseUrl) {
             throw new Error("BASE_URL is not configured.");

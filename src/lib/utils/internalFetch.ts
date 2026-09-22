@@ -1,4 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { requireServerEnv } from "@/lib/serverEnv";
 
 async function getWaitUntil(): Promise<((promise: Promise<unknown>) => void) | null> {
     try {
@@ -11,13 +12,13 @@ async function getWaitUntil(): Promise<((promise: Promise<unknown>) => void) | n
     }
 }
 
-export function internalFireAndForgetFetch(url: string, options: RequestInit = {}, body?: unknown) {
+export async function internalFireAndForgetFetch(url: string, options: RequestInit = {}, body?: unknown) {
     const fetchPromise = fetch(url, {
         ...options,
         headers: {
             ...options.headers,
             "Content-Type": "application/json",
-            "x-internal-secret": process.env.INTERNAL_FIRE_AND_FORGET_API_SECRET!,
+            "x-internal-secret": await requireServerEnv('INTERNAL_FIRE_AND_FORGET_API_SECRET'),
         },
         body: JSON.stringify(body, null, 2),
     }).catch(error => {

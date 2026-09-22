@@ -40,7 +40,7 @@ export interface GrantRecord {
 export const usageServerAPI = {
     // 원장 기록 — 중복(웹훅 재시도)은 무시, 그 외 실패는 throw
     async recordImageUsage(record: UsageRecord): Promise<'recorded' | 'duplicate'> {
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
         const { error } = await supabase.from('usage_ledger').insert({
             user_id: record.userId,
             batch_id: record.batchId,
@@ -56,7 +56,7 @@ export const usageServerAPI = {
 
     // 부여 기록 — append-only. 동일(구독, 사이클, 사유) 중복은 무시, 그 외 실패는 throw
     async recordGrant(record: GrantRecord): Promise<'recorded' | 'duplicate'> {
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
         const { error } = await supabase.from('subscription_grants').insert({
             user_id: record.userId,
             polar_subscription_id: record.polarSubscriptionId,
@@ -73,7 +73,7 @@ export const usageServerAPI = {
     },
 
     async sumGrantedAllTime(userId: string): Promise<{ granted: number; hasHistory: boolean; hasPaid: boolean }> {
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
         const { data, error } = await supabase
             .from('subscription_grants')
             .select('granted, reason')
@@ -90,7 +90,7 @@ export const usageServerAPI = {
     },
 
     async countImagesAllTime(userId: string): Promise<number> {
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
         const { count, error } = await supabase
             .from('usage_ledger')
             .select('*', { count: 'exact', head: true })
@@ -105,7 +105,7 @@ export const usageServerAPI = {
     async latestGrantForSubscription(
         polarSubscriptionId: string,
     ): Promise<{ user_id: string; cycle_start: string; cycle_end: string; granted: number } | null> {
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
         const { data, error } = await supabase
             .from('subscription_grants')
             .select('user_id, cycle_start, cycle_end, granted')
@@ -155,7 +155,7 @@ export const usageServerAPI = {
 
     // 첫 유료 여부 — 체크아웃 첫주문 할인 eligibility용 (trial은 유료 아님)
     async hasPaidGrant(userId: string): Promise<boolean> {
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
         const { count, error } = await supabase
             .from('subscription_grants')
             .select('*', { count: 'exact', head: true })

@@ -120,7 +120,7 @@ async function handleOrderRefunded(data: PolarOrderData) {
 }
 
 export async function POST(request: NextRequest) {
-    if (!getIsValidRequestS2S(request)) {
+    if (!(await getIsValidRequestS2S(request))) {
         return getNextBaseResponse({
             success: false,
             status: 401,

@@ -1,5 +1,6 @@
 import Replicate, { WebhookEventType } from "replicate";
 import { acquireReplicateSlot } from "@/lib/replicateRateLimit";
+import { getServerEnv } from "@/lib/serverEnv";
 import {
     buildReplicateImageInput,
     resolveImageInputTags,
@@ -24,8 +25,8 @@ import {
 /** prediction 완료(성공·실패·취소 전부) 때만 웹훅을 받는다 */
 const WEBHOOK_EVENTS_FILTER: WebhookEventType[] = ["completed"];
 
-function createReplicateInstance(): Replicate {
-    const apiToken = process.env.REPLICATE_API_TOKEN;
+async function createReplicateInstance(): Promise<Replicate> {
+    const apiToken = await getServerEnv('REPLICATE_API_TOKEN');
 
     if (!apiToken) {
         throw new Error("REPLICATE_API_TOKEN is not configured.");
@@ -132,7 +133,7 @@ export const replicateClient = {
      * 그래도 429를 맞으면 Retry-After를 존중해 최대 2회 재시도한다.
      */
     async postAdImageEditPrediction(params: AdImageEditPredictionParams): Promise<ReplicatePredictionSubmission> {
-        const replicate = createReplicateInstance();
+        const replicate = await createReplicateInstance();
 
         const resolvedPrompt = params.imageTags
             ? resolveImageInputTags(params.prompt, params.imageTags)
@@ -175,7 +176,7 @@ export const replicateClient = {
      * prediction 단건 조회 — 웹훅 유실 대비 수동 폴링/디버깅 용도.
      */
     async getAdImageEditPrediction(predictionId: string): Promise<ReplicatePredictionResult> {
-        const replicate = createReplicateInstance();
+        const replicate = await createReplicateInstance();
 
         const prediction = await replicate.predictions.get(predictionId);
 

@@ -1,3 +1,4 @@
+import { getServerEnv } from "@/lib/serverEnv";
 import { NextRequest } from "next/server";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { internalFireAndForgetFetch } from "@/lib/utils/internalFetch";
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
         }
 
         internalFireAndForgetFetch(
-            `${process.env.BASE_URL}/api/image/process/ratios?batchId=${batchId}&creativeIndex=${creativeIndexParam}${effectiveRatioKey ? `&ratioKey=${effectiveRatioKey}` : ""}${searchParams.get('attempt') ? `&attempt=${encodeURIComponent(searchParams.get('attempt') as string)}` : ""}`,
+            `${await getServerEnv('BASE_URL')}/api/image/process/ratios?batchId=${batchId}&creativeIndex=${creativeIndexParam}${effectiveRatioKey ? `&ratioKey=${effectiveRatioKey}` : ""}${searchParams.get('attempt') ? `&attempt=${encodeURIComponent(searchParams.get('attempt') as string)}` : ""}`,
             { method: "POST" },
             {
                 replicatePayload: payload,

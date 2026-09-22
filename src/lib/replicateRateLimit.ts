@@ -1,5 +1,6 @@
 import { Redis } from "@upstash/redis/cloudflare";
 import { Ratelimit } from "@upstash/ratelimit";
+import { getServerEnv } from "@/lib/serverEnv";
 
 /**
  * Replicate prediction 제출 스로틀 — Replicate 429(분당 600건 생성 제한)를 맞기 전에
@@ -19,10 +20,10 @@ const HOLD_TIMEOUT_MS = 10_000;
 let limiter: Ratelimit | null = null;
 let warnedMissingKeys = false;
 
-function getLimiter(): Ratelimit | null {
+async function getLimiter(): Promise<Ratelimit | null> {
     try {
-        const url = process.env.UPSTASH_REDIS_REST_URL;
-        const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+        const url = await getServerEnv('UPSTASH_REDIS_REST_URL');
+        const token = await getServerEnv('UPSTASH_REDIS_REST_TOKEN');
         if (!url || !token) {
             if (!warnedMissingKeys) {
                 warnedMissingKeys = true;
@@ -49,7 +50,7 @@ function getLimiter(): Ratelimit | null {
  * @throws 용량이 안 나면 에러 (호출자가 타일 error 마킹 등 가시화 처리)
  */
 export async function acquireReplicateSlot(): Promise<void> {
-    const rateLimiter = getLimiter();
+    const rateLimiter = await getLimiter();
     if (!rateLimiter) return;
 
     let result: { success: boolean };

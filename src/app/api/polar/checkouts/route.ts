@@ -1,3 +1,4 @@
+import { getServerEnv } from "@/lib/serverEnv";
 import { NextRequest } from "next/server";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
@@ -15,10 +16,12 @@ const VALID_PLANS: PaidPlan[] = [
 
 // dev(ngrok 경유 결제) → 결제한 브라우저 세션이 있는 로컬 클라로 복귀.
 // prod → 실도메인. origin이 갈리면 세션이 안 보여서 분기 필수.
+// BASE_URL은 런타임 env (빌드타임 박힘 방지) — 핸들러 안에서 해석.
 const isProd = process.env.NODE_ENV === "production";
-const SUCCESS_URL = isProd
-    ? `${process.env.BASE_URL}/checkout/success`
-    : "http://localhost:3000/checkout/success";
+async function getSuccessUrl(): Promise<string> {
+    if (!isProd) return "http://localhost:3000/checkout/success";
+    return `${await getServerEnv('BASE_URL')}/checkout/success`;
+}
 
 /**
  * Polar 체크아웃 세션 생성 — POST /api/polar/checkouts
@@ -29,7 +32,7 @@ const SUCCESS_URL = isProd
 export async function POST(request: NextRequest) {
     const userId = request.nextUrl.searchParams.get('userId');
 
-    if (!getIsValidRequestS2S(request)) {
+    if (!(await getIsValidRequestS2S(request))) {
         return getNextBaseResponse({
             success: false,
             status: 401,
@@ -85,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     try {
         // 첫 유료 한정 자동 할인 — Starter 플랜만, 유료 이력 있으면 정가. ID는 env (없으면 정가로 진행)
-        const firstOrderDiscountId = process.env.POLAR_FIRST_ORDER_DISCOUNT_ID;
+        const firstOrderDiscountId = await getServerEnv('POLAR_FIRST_ORDER_DISCOUNT_ID');
         let discountId: string | undefined;
         if (firstOrderDiscountId && plan === SubscriptionPlan.PLAN_1) {
             try {
@@ -96,13 +99,13 @@ export async function POST(request: NextRequest) {
                 console.error(`[polar/checkouts] discount eligibility failed (user=${userId}) — full price:`, discountError);
             }
         }
-        const checkout = await getPolarClient().checkouts.create({
+        const checkout = await (await getPolarClient()).checkouts.create({
             products: [productId],
             externalCustomerId: userId,
             customerEmail: user.email,
             customerMetadata: { userId },
             metadata: { userId },
-            successUrl: SUCCESS_URL,
+            successUrl: await getSuccessUrl(),
             allowTrial: false,
             ...(discountId ? { discountId } : {}),
         });

@@ -11,7 +11,7 @@ import {
 export const adGenerationBatchServerAPI = {
     // POST - 새 배치 생성
     async postAdGenerationBatch(batchData: Partial<AdGenerationBatch>): Promise<AdGenerationBatch> {
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
 
         const { data, error } = await supabase
             .from('ad_generation_batches')
@@ -28,7 +28,7 @@ export const adGenerationBatchServerAPI = {
 
     // GET - 배치 ID로 단일 조회
     async getAdGenerationBatchById(batchId: string): Promise<AdGenerationBatch | null> {
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
 
         const { data, error } = await supabase
             .from('ad_generation_batches')
@@ -51,7 +51,7 @@ export const adGenerationBatchServerAPI = {
         batchId: string,
         patch: Partial<AdGenerationBatch>,
     ): Promise<AdGenerationBatch> {
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
         const currentDateString = new Date().toISOString();
 
         const { data, error } = await supabase
@@ -76,7 +76,7 @@ export const adGenerationBatchServerAPI = {
         userId: string,
         options?: { limit?: number; offset?: number },
     ): Promise<AdGenerationBatch[]> {
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
         const limit = Math.min(Math.max(options?.limit ?? 20, 1), 50);
         const offset = Math.max(options?.offset ?? 0, 0);
 
@@ -96,7 +96,7 @@ export const adGenerationBatchServerAPI = {
 
     // GET - 유저 소유 검증 포함 단일 조회
     async getAdGenerationBatchByIdForUser(batchId: string, userId: string): Promise<AdGenerationBatch | null> {
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
 
         const { data, error } = await supabase
             .from('ad_generation_batches')
@@ -128,7 +128,7 @@ export const adGenerationBatchServerAPI = {
         baseRatio: string,
         copy: { headline: string | null; cta: string | null },
     ): Promise<void> {
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
 
         const { error } = await supabase.rpc('update_creative_prompt_outputs', {
             p_batch_id: batchId,
@@ -149,7 +149,7 @@ export const adGenerationBatchServerAPI = {
         creativeIndex: number,
         imageResults: Record<string, unknown>,
     ): Promise<void> {
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
 
         const { error } = await supabase.rpc('update_creative_image_analysis', {
             p_batch_id: batchId,
@@ -170,7 +170,7 @@ export const adGenerationBatchServerAPI = {
         fileExtension: string | null,
         imageError?: { code: string; message: string } | null,
     ): Promise<{ isLastCreative: boolean; batchCompleted: boolean }> {
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
 
         const { data, error: rpcError } = await supabase.rpc(
             'update_creative_image_by_ratio_generation_completed',

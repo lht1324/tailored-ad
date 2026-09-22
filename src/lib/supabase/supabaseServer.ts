@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'
 import {CookieOptions, createServerClient} from '@supabase/ssr'
 import type {CookieMethodsServer} from "@supabase/ssr/dist/main/types";
+import { getServerEnv } from "@/lib/serverEnv";
 
 type Mode = "readOnly" | "mutate";
 
@@ -25,8 +26,8 @@ export async function createSupabaseServer(mode: Mode = "readOnly") {
     }
 
     return createServerClient(
-        process.env.SUPABASE_URL!,
-        process.env.SUPABASE_PUBLISHABLE_KEY!,
+        (await getServerEnv('SUPABASE_URL'))!,
+        (await getServerEnv('SUPABASE_PUBLISHABLE_KEY'))!,
         {
             cookies: cookieMethods,
         },

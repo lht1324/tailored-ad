@@ -4,7 +4,7 @@ import {createSupabaseServiceRoleClient} from "@/lib/supabase/supabaseServiceRol
 
 export const usersServerAPI = {
     async getUserByUserId(userId: string): Promise<User | null> {
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
 
         try {
             const { data, error }: PostgrestSingleResponse<User | null> = await supabase
@@ -26,7 +26,7 @@ export const usersServerAPI = {
     },
 
     async postUsers(user: Partial<User>): Promise<User | null> {
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
 
         try {
             const { data, error } = await supabase
@@ -48,7 +48,7 @@ export const usersServerAPI = {
     },
 
     async patchUserByUserId(userId: string, user: Partial<User>): Promise<User | null> {
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
 
         try {
             const { data, error } = await supabase
@@ -71,7 +71,7 @@ export const usersServerAPI = {
     },
 
     async patchUserCreditCountByUserId(userId: string, patchCreditAmount: number): Promise<User | null> {
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
 
         try {
             const { data, error }: {

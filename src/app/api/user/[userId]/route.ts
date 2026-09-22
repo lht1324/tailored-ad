@@ -7,8 +7,8 @@ import { User } from "@/lib/api/types/supabase/Users";
 
 // 클라이언트는 baseFetch → client-gateway 경유로만 호출 (게이트웨이가 세션 검증 + userId 주입).
 // 직접 호출 차단을 위해 ad 라우트와 동일한 S2S 시크릿 검사를 적용.
-function denyIfNotInternal(request: NextRequest) {
-    if (!getIsValidRequestS2S(request)) {
+async function denyIfNotInternal(request: NextRequest) {
+    if (!(await getIsValidRequestS2S(request))) {
         return getNextBaseResponse({
             success: false,
             status: 401,
@@ -36,7 +36,7 @@ export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ userId: string }> }
 ) {
-    const denied = denyIfNotInternal(request);
+    const denied = await denyIfNotInternal(request);
     if (denied) return denied;
 
     try {
@@ -96,7 +96,7 @@ export async function PATCH(
     request: NextRequest,
     { params }: { params: Promise<{ userId: string }> }
 ) {
-    const denied = denyIfNotInternal(request);
+    const denied = await denyIfNotInternal(request);
     if (denied) return denied;
 
     try {
