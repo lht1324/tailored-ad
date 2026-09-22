@@ -10,9 +10,9 @@ export type PaidPlan = Exclude<SubscriptionPlan, SubscriptionPlan.NONE>;
 
 /** 플랜 → Polar product ID (프로덕션 — 상품 생성 후 기입) */
 export const POLAR_PRODUCT_BY_PLAN: Record<PaidPlan, string> = {
-    [SubscriptionPlan.PLAN_1]: "",
-    [SubscriptionPlan.PLAN_2]: "",
-    [SubscriptionPlan.PLAN_3]: "",
+    [SubscriptionPlan.PLAN_1]: "240c33e5-3dd8-4117-a06d-907b2f07afff",
+    [SubscriptionPlan.PLAN_2]: "c298bcae-e8cf-4e46-ae70-d6851c19f50c",
+    [SubscriptionPlan.PLAN_3]: "10d5dfc4-5968-4e81-a8ad-c8a68f3419f3",
     [SubscriptionPlan.PLAN_4]: "", // 미사용 (예약)
 };
 
