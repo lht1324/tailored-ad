@@ -67,10 +67,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     const signInWithOAuth = useCallback(async (provider: OAuthProvider, redirectTo?: string): Promise<{ error?: string }> => {
         try {
+            // 빌드타임 NEXT_PUBLIC_BASE_URL 금지 — prod 번들에 localhost가 박혀 OAuth가 localhost로 튐.
+            // 클라 런타임 origin이 항상 정답 (dev localhost·ngrok·prod 실도메인 전부).
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: provider,
                 options: {
-                    redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/callback/auth${redirectTo ? `?redirectTo=${redirectTo}` : ""}`,
+                    redirectTo: `${window.location.origin}/callback/auth${redirectTo ? `?redirectTo=${redirectTo}` : ""}`,
                     ...getOAuthOptionByProvider(provider),
                 }
             })
