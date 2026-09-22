@@ -21,9 +21,6 @@ function AdHeader() {
             <nav className="mx-auto flex max-w-5xl items-center justify-between rounded-full border border-hairline bg-surface/70 py-2 pl-5 pr-2 backdrop-blur-xl">
                 <a href="#top" className="flex items-center gap-2.5">
                     <span className="text-[15px] font-bold tracking-tight text-text1">TailoredAd</span>
-                    <span className="rounded-[6px] bg-accent px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-canvas">
-                        Ad
-                    </span>
                 </a>
                 <div className="hidden items-center gap-1 md:flex">
                     {NAV_ITEMS.map((item) => (
