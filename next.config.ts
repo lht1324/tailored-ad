@@ -21,6 +21,7 @@ const nextConfig: NextConfig = {
   ...(isDev && ngrokHostname ? { allowedDevOrigins: [ngrokHostname] } : {}),
 
   images: {
+    qualities: [100, 75],
     remotePatterns: [
       {
         protocol: "https",

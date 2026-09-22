@@ -9,6 +9,7 @@ interface UploadZoneProps {
     help?: string;
     notePlaceholder?: string;
     tall?: boolean;
+    highlightNote?: boolean;
     file: AdUploadedComponent | null;
     onChange: (file: AdUploadedComponent | null) => void;
 }
@@ -18,7 +19,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 const NOTE_CHIPS = ['Remove background', 'Keep natural light', 'Soft shadow'];
 
-function UploadZone({ label, help, notePlaceholder, tall, file, onChange }: UploadZoneProps) {
+function UploadZone({ label, help, notePlaceholder, tall, highlightNote, file, onChange }: UploadZoneProps) {
     const inputRef = useRef<HTMLInputElement>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [isNoteOpen, setIsNoteOpen] = useState(false);
@@ -186,7 +187,11 @@ function UploadZone({ label, help, notePlaceholder, tall, file, onChange }: Uplo
                         type="button"
                         onClick={onClickNoteToggle}
                         aria-expanded={isNoteOpen}
-                        className="flex w-full items-center justify-between gap-2 rounded-full border border-hairline bg-canvas px-3 py-2 text-[12px] transition-colors hover:border-text2/30"
+                        className={`flex w-full items-center justify-between gap-2 rounded-full border px-3 py-2 text-[12px] transition-colors hover:border-text2/30 ${
+                            highlightNote && !hasNote
+                                ? 'border-accent bg-accent/10'
+                                : 'border-hairline bg-canvas'
+                        }`}
                     >
                         <span className="flex min-w-0 flex-1 items-center gap-2 truncate">
                             {hasNote ? (
@@ -196,9 +201,22 @@ function UploadZone({ label, help, notePlaceholder, tall, file, onChange }: Uplo
                                 </>
                             ) : (
                                 <>
-                                    <Plus className="h-3 w-3 shrink-0 text-text2" strokeWidth={2} />
-                                    <span className="truncate text-text2">Add note</span>
-                                    <span className="shrink-0 rounded-full border border-hairline bg-surface px-1.5 py-0.5 text-[10px] font-medium text-text2">optional</span>
+                                    <Plus
+                                        className={`h-3 w-3 shrink-0 ${highlightNote ? 'text-accent' : 'text-text2'}`}
+                                        strokeWidth={2}
+                                    />
+                                    <span className={`truncate ${highlightNote ? 'font-medium text-text1' : 'text-text2'}`}>
+                                        Add note
+                                    </span>
+                                    {highlightNote ? (
+                                        <span className="shrink-0 rounded-full bg-accent/10 px-1.5 py-0.5 text-[10px] font-medium text-accent">
+                                            recommended
+                                        </span>
+                                    ) : (
+                                        <span className="shrink-0 rounded-full border border-hairline bg-surface px-1.5 py-0.5 text-[10px] font-medium text-text2">
+                                            optional
+                                        </span>
+                                    )}
                                     <span className="hidden sm:inline shrink-0 text-[11px] text-text2/60">· leave empty to skip</span>
                                 </>
                             )}

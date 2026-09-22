@@ -111,8 +111,8 @@ export default function CreatePageClient() {
     }, [hasSubject, isGenerating, product, person, brandLogo, aspectRatios, conceptCount, ctaEnabled, brandPalette, router]);
 
     const hintText = !hasSubject
-        ? 'Add a product or person to start — the AI paints a different background for each creative.'
-        : 'Ready — each creative gets its own AI background. Success assets only are credited.';
+        ? 'Add a product or person to start. The AI paints a different background for each creative.'
+        : 'Ready. Each creative gets its own AI background. Success assets only are credited.';
 
     return (
         <>
@@ -184,7 +184,7 @@ export default function CreatePageClient() {
                         <h2 className="text-xl font-bold tracking-tight text-text1">Out of images</h2>
                         <p className="mt-3 text-[14px] leading-relaxed text-text2">
                             You&apos;ve used all your images, including the free trial.
-                            Subscribe to keep creating — unused images never expire.
+                            Subscribe to keep creating. Unused images never expire.
                         </p>
                         <button
                             type="button"

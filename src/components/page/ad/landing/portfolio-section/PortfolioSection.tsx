@@ -15,6 +15,7 @@ interface PlacedImage {
     aspect: string;
     parallax: [number, number];
     mobileHidden?: boolean;
+    sizes?: string;
 }
 
 // 디자이너가 수작업으로 흩뿌린 좌표 (캔버스 4:5 기준)
@@ -22,23 +23,23 @@ interface PlacedImage {
 // 간격 및 불규칙성 미세 조정 완료
 const PLACED_IMAGES: PlacedImage[] = [
     // --- 상단 구역 ---
-    { id: 'demo-atmosphere', src: '/preview/portfolio-book-mug-4_5.webp', alt: 'Coffee ritual ad', left: 3.0, top: 2.0, width: 19.0, aspect: '4/5', parallax: [-15, 25] },
-    { id: 'demo-camera', src: '/preview/portfolio-street-day-9_16.webp', alt: 'Street style ad', left: 38.0, top: 4.0, width: 17.0, aspect: '9/16', parallax: [-25, 15] },
-    { id: 'demo-bad-example', src: '/preview/portfolio-sneaker-niche-1_1.webp', alt: 'Sneaker hero ad', left: 73.0, top: 3.0, width: 22.0, aspect: '1/1', parallax: [10, -20] },
+    { id: 'demo-atmosphere', src: '/preview/portfolio-locker-gym-4_5.webp', alt: 'Gym locker ad', left: 3.0, top: 2.0, width: 19.0, aspect: '4/5', parallax: [-15, 25] },
+    { id: 'demo-camera', src: '/preview/portfolio-city-sneaker-9_16.webp', alt: 'City sneaker ad', left: 38.0, top: 4.0, width: 17.0, aspect: '9/16', parallax: [-25, 15] },
+    { id: 'demo-bad-example', src: '/preview/portfolio-slate-sneaker-1_1.webp', alt: 'Slate sneaker ad', left: 73.0, top: 3.0, width: 22.0, aspect: '1/1', parallax: [10, -20] },
 
     // --- 중단 구역 ---
     { id: 'demo-framing-tilt', src: '/preview/portfolio-street-night-1_1.webp', alt: 'Night street ad', left: 6.0, top: 29.0, width: 18.0, aspect: '1/1', parallax: [-30, 20], mobileHidden: true },
     { id: 'demo-good-tilt', src: '/preview/portfolio-library-4_5.webp', alt: 'Library calm ad', left: 32.0, top: 36.0, width: 20.0, aspect: '4/5', parallax: [15, -25], mobileHidden: true },
-    { id: 'demo-atmosphere-tilt', src: '/preview/portfolio-locker-tall-9_16.webp', alt: 'Gym tumbler ad', left: 75.0, top: 26.0, width: 16.0, aspect: '9/16', parallax: [20, -10], mobileHidden: true },
+    { id: 'demo-atmosphere-tilt', src: '/preview/portfolio-suit-mug-9_16.webp', alt: 'Suit coffee ad', left: 75.0, top: 26.0, width: 16.0, aspect: '9/16', parallax: [20, -10], mobileHidden: true },
 
     // --- 하단 구역 ---
-    { id: 'demo-good-example', src: '/preview/portfolio-mug-ritual-1_1.webp', alt: 'Morning ritual ad', left: 4.0, top: 50.0, width: 21.0, aspect: '1/1', parallax: [30, -20] },
-    { id: 'demo-main-left', src: '/preview/portfolio-sneaker-niche-4_5.webp', alt: 'Sneaker portrait ad', left: 30.0, top: 61.0, width: 19.0, aspect: '4/5', parallax: [-10, 20] },
-    { id: 'demo-physics', src: '/preview/portfolio-beach-tall-9_16.webp', alt: 'Beach portrait ad', left: 57.0, top: 48.0, width: 16.0, aspect: '9/16', parallax: [25, -15] },
-    { id: 'demo-framing', src: '/preview/portfolio-locker-front-1_1.webp', alt: 'Locker room ad', left: 79.0, top: 54.0, width: 18.0, aspect: '1/1', parallax: [-20, 30] },
+    { id: 'demo-good-example', src: '/preview/portfolio-mug-skylight-1_1.webp', alt: 'Skylight coffee ad', left: 4.0, top: 50.0, width: 21.0, aspect: '1/1', parallax: [30, -20] },
+    { id: 'demo-main-left', src: '/preview/portfolio-tumbler-sunset-4_5.webp', alt: 'Sunset locker ad', left: 30.0, top: 61.0, width: 19.0, aspect: '4/5', parallax: [-10, 20] },
+    { id: 'demo-physics', src: '/preview/portfolio-locker-tall-9_16.webp', alt: 'Gym tumbler ad', left: 57.0, top: 48.0, width: 16.0, aspect: '9/16', parallax: [25, -15] },
+    { id: 'demo-framing', src: '/preview/portfolio-macro-sneaker-1_1.webp', alt: 'Macro sneaker ad', left: 79.0, top: 54.0, width: 18.0, aspect: '1/1', parallax: [-20, 30] },
 
     // --- Anchor (중앙 하단 고정 배너, 여백 확보를 위해 top을 85로 하향) ---
-    { id: 'demo-main-center', src: '/preview/portfolio-street-night-16_9.webp', alt: 'Street night wide ad', left: 26.0, top: 85.0, width: 48.0, aspect: '16/9', parallax: [0, 0] },
+    { id: 'demo-main-center', src: '/preview/portfolio-city-sneaker-16_9.webp', alt: 'City sneaker wide ad', left: 26.0, top: 85.0, width: 48.0, aspect: '16/9', parallax: [0, 0], sizes: '(max-width: 768px) 90vw, 48vw' },
 ];
 
 interface PortfolioTileProps {
@@ -69,6 +70,8 @@ function PortfolioTile({ item, progress, yStatic, reducedMotion }: PortfolioTile
                         alt={item.alt}
                         fill
                         sizes="(max-width: 768px) 30vw, 18vw"
+                        quality={100}
+                        unoptimized
                         className="object-cover"
                     />
                 </div>

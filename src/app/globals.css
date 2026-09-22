@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* dark: 기준을 OS가 아니라 앱 테마(.theme-light 유무)로 고정 */
+@custom-variant dark (&:where(html:not(.theme-light), html:not(.theme-light) *));
+
 /*
  * TailoredAd — 컬러 팔레트
  * 라이트가 기본. html에서 .theme-light 클래스를 제거하면 다크 팔레트로 전환됨.
