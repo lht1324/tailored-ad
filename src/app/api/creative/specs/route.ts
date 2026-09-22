@@ -1,3 +1,4 @@
+import { getServerEnv } from "@/lib/serverEnv";
 import { NextRequest } from "next/server";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
@@ -16,7 +17,7 @@ import { assignCreativeCombinations, type CreativeMode } from "@/lib/api/server/
  * creative마다 프롬프트 단계를 fire-and-forget으로 호출한다.
  */
 export async function POST(request: NextRequest) {
-    if (!getIsValidRequestS2S(request)) {
+    if (!(await getIsValidRequestS2S(request))) {
         return getNextBaseResponse({
             success: false,
             status: 401,
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
         // creative마다 프롬프트(LLM 캡션+copy) 단계 호출
         for (const spec of creativeSpecs) {
             internalFireAndForgetFetch(
-                `${process.env.BASE_URL}/api/creative/${spec.creativeIndex}/prompt?batchId=${batchId}`,
+                `${await getServerEnv('BASE_URL')}/api/creative/${spec.creativeIndex}/prompt?batchId=${batchId}`,
                 { method: "POST" },
             );
         }

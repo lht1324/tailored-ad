@@ -1,3 +1,4 @@
+import { getServerEnv } from "@/lib/serverEnv";
 import { NextRequest } from "next/server";
 import { getIsValidRequestC2S } from "@/lib/utils/getIsValidRequest";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
@@ -51,7 +52,7 @@ async function handleGatewayRequest(request: NextRequest) {
     }
 
     const queryString = internalParams.toString();
-    const internalApiUrl = `${process.env.BASE_URL}${targetPath}${queryString ? `?${queryString}` : ""}`;
+    const internalApiUrl = `${await getServerEnv('BASE_URL')}${targetPath}${queryString ? `?${queryString}` : ""}`;
 
     console.log(`[client-gateway] Proxying request to: ${internalApiUrl}`);
 

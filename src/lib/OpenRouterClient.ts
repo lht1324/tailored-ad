@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { getServerEnv } from "@/lib/serverEnv";
 
 export enum OpenRouterModel {
     DEEPSEEK_V4_FLASH_0731 = "deepseek/deepseek-v4-flash-0731",
@@ -24,15 +25,21 @@ export interface CompletionBaseInput {
 }
 
 export class OpenRouterClient {
-    private readonly apiKey?: string;
+    private apiKey?: string;
     private readonly OPEN_ROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 
     constructor() {
-        this.apiKey = process.env.OPENROUTER_API_KEY;
+        // 키는 첫 호출 시점에 런타임 env에서 로드 (Workers 빌드타임 값 방지)
+    }
 
+    private async resolveApiKey(): Promise<string | undefined> {
         if (!this.apiKey) {
-            console.warn('FAL_AI_API_KEY not found in environment variables');
+            this.apiKey = await getServerEnv('OPENROUTER_API_KEY');
+            if (!this.apiKey) {
+                console.warn('OPENROUTER_API_KEY not found in environment variables');
+            }
         }
+        return this.apiKey;
     }
 
     async createCompletion(input: CompletionBaseInput, location?: string): Promise<string | null> {
@@ -50,9 +57,10 @@ export class OpenRouterClient {
             frequencyPenalty,
         } = input;
 
+        const apiKey = await this.resolveApiKey();
         const client = new OpenAI({
             baseURL: this.OPEN_ROUTER_BASE_URL,
-            apiKey: this.apiKey,
+            apiKey: apiKey,
             defaultHeaders: {
                 'Connection': 'close',
             }
@@ -123,7 +131,7 @@ export class OpenRouterClient {
             frequency_penalty: frequencyPenalty,
         }, {
             headers: {
-                'HTTP-Referer': `${process.env.BASE_URL}${location ? `?location=${location?.replaceAll(' ', '_')}` : ""}`,
+                'HTTP-Referer': `${await getServerEnv('BASE_URL')}${location ? `?location=${location?.replaceAll(' ', '_')}` : ""}`,
                 'X-Title': location ?? 'Unknown',
             }
         });

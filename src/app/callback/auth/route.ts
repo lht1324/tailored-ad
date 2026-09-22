@@ -64,11 +64,14 @@ export async function GET(request: NextRequest) {
             throw Error("User is invalid");
         }
 
-        // TailoredAd에는 /profile, /workspace가 없음 — 기본 행선지는 /projects.
+        // TailoredAd에는 /profile, /workspace가 없음.
         // redirectTo는 / 로 시작하는 내부 경로만 허용 (open-redirect 방지).
+        // 지정 없으면 플랜 없음(신규) → /create, 그 외 → /projects.
+        const userPlan = (user as unknown as { plan?: string | null } | null)?.plan;
+        const defaultPath = !userPlan || userPlan === 'none' ? '/create' : '/projects';
         const redirectPath = redirectTo && redirectTo.startsWith("/")
             ? redirectTo
-            : "/projects"
+            : defaultPath
 
         return NextResponse.redirect(new URL(redirectPath, process.env.NODE_ENV === 'production' ? request.url : "http://localhost:3000"))
     } catch (error) {

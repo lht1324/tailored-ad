@@ -17,9 +17,6 @@ function AdFooter() {
                 <div>
                     <div className="flex items-center gap-2.5">
                         <span className="text-[15px] font-bold tracking-tight text-text1">TailoredAd</span>
-                        <span className="rounded-[6px] bg-accent px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-canvas">
-                            Ad
-                        </span>
                     </div>
                     <p className="mt-3 max-w-xs text-[13px] leading-relaxed text-text2">
                         Ad creatives that don&apos;t look like AI stock. Built for growth teams without a designer.

@@ -1,3 +1,4 @@
+import { getServerEnv } from "@/lib/serverEnv";
 import { NextRequest } from "next/server";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
@@ -39,7 +40,7 @@ async function markSubmissionFailed(batchId: string, creativeIndex: number, rati
 }
 
 export async function POST(request: NextRequest) {
-    if (!getIsValidRequestS2S(request)) {
+    if (!(await getIsValidRequestS2S(request))) {
         return getNextBaseResponse({
             success: false,
             status: 401,
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        const baseUrl = process.env.BASE_URL;
+        const baseUrl = await getServerEnv('BASE_URL');
 
         if (!baseUrl) {
             throw new Error("BASE_URL is not configured.");

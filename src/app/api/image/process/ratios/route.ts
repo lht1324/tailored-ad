@@ -1,3 +1,4 @@
+import { getServerEnv } from "@/lib/serverEnv";
 import { NextRequest } from "next/server";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
@@ -19,7 +20,7 @@ const MAX_SAME_RATIO_ATTEMPTS = 2; // 1회 재시도 → 총 2회 시도
  * RPC#2가 isLastCreative=true를 반환하면 analysis(Vision 묶음 평가)를 호출한다.
  */
 export async function POST(request: NextRequest) {
-    if (!getIsValidRequestS2S(request)) {
+    if (!(await getIsValidRequestS2S(request))) {
         return getNextBaseResponse({
             success: false,
             status: 401,
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
             if (effectiveRatioKeyForError && attempt < MAX_SAME_RATIO_ATTEMPTS) {
                 console.log(`[process/ratios] retry same ratio ${effectiveRatioKeyForError} attempt ${attempt + 1}/${MAX_SAME_RATIO_ATTEMPTS}`);
                 internalFireAndForgetFetch(
-                    `${process.env.BASE_URL}/api/image/generation/ratios?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}&ratioKey=${encodeURIComponent(effectiveRatioKeyForError)}&attempt=${encodeURIComponent(String(attempt + 1))}`,
+                    `${await getServerEnv('BASE_URL')}/api/image/generation/ratios?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}&ratioKey=${encodeURIComponent(effectiveRatioKeyForError)}&attempt=${encodeURIComponent(String(attempt + 1))}`,
                     { method: "POST" },
                 );
                 return getNextBaseResponse({
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
 
                 if (isLastCreative) {
                     internalFireAndForgetFetch(
-                        `${process.env.BASE_URL}/api/creative/${creativeIndex}/analysis?batchId=${encodeURIComponent(batchId)}`,
+                        `${await getServerEnv('BASE_URL')}/api/creative/${creativeIndex}/analysis?batchId=${encodeURIComponent(batchId)}`,
                         { method: "POST" },
                     );
                 }
@@ -144,7 +145,7 @@ export async function POST(request: NextRequest) {
             fileExtension,
         );
 
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
         const uploadContentType = fileExtension === 'jpeg'
             ? 'image/jpeg'
             : fileExtension === 'png'
@@ -185,7 +186,7 @@ export async function POST(request: NextRequest) {
 
         if (isLastCreative) {
             internalFireAndForgetFetch(
-                `${process.env.BASE_URL}/api/creative/${creativeIndex}/analysis?batchId=${encodeURIComponent(batchId)}`,
+                `${await getServerEnv('BASE_URL')}/api/creative/${creativeIndex}/analysis?batchId=${encodeURIComponent(batchId)}`,
                 { method: "POST" },
             );
         }

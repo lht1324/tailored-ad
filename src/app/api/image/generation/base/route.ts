@@ -1,3 +1,4 @@
+import { getServerEnv } from "@/lib/serverEnv";
 import { NextRequest } from "next/server";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
@@ -17,7 +18,7 @@ import { AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
  * n=2 재시도: 같은 비율 2회(총 2회 시도) 실패 시 차순위 base로 폴백 — process/base가 attempt를 들고 재호출한다.
  */
 export async function POST(request: NextRequest) {
-    if (!getIsValidRequestS2S(request)) {
+    if (!(await getIsValidRequestS2S(request))) {
         return getNextBaseResponse({
             success: false,
             status: 401,
@@ -99,7 +100,7 @@ export async function POST(request: NextRequest) {
             originalImageUrls = [];
         }
 
-        const baseUrl = process.env.BASE_URL;
+        const baseUrl = await getServerEnv('BASE_URL');
 
         if (!baseUrl) {
             throw new Error("BASE_URL is not configured.");
@@ -143,7 +144,7 @@ export async function POST(request: NextRequest) {
                 { code: 'SUBMISSION_FAILED', message },
             ).catch(() => {});
             internalFireAndForgetFetch(
-                `${process.env.BASE_URL}/api/image/generation/ratios?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}`,
+                `${await getServerEnv('BASE_URL')}/api/image/generation/ratios?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}`,
                 { method: "POST" },
             );
         }

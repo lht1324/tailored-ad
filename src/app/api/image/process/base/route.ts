@@ -1,3 +1,4 @@
+import { getServerEnv } from "@/lib/serverEnv";
 import { NextRequest } from "next/server";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
@@ -20,7 +21,7 @@ const MAX_SAME_RATIO_ATTEMPTS = 2; // 1회 재시도 → 총 2회 시도
  * 성공 시 generation/ratios 재호출로 파생 단계를 연다. 이 라우트가 creative의 갈래점이다.
  */
 export async function POST(request: NextRequest) {
-    if (!getIsValidRequestS2S(request)) {
+    if (!(await getIsValidRequestS2S(request))) {
         return getNextBaseResponse({
             success: false,
             status: 401,
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
                 // 같은 비율 재시도
                 console.log(`[process/base] retry same ratio ${effectiveRatioKeyForError} attempt ${attempt + 1}/${MAX_SAME_RATIO_ATTEMPTS}`);
                 internalFireAndForgetFetch(
-                    `${process.env.BASE_URL}/api/image/generation/base?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}&baseRatio=${encodeURIComponent(effectiveRatioKeyForError)}&attempt=${encodeURIComponent(String(attempt + 1))}`,
+                    `${await getServerEnv('BASE_URL')}/api/image/generation/base?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}&baseRatio=${encodeURIComponent(effectiveRatioKeyForError)}&attempt=${encodeURIComponent(String(attempt + 1))}`,
                     { method: "POST" },
                 );
                 return getNextBaseResponse({
@@ -109,7 +110,7 @@ export async function POST(request: NextRequest) {
                         const nextBase = selectBaseRatio(remainingRatios);
                         console.log(`[process/base] fallback to next base ${nextBase} after ${effectiveRatioKeyForError} exhausted n=${MAX_SAME_RATIO_ATTEMPTS}`);
                         internalFireAndForgetFetch(
-                            `${process.env.BASE_URL}/api/image/generation/base?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}&baseRatio=${encodeURIComponent(nextBase)}&attempt=1`,
+                            `${await getServerEnv('BASE_URL')}/api/image/generation/base?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}&baseRatio=${encodeURIComponent(nextBase)}&attempt=1`,
                             { method: "POST" },
                         );
                         return getNextBaseResponse({
@@ -123,7 +124,7 @@ export async function POST(request: NextRequest) {
 
             // 차순위도 없으면 원본만으로 폴백 (마지막 수단)
             internalFireAndForgetFetch(
-                `${process.env.BASE_URL}/api/image/generation/ratios?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}`,
+                `${await getServerEnv('BASE_URL')}/api/image/generation/ratios?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}`,
                 { method: "POST" },
             );
 
@@ -179,7 +180,7 @@ export async function POST(request: NextRequest) {
             fileExtension,
         );
 
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
         const uploadContentType = fileExtension === 'jpeg'
             ? 'image/jpeg'
             : fileExtension === 'png'
@@ -222,12 +223,12 @@ export async function POST(request: NextRequest) {
 
         if (aspectRatios.length === 1) {
             internalFireAndForgetFetch(
-                `${process.env.BASE_URL}/api/creative/${creativeIndex}/analysis?batchId=${encodeURIComponent(batchId)}`,
+                `${await getServerEnv('BASE_URL')}/api/creative/${creativeIndex}/analysis?batchId=${encodeURIComponent(batchId)}`,
                 { method: "POST" },
             );
         } else {
             internalFireAndForgetFetch(
-                `${process.env.BASE_URL}/api/image/generation/ratios?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}`,
+                `${await getServerEnv('BASE_URL')}/api/image/generation/ratios?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}`,
                 { method: "POST" },
             );
         }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createSupabaseProxyClient } from '@/lib/supabase/supabaseProxy';
+import { getServerEnv } from "@/lib/serverEnv";
 
 export async function proxy(request: NextRequest) {
     const path = request.nextUrl.pathname;
@@ -8,7 +9,7 @@ export async function proxy(request: NextRequest) {
     // 1. /admin 하위 경로 보호
     if (path.startsWith('/admin')) {
         const secretParam = request.nextUrl.searchParams.get('secret');
-        const adminSecretKey = process.env.ADMIN_SECRET_KEY;
+        const adminSecretKey = await getServerEnv('ADMIN_SECRET_KEY');
 
         // secret 파라미터가 없거나, 환경 변수 값과 다르면 메인으로 리다이렉트
         if (!secretParam || secretParam !== adminSecretKey) {

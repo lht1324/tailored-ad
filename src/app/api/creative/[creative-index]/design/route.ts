@@ -65,7 +65,7 @@ export async function PATCH(
     request: NextRequest,
     context: { params: Promise<{ 'creative-index': string }> },
 ) {
-    if (!getIsValidRequestS2S(request)) {
+    if (!(await getIsValidRequestS2S(request))) {
         return getNextBaseResponse({
             success: false,
             status: 401,

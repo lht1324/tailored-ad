@@ -56,7 +56,7 @@ export const adImageServerAPI = {
      * 존재하는 컴포넌트만 포함 — 둘 다 없으면 빈 배열.
      */
     async getAdOriginalImageSignedUrls(batch: AdGenerationBatch): Promise<string[]> {
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
         const signedUrls: string[] = [];
 
         const components: Array<{ name: "product" | "person"; record: AdGenerationBatch["product_image"] }> = [
@@ -105,7 +105,7 @@ export const adImageServerAPI = {
         imageFileExtension: string,
         transform?: { width?: number; height?: number; quality?: number; resize?: 'cover' | 'contain' | 'fill' },
     ): Promise<string> {
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
         const filePath = getAdResultImagePath(userId, batchId, creativeIndex, ratioKey, imageFileExtension);
 
         const { data, error } = await supabase.storage
@@ -134,7 +134,7 @@ export const adImageServerAPI = {
         userId: string,
         imageFileExtension: string,
     ): Promise<string> {
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
         const filePath = getProfileBrandLogoPath(userId, imageFileExtension);
         const { data, error } = await supabase.storage
             .from(AD_IMAGE_STORAGE_BUCKET)
@@ -153,7 +153,7 @@ export const adImageServerAPI = {
         batchId: string,
         imageFileExtension: string,
     ): Promise<string> {
-        const supabase = createSupabaseServiceRoleClient();
+        const supabase = await createSupabaseServiceRoleClient();
         const filePath = getBatchBrandLogoPath(userId, batchId, imageFileExtension);
         const { data, error } = await supabase.storage
             .from(AD_IMAGE_STORAGE_BUCKET)

@@ -165,6 +165,17 @@ export default function PricingSection() {
             router.push('/sign-in?redirectTo=/#pricing');
             return;
         }
+        // 구독 중이면 체크아웃 대신 Projects로 (이중 구독 방지)
+        try {
+            const summary = await usersClientAPI.getUserUsageSummary(supabaseUser.id);
+            const activePlan = (summary as unknown as { plan?: string | null } | null)?.plan;
+            if (activePlan && activePlan !== 'none') {
+                router.push('/projects');
+                return;
+            }
+        } catch {
+            // 조회 실패 시 체크아웃 계속 (막지 않음)
+        }
         setCheckoutError(null);
         setBusyPlan(planId);
         const url = await polarClientAPI.createCheckout(planId);

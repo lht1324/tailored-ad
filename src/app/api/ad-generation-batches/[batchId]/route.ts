@@ -9,7 +9,7 @@ export async function GET(
     request: NextRequest,
     context: { params: Promise<{ batchId: string }> },
 ) {
-    if (!getIsValidRequestS2S(request)) {
+    if (!(await getIsValidRequestS2S(request))) {
         return getNextBaseResponse({
             success: false,
             status: 401,

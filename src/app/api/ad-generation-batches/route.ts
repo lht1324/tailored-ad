@@ -6,7 +6,7 @@ import { adImageServerAPI } from "@/lib/api/server/ad/imageServerAPI";
 import { AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 
 export async function GET(request: NextRequest) {
-    if (!getIsValidRequestS2S(request)) {
+    if (!(await getIsValidRequestS2S(request))) {
         return getNextBaseResponse({
             success: false,
             status: 401,
