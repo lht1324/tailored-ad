@@ -171,7 +171,7 @@ export async function PATCH(
                 return getNextBaseResponse({ success: false, status: 400, error: "copy must be an object." });
             }
             const copyInput = body.copy as Record<string, unknown>;
-            const merged = { ...(results[resultIndex].copy as Record<string, unknown>) };
+            const merged = { ...(results[resultIndex].copy as unknown as Record<string, unknown>) };
             if (copyInput.headline !== undefined) {
                 if (typeof copyInput.headline !== 'string' || copyInput.headline.length === 0 || copyInput.headline.length > 200) {
                     return getNextBaseResponse({ success: false, status: 400, error: "copy.headline must be 1-200 chars." });
@@ -204,7 +204,7 @@ export async function PATCH(
                 }
                 merged.headlineColor = normalizeHeadlineColor(hc as string | null);
             }
-            nextCopy = merged as AdCreativeResult['copy'];
+            nextCopy = merged as unknown as AdCreativeResult['copy'];
         }
 
         if (!nextDesign && !nextCopy) {
