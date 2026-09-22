@@ -17,6 +17,13 @@ export async function GET(request: NextRequest) {
 
             if (error) {
                 console.error('Auth callback error:', error)
+                // 레이스 폴백: 콜백 중복 호출(flow_state_already_used) 시 첫 호출이 세션을 잡았을 수 있음.
+                // 세션이 살아있으면 에러 페이지 대신 앱으로 보낸다.
+                const { data: { session: racedSession } } = await supabase.auth.getSession()
+                if (racedSession?.user) {
+                    const redirectPath = redirectTo && redirectTo.startsWith("/") ? redirectTo : "/projects"
+                    return NextResponse.redirect(new URL(redirectPath, process.env.NODE_ENV === 'production' ? request.url : "http://localhost:3000"))
+                }
                 throw error;
             }
 
