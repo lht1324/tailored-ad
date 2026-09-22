@@ -1,9 +1,14 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "tailoredad",
+  "name": "tailored-ad",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
+  // 비밀이 아닌 값만 여기에 둠 (git 추적됨). 키·토큰류는 대시보드 Secrets 전용 — deploy가 Secrets는 건드리지 않음.
+  "vars": {
+    "BASE_URL": "https://tailoredad.com",
+    "SUPABASE_URL": "https://phhafvlylqajyffrfkwj.supabase.co"
+  },
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
