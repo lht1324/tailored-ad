@@ -4,8 +4,8 @@ import { memo, useCallback, useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, Check, Palette, Plus, X } from 'lucide-react';
 import { HexColorPicker } from 'react-colorful';
-import { AdAspectRatio, AdUploadedComponent } from "@/lib/api/client/ad/adClientAPI";
-import { AD_ASPECT_RATIO_INFO, AD_CONCEPT_OPTIONS } from "@/lib/api/client/ad/adClientAPI";
+import { AdAspectRatio, AdUploadedComponent } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+import { AD_ASPECT_RATIO_INFO, AD_CONCEPT_OPTIONS } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import UploadZone from "@/components/page/ad/create/components/UploadZone";
 
 // 한 줄 비율 박스 — 높이 고정 × 너비 비율, 한 줄로 압축해 한 화면 유지
@@ -151,7 +151,8 @@ function CreateForm({
                         <div>
                             <h3 className="text-[15px] font-semibold tracking-tight text-text1">Subjects</h3>
                             <p className="mt-0.5 text-[12px] leading-relaxed text-text2">
-                                Upload your product or person — the AI paints a different background for each creative.
+                                Upload your product or person. The AI paints a different background for each creative.
+                                For best quality, add a one-line note: how it should look in the ad (mood, setting, details).
                             </p>
                         </div>
                         <span className="shrink-0 rounded-full border border-hairline bg-canvas px-2.5 py-1 text-[10px] font-medium text-text2">
@@ -165,7 +166,8 @@ function CreateForm({
                                 label="Product"
                                 tall
                                 help="A clear product photo on a simple background. The AI keeps your product identical in every scene. JPG, PNG or WebP, up to 10 MB."
-                                notePlaceholder="e.g. Show only the product, drop the background"
+                                notePlaceholder="e.g. Frosted bottle on wet slate, blue-hour light"
+                                highlightNote={Boolean(product && person)}
                                 file={product}
                                 onChange={onProductChange}
                             />
@@ -175,8 +177,9 @@ function CreateForm({
                             <UploadZone
                                 label="Person"
                                 tall
-                                help="Optional — a well-lit portrait with the face clearly visible. JPG, PNG or WebP, up to 10 MB."
-                                notePlaceholder="e.g. Keep the natural expression"
+                                help="Optional. A well-lit portrait with the face clearly visible. JPG, PNG or WebP, up to 10 MB."
+                                notePlaceholder="e.g. Mid-laugh on a rooftop at golden hour"
+                                highlightNote={Boolean(product && person)}
                                 file={person}
                                 onChange={onPersonChange}
                             />
@@ -186,7 +189,7 @@ function CreateForm({
                             <UploadZone
                                 label="Brand logo"
                                 tall
-                                help="IMPORTANT — Transparent PNG only. Opaque white/black backgrounds will appear as a box on the ad and break contrast. This logo is placed as an overlay at the Vision-picked corner, not painted into the scene. Leave empty to skip logo (position recommendation will be skipped)."
+                                help="Important: transparent PNG only. Opaque white/black backgrounds will appear as a box on the ad and break contrast. This logo is placed as an overlay at the Vision-picked corner, not painted into the scene. Leave empty to skip logo (position recommendation will be skipped)."
                                 file={brandLogo}
                                 onChange={onBrandLogoChange}
                             />
@@ -198,12 +201,12 @@ function CreateForm({
                             initial={{ opacity: 0, y: 8 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                            className="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 dark:border-amber-900/30 dark:bg-amber-950/20"
+                            className="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-300 bg-amber-100 px-3.5 py-3 dark:border-amber-800/40 dark:bg-amber-950/20"
                         >
-                            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-500" strokeWidth={2} />
-                            <p className="text-[12px] leading-relaxed text-amber-800 dark:text-amber-200/90">
-                                Combining a product and a person in one scene can reduce composite quality. Consider
-                                running them as separate generations.
+                            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-700 dark:text-amber-500" strokeWidth={2} />
+                            <p className="text-[12px] leading-relaxed text-text1 dark:text-amber-200/90">
+                                Combining a product and a person? Add a note to each. Specific art direction is
+                                the strongest lever for composite quality.
                             </p>
                         </motion.div>
                     )}
@@ -232,11 +235,6 @@ function CreateForm({
                                         {count}
                                     </span>
                                     <span className="text-[12px] text-text2">{count === 1 ? 'creative' : 'creatives'}</span>
-                                    {count === 10 && (
-                                        <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-white">
-                                            Pro
-                                        </span>
-                                    )}
                                 </div>
                                 {conceptCount === count ? (
                                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent border border-accent text-white">
@@ -247,7 +245,7 @@ function CreateForm({
                         ))}
                     </div>
                     <p className="mt-3 shrink-0 text-[11px] leading-snug text-text2">
-                        Each creative is generated in every format you select — backgrounds vary per creative.
+                        Each creative is generated in every format you select. Backgrounds vary per creative.
                     </p>
                 </section>
 

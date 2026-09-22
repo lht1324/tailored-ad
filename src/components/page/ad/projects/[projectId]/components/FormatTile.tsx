@@ -3,8 +3,9 @@
 import { memo, useCallback, useState } from 'react';
 import Image from 'next/image';
 import { AlertTriangle, Download, Loader2, Maximize2, RefreshCw, Sparkles } from 'lucide-react';
-import AdOverlay from "@/components/page/ad/results/components/AdOverlay";
-import { AdDesignLayout } from "@/lib/api/client/ad/adClientAPI";
+import AdOverlay from "@/components/public/AdOverlay";
+import { downloadCompositedImage } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
+import { AdDesignLayout } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { AdRatioKey, AdImageResult } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 
 const RATIO_FACTOR: Record<string, number> = {
@@ -24,21 +25,21 @@ const RATIO_LABEL: Record<string, string> = {
 };
 
 interface FormatTileProps {
+    projectShortId: string;
     ratioKey: AdRatioKey;
     imageResult?: AdImageResult | null;
-    signedUrl?: string | null;
+    signedUrl?: string | null; // 원본 (다운로드용)
+    displayUrl?: string | null; // 타일 표시용 경량 변환 (없으면 signedUrl)
     brandLogoUrl?: string | null;
     isProjectRunning: boolean;
     creativeIndex: number;
-    onSelect?: () => void;
     onExpand?: () => void;
-    selected?: boolean;
     headlineFontFamily?: string | null;
     headlineFontWeight?: number | null;
-    headlineColor?: 'white' | 'black' | null;
+    headlineColor?: string | null;
 }
 
-function FormatTile({ ratioKey, imageResult, signedUrl, brandLogoUrl, isProjectRunning, creativeIndex, onSelect, onExpand, selected, headlineFontFamily, headlineFontWeight, headlineColor }: FormatTileProps) {
+function FormatTile({ projectShortId, ratioKey, imageResult, signedUrl, displayUrl, brandLogoUrl, isProjectRunning, creativeIndex, onExpand, headlineFontFamily, headlineFontWeight, headlineColor }: FormatTileProps) {
     const ratioLabel = RATIO_LABEL[ratioKey] ?? ratioKey;
     const factor = RATIO_FACTOR[ratioKey] ?? 1;
 
@@ -48,8 +49,8 @@ function FormatTile({ ratioKey, imageResult, signedUrl, brandLogoUrl, isProjectR
     const isPending = !imageResult && !isProjectRunning;
 
     const onClickTile = useCallback(() => {
-        if (isCompleted && onSelect) onSelect();
-    }, [isCompleted, onSelect]);
+        if (isCompleted && onExpand) onExpand();
+    }, [isCompleted, onExpand]);
 
     const onClickRetry = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
@@ -59,138 +60,28 @@ function FormatTile({ ratioKey, imageResult, signedUrl, brandLogoUrl, isProjectR
     const [isDownloading, setIsDownloading] = useState(false);
     const onClickDownload = useCallback(async (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!signedUrl || !imageResult) return;
-        const design = (imageResult.design as unknown as { headline?: { text: string; x: number; y: number; maxWidth: number; align: string; fontSizePct: number; color?: string } | null; cta?: { text: string; x: number; y: number; widthPct: number; fontSizePct: number } | null; logo?: { brand: string; x: number; y: number; widthPct: number; fontSizePct: number } | null; scrim?: boolean }) ?? null;
-        if (!design) return;
+        if (!signedUrl || !imageResult?.design) return;
         setIsDownloading(true);
         try {
-            const canvasW = factor >= 1 ? 1080 : Math.round(1080 * factor);
-            // Use standard 1080 base: 1_1 1080x1080, 4_5 1080x1350, 9_16 1080x1920, 16_9 1920x1080, 2_3 1080x1620
-            const sizeMap: Record<string, { w: number; h: number }> = {
-                '1_1': { w: 1080, h: 1080 },
-                '4_5': { w: 1080, h: 1350 },
-                '9_16': { w: 1080, h: 1920 },
-                '16_9': { w: 1920, h: 1080 },
-                '2_3': { w: 1080, h: 1620 },
-            };
-            const { w, h } = sizeMap[ratioKey] ?? { w: 1080, h: Math.round(1080 / factor) };
-            const canvas = document.createElement('canvas');
-            canvas.width = w;
-            canvas.height = h;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return;
-            // Load base image
-            const img = new window.Image();
-            img.crossOrigin = 'anonymous';
-            await new Promise<void>((resolve, reject) => {
-                img.onload = () => resolve();
-                img.onerror = () => reject(new Error('image load failed'));
-                img.src = signedUrl;
+            // 화면 오버레이 DOM을 그대로 PNG로 — 프리뷰와 픽셀 동일
+            await downloadCompositedImage({
+                projectShortId,
+                imageUrl: signedUrl,
+                design: imageResult.design as AdDesignLayout,
+                ratioKey,
+                creativeIndex,
+                headlineFontFamily: headlineFontFamily ?? null,
+                headlineFontWeight: headlineFontWeight ?? null,
+                headlineColor,
+                brandLogoUrl: brandLogoUrl ?? null,
             });
-            ctx.drawImage(img, 0, 0, w, h);
-            // Scrim
-            if (design.scrim) {
-                const grad = ctx.createLinearGradient(0, h * 0.32, 0, h);
-                if ((design.headline as unknown as { color?: string })?.color === 'black' || headlineColor === 'black') {
-                    grad.addColorStop(0, 'rgba(255,255,255,0)');
-                    grad.addColorStop(1, 'rgba(255,255,255,0.7)');
-                } else {
-                    grad.addColorStop(0, 'rgba(0,0,0,0)');
-                    grad.addColorStop(1, 'rgba(0,0,0,0.65)');
-                }
-                ctx.fillStyle = grad;
-                ctx.fillRect(0, h * 0.32, w, h * 0.68);
-            }
-            // Brand logo
-            if (design.logo && brandLogoUrl) {
-                try {
-                    const logoImg = new window.Image();
-                    logoImg.crossOrigin = 'anonymous';
-                    await new Promise<void>((res, rej) => {
-                        logoImg.onload = () => res();
-                        logoImg.onerror = () => rej(new Error('logo load failed'));
-                        logoImg.src = brandLogoUrl;
-                    });
-                    const lx = (design.logo.x / 100) * w;
-                    const ly = (design.logo.y / 100) * h;
-                    const lw = (design.logo.widthPct / 100) * w;
-                    const lh = (lw * logoImg.height) / logoImg.width;
-                    ctx.drawImage(logoImg, lx, ly, lw, lh);
-                } catch {}
-            }
-            // Headline
-            if (design.headline) {
-                const hl = design.headline;
-                const hx = (hl.x / 100) * w;
-                const hy = (hl.y / 100) * h;
-                const maxW = (hl.maxWidth / 100) * w;
-                const fontSize = (hl.fontSizePct / 100) * h;
-                const color = (hl as unknown as { color?: string }).color === 'black' || headlineColor === 'black' ? '#0A0A0A' : '#FFFFFF';
-                const family = headlineFontFamily ?? 'Inter, sans-serif';
-                const weight = headlineFontWeight ?? 700;
-                try { await (document as unknown as { fonts: { load: (s: string) => Promise<unknown> } }).fonts.load(`${weight} ${fontSize}px "${family.replace(/['\"]/g, '')}"`); } catch {}
-                ctx.fillStyle = color;
-                ctx.font = `${weight} ${fontSize}px ${family}`;
-                ctx.textBaseline = 'top';
-                ctx.textAlign = hl.align as CanvasTextAlign;
-                let textX = hx;
-                if (hl.align === 'center') textX = hx + maxW / 2;
-                else if (hl.align === 'right') textX = hx + maxW;
-                // Simple word wrap
-                const words = hl.text.split(' ');
-                let line = '';
-                let y = hy;
-                const lineHeight = fontSize * 1.05;
-                for (let n = 0; n < words.length; n++) {
-                    const testLine = line + words[n] + ' ';
-                    const metrics = ctx.measureText(testLine);
-                    if (metrics.width > maxW && n > 0) {
-                        ctx.fillText(line.trim(), textX, y, maxW);
-                        line = words[n] + ' ';
-                        y += lineHeight;
-                    } else {
-                        line = testLine;
-                    }
-                }
-                ctx.fillText(line.trim(), textX, y, maxW);
-                // CTA
-                if (design.cta) {
-                    const cta = design.cta;
-                    const cx = (cta.x / 100) * w;
-                    const cy = (cta.y / 100) * h;
-                    const cw = (cta.widthPct / 100) * w;
-                    const cfs = (cta.fontSizePct / 100) * h;
-                    const ch = cfs * 2.4;
-                    ctx.fillStyle = '#FFFFFF';
-                    if (ctx.roundRect) {
-                        ctx.beginPath(); ctx.roundRect(cx, cy, cw, ch, ch / 2); ctx.fill();
-                    } else {
-                        ctx.beginPath(); ctx.arc(cx + ch / 2, cy + ch / 2, ch / 2, Math.PI / 2, Math.PI * 1.5); ctx.arc(cx + cw - ch / 2, cy + ch / 2, ch / 2, Math.PI * 1.5, Math.PI / 2); ctx.closePath(); ctx.fill();
-                    }
-                    ctx.fillStyle = '#000000';
-                    ctx.font = `600 ${cfs}px ${family}`;
-                    ctx.textAlign = 'center' as CanvasTextAlign;
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText(cta.text, cx + cw / 2, cy + ch / 2, cw * 0.9);
-                }
-            }
-            const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/png'));
-            if (!blob) return;
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `tailorad-${creativeIndex + 1}-${ratioLabel}.png`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-        } catch (e) {
-            console.error('download failed', e);
+        } catch (err) {
+            console.error('download failed', err);
             window.open(signedUrl, '_blank');
         } finally {
             setIsDownloading(false);
         }
-    }, [signedUrl, imageResult, headlineFontFamily, headlineFontWeight, headlineColor, brandLogoUrl, creativeIndex, ratioLabel, factor]);
+    }, [projectShortId, signedUrl, imageResult, ratioKey, creativeIndex, headlineFontFamily, headlineFontWeight, headlineColor, brandLogoUrl]);
 
     // 에러 타일
     if (hasError) {
@@ -259,7 +150,8 @@ function FormatTile({ ratioKey, imageResult, signedUrl, brandLogoUrl, isProjectR
     // 완료 타일 — 이미지 + 오버레이
     const design: AdDesignLayout = (imageResult.design as AdDesignLayout) ?? { headline: null, cta: null, logo: null, scrim: false };
     const score = imageResult.score;
-    const overlayHeadlineColor = (design.headline as unknown as { color?: string })?.color === 'black' || (design.headline as unknown as { color?: string })?.color === 'white' ? (design.headline as unknown as { color: 'white' | 'black' }).color : headlineColor ?? 'white';
+    const designColor = (design.headline as unknown as { color?: string } | null)?.color;
+    const overlayHeadlineColor = designColor ?? headlineColor ?? null;
 
     return (
         <div
@@ -268,18 +160,14 @@ function FormatTile({ ratioKey, imageResult, signedUrl, brandLogoUrl, isProjectR
             onClick={onClickTile}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClickTile(); } }}
             style={{ aspectRatio: factor, height: 'min(18rem, 34vw)' }}
-            className={`group relative shrink-0 cursor-pointer overflow-hidden rounded-[1.25rem] border text-left transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                selected
-                    ? 'border-accent ring-1 ring-accent/30'
-                    : 'border-hairline hover:border-text2/30 hover:shadow-lg hover:shadow-black/5'
-            }`}
-            aria-pressed={selected}
+            className="group relative shrink-0 cursor-pointer overflow-hidden rounded-[1.25rem] border border-hairline text-left transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-text2/30 hover:shadow-lg hover:shadow-black/5"
         >
             <Image
-                src={signedUrl ?? ''}
+                src={displayUrl ?? signedUrl ?? ''}
                 alt={`Creative ${creativeIndex + 1} · ${ratioLabel}`}
                 fill
                 sizes="(max-width: 768px) 100vw, 33vw"
+                unoptimized
                 className="object-cover transition-transform duration-500 group-hover:scale-[1.02]"
             />
             <AdOverlay design={design} headlineFontFamily={headlineFontFamily ?? null} headlineFontWeight={headlineFontWeight ?? null} headlineColor={overlayHeadlineColor} brandLogoUrl={brandLogoUrl ?? null} />
@@ -298,10 +186,11 @@ function FormatTile({ ratioKey, imageResult, signedUrl, brandLogoUrl, isProjectR
                         type="button"
                         onClick={onClickDownload}
                         disabled={isDownloading}
-                        aria-label="Download composited image"
-                        className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-surface/85 text-text1 opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 hover:bg-surface disabled:opacity-50"
+                        aria-label="Download final image"
+                        className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-surface/85 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.08em] text-text1 opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 hover:bg-surface disabled:opacity-50"
                     >
-                        {isDownloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.8} /> : <Download className="h-3.5 w-3.5" strokeWidth={1.8} />}
+                        {isDownloading ? <Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.8} /> : <Download className="h-3 w-3" strokeWidth={1.8} />}
+                        Final
                     </button>
                     <button
                         type="button"

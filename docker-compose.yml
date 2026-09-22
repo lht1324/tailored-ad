@@ -1,0 +1,15 @@
+services:
+    next-server:
+        build: .
+        container_name: tailored-ad-server
+        ports:
+            - "3001:3000"
+        volumes:
+            - ./:/workdir
+            - /workdir/node_modules
+            - /workdir/.next
+            - /workdir/.next-docker
+            - /workdir/.git
+        environment:
+            # - WATCHPACK_POLLING=true  <-- 리눅스에선 이제 필요 없으니 주석 처리!
+            - DOCKER=true

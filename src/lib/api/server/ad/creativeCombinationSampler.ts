@@ -16,6 +16,9 @@ import {
 
 export type CreativeAxisName = 'camera' | 'lighting' | 'palette' | 'framing' | 'layout_tone';
 
+/** 모드 — 입력(사람/상품 이미지)별 뽑기 범위. combined는 제외 없음 */
+export type CreativeMode = 'product-only' | 'person-only' | 'combined';
+
 /** 카메라/구성 (8) — ad_variation_study.md §1 */
 export const CREATIVE_CAMERA_POOL = [
     'hero_shot',
@@ -95,6 +98,29 @@ const HARD_BANNED_AXIS_PAIRS: ReadonlyArray<readonly [CreativeAxisName, string, 
     ['framing', 'tight_crop', 'layout_tone', 'minimal_modern'],
 ];
 
+/**
+ * 모드별 제외값 — 사람/물건 전제 업계 용어. 해당 모드에서는 풀에서 빼고 뽑는다.
+ * ban 쌍(사진물리)과 달리 입력 모드 기준이라 여기로 분리.
+ * combined는 인물 포함 강제: 탑다운·클로즈업·팩샷 제외 (인물 탈락 실측).
+ */
+const MODE_EXCLUDED_VALUES: Record<CreativeMode, Partial<Record<CreativeAxisName, readonly string[]>>> = {
+    'product-only': {
+        camera: ['lifestyle_shot', 'product_in_hand'],
+        layout_tone: ['lifestyle_narrative'],
+    },
+    'person-only': {
+        camera: ['packshot'],
+    },
+    'combined': {
+        camera: ['packshot', 'detail_close', 'flat_lay', 'overhead_angle'],
+    },
+};
+
+function getModePool(axisName: CreativeAxisName, mode: CreativeMode): readonly string[] {
+    const excluded = MODE_EXCLUDED_VALUES[mode][axisName] ?? [];
+    return AXIS_POOLS[axisName].filter((value) => !excluded.includes(value));
+}
+
 /** 결과 화면 캐노니컬 매체 순서 — 기준 비율 선정 및 정렬의 단일 소스 */
 export const CANONICAL_RATIO_ORDER: AdRatioKey[] = ['9_16', '2_3', '4_5', '1_1', '16_9'];
 
@@ -143,7 +169,7 @@ function comboToKey(combo: Record<CreativeAxisName, string>): string {
  * - 병목 시 완화 단계(금지 해제 → 예산 완화)를 두어 배분 실패로 배치가 죽지 않게 한다
  *   (조합 공간이 11,200개라 현실적으로 도달하지 않는 경로다)
  */
-export function assignCreativeCombinations(conceptCount: number, seed?: number): AdCreativeSpec[] {
+export function assignCreativeCombinations(conceptCount: number, seed?: number, mode: CreativeMode = 'combined'): AdCreativeSpec[] {
     const resolvedSeed = seed ?? Math.floor(Math.random() * 0x7fffffff);
     const random = createRandomFromSeed(resolvedSeed);
 
@@ -167,6 +193,7 @@ export function assignCreativeCombinations(conceptCount: number, seed?: number):
             usageCounts,
             usedComboKeys,
             random,
+            mode,
         });
 
         AXIS_NAMES.forEach((axisName) => {
@@ -182,7 +209,7 @@ export function assignCreativeCombinations(conceptCount: number, seed?: number):
             palette: combo.palette,
             framing: combo.framing,
             layout_tone: combo.layout_tone,
-            imagePromptRecord: {}, // 캡션 레코드는 프롬프트 단계(LLM)가 선택 비율만 채운다
+            creativePrompt: null, // 프롬프트 단계(LLM)가 base 1장분을 채운다
             seed: Math.floor(random() * 0x7fffffff),
         });
     }
@@ -196,18 +223,19 @@ interface PickConstraintParams {
     usageCounts: Record<CreativeAxisName, Map<string, number>>;
     usedComboKeys: Set<string>;
     random: () => number;
+    mode: CreativeMode;
 }
 
 function pickCombinationWithConstraints(params: PickConstraintParams): Record<CreativeAxisName, string> {
-    const { conceptCount, usageCounts, usedComboKeys, random } = params;
+    const { conceptCount, usageCounts, usedComboKeys, random, mode } = params;
 
-    // 축별 값별 허용 반복 상한 — 예: 10개 중 카메라 8종이면 종당 2회까지
+    // 축별 값별 허용 반복 상한 — 모드 필터 후 풀 길이 기준
     const budgetPerValue: Record<CreativeAxisName, number> = {
-        camera: Math.ceil(conceptCount / AXIS_POOLS.camera.length),
-        lighting: Math.ceil(conceptCount / AXIS_POOLS.lighting.length),
-        palette: Math.ceil(conceptCount / AXIS_POOLS.palette.length),
-        framing: Math.ceil(conceptCount / AXIS_POOLS.framing.length),
-        layout_tone: Math.ceil(conceptCount / AXIS_POOLS.layout_tone.length),
+        camera: Math.ceil(conceptCount / getModePool('camera', mode).length),
+        lighting: Math.ceil(conceptCount / getModePool('lighting', mode).length),
+        palette: Math.ceil(conceptCount / getModePool('palette', mode).length),
+        framing: Math.ceil(conceptCount / getModePool('framing', mode).length),
+        layout_tone: Math.ceil(conceptCount / getModePool('layout_tone', mode).length),
     };
 
     // 완화 단계: 0=전체 제약, 1=금지 쌍 해제, 2=예산 해제 (중복만 최후에 유지)
@@ -226,7 +254,7 @@ function pickCombinationWithConstraints(params: PickConstraintParams): Record<Cr
             let isValidCandidate = true;
 
             for (const axisName of AXIS_NAMES) {
-                const pool = AXIS_POOLS[axisName];
+                const pool = getModePool(axisName, mode);
 
                 const eligibleValues = pool.filter((value) => {
                     if (relaxationLevel < 2) {

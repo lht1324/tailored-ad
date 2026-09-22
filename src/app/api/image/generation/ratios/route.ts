@@ -4,20 +4,40 @@ import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatchServerAPI";
 import { adImageServerAPI } from "@/lib/api/server/ad/imageServerAPI";
 import { selectBaseRatio } from "@/lib/api/server/ad/creativeCombinationSampler";
-import {
-    ReplicateImageModelId,
-    replicateClient,
-} from "@/lib/ReplicateClient";
-import { AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+import { replicateClient } from "@/lib/ReplicateClient";
+import { selectImageModel, ReplicateModelId, type ImageInputTag } from "@/lib/replicateInputMapper";
+import { AdRatioKey, type AdGenerationBatch } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 
 /**
- * 파생(ratios) 이미지 제출 단계 — 중립 실행자.
- * 호출처가 두 곳이지만(프롬프트 직통 / process-base 뒤따름) 이 라우트는 그 차이를 모른다.
- * 배치의 aspect_ratios length만으로 모드를 판별한다:
- *   - length === 1 → 직통 모드: 그 한 장 제출 (곧 마지막 조각)
- *   - length >= 2  → 뒤따름 모드: (aspect_ratios − selectBaseRatio) 전부 제출,
- *                    기준 이미지는 규칙 경로로 signed URL 재조립해 참조 입력에 포함
+ * 파생(ratios) 이미지 제출 단계 — base 성공 후 파생 전부 제출, 또는 실패 타일 1장 재제출.
+ * 모드 2개 (`ratioKey` 쿼리로 판별):
+ *   - 재시도: base 자체면 Seedream 재생성, 파생이면 BRIA 재확장
+ *   - 뒤따름: base 1장만 참조해 남은 비율 전부 BRIA 확장. base 실패 시 파생 전부 스킵 (원본 폴백 없음)
  */
+
+/** 원본 전용 태그 순서 = [product?, person?] (getAdOriginalImageSignedUrls와 동일) */
+function buildOriginalTagOrder(batch: AdGenerationBatch): ImageInputTag[] {
+    return [
+        ...(batch.product_image ? ["PRODUCT_IMAGE" as const] : []),
+        ...(batch.person_image ? ["PERSON_IMAGE" as const] : []),
+    ];
+}
+
+/**
+ * 제출 실패 가시화 — prediction이 없으면 웹훅이 안 와 영구 pending 유령이 되므로
+ * 해당 비율 타일을 error로 마킹한다 (호출자는 그대로 500 또는 다음 비율 계속).
+ */
+async function markSubmissionFailed(batchId: string, creativeIndex: number, ratioKey: AdRatioKey, error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to submit ratio image generation";
+    await adGenerationBatchServerAPI.updateCreativeImageByRatioGenerationCompleted(
+        batchId,
+        creativeIndex,
+        ratioKey,
+        null,
+        { code: 'SUBMISSION_FAILED', message },
+    ).catch(() => {});
+}
+
 export async function POST(request: NextRequest) {
     if (!getIsValidRequestS2S(request)) {
         return getNextBaseResponse({
@@ -53,9 +73,9 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const batch = await adGenerationBatchServerAPI.getAdGenerationBatchById(batchId);
+        const adGenerationBatch = await adGenerationBatchServerAPI.getAdGenerationBatchById(batchId);
 
-        if (!batch) {
+        if (!adGenerationBatch) {
             return getNextBaseResponse({
                 success: false,
                 status: 400,
@@ -63,9 +83,9 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        const creativeSpec = batch.ad_creative_specs[creativeIndex];
+        const adCreativeSpec = adGenerationBatch.ad_creative_specs[creativeIndex];
 
-        if (!creativeSpec || creativeSpec.creativeIndex !== creativeIndex) {
+        if (!adCreativeSpec || adCreativeSpec.creativeIndex !== creativeIndex) {
             return getNextBaseResponse({
                 success: false,
                 status: 400,
@@ -73,7 +93,9 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        if (!Array.isArray(batch.aspect_ratios) || batch.aspect_ratios.length === 0) {
+        const aspectRatios = adGenerationBatch.aspect_ratios;
+
+        if (!Array.isArray(aspectRatios) || aspectRatios.length === 0) {
             return getNextBaseResponse({
                 success: false,
                 status: 400,
@@ -88,49 +110,64 @@ export async function POST(request: NextRequest) {
         }
 
         // 재시도 모드: 특정 ratio 1장만 재제출 (process/ratios 실패 시 1회 재시도)
+        // - 대상이 base 자체(또는 base 없음) → base 생성과 동일하게 Seedream + creativePrompt + 원본
+        // - 그 외 → BRIA 확장 (base 1장 참조)
         if (retryRatioKey) {
-            if (!(batch.aspect_ratios as string[]).includes(retryRatioKey)) {
+            if (!(aspectRatios as string[]).includes(retryRatioKey)) {
                 return getNextBaseResponse({
                     success: false,
                     status: 400,
                     error: `Retry ratioKey ${retryRatioKey} is not in batch aspect_ratios.`
                 });
             }
-            const caption = creativeSpec.imagePromptRecord[retryRatioKey];
-            if (!caption || typeof caption !== 'string' || caption.trim().length === 0) {
-                return getNextBaseResponse({
-                    success: false,
-                    status: 400,
-                    error: `Caption for ratio ${retryRatioKey} is missing.`
-                });
-            }
-            // base 실패 폴백 고려해 참조 구성
-            const baseRatioForRetry = selectBaseRatio(batch.aspect_ratios as AdRatioKey[]);
-            const baseImageResultForRetry = batch.ad_creative_results?.[creativeIndex]?.imageResults?.[baseRatioForRetry] as { imageFileExtension?: string | null; error?: unknown } | undefined;
+            const baseRatioForRetry = selectBaseRatio(aspectRatios as AdRatioKey[]);
+            const baseImageResultForRetry = adGenerationBatch.ad_creative_results?.[creativeIndex]?.imageResults?.[baseRatioForRetry] as { imageFileExtension?: string | null; error?: unknown } | undefined;
             const baseFileExtensionForRetry = baseImageResultForRetry?.imageFileExtension;
             const baseHasErrorForRetry = !!(baseImageResultForRetry as { error?: unknown } | undefined)?.error;
-            let referenceUrlsForRetry: string[];
-            let originalUrlsForRetry: string[] = [];
-            try {
-                originalUrlsForRetry = await adImageServerAPI.getAdOriginalImageSignedUrls(batch);
-            } catch {
-                originalUrlsForRetry = [];
-            }
-            if (!baseFileExtensionForRetry || typeof baseFileExtensionForRetry !== 'string' || baseFileExtensionForRetry.trim().length === 0 || baseHasErrorForRetry || baseRatioForRetry === retryRatioKey) {
-                referenceUrlsForRetry = [...originalUrlsForRetry];
-            } else {
-                const baseSignedUrlForRetry = await adImageServerAPI.getAdResultImageSignedUrl(batch.user_id, batch.id, creativeIndex, baseRatioForRetry, baseFileExtensionForRetry);
-                referenceUrlsForRetry = [baseSignedUrlForRetry, ...originalUrlsForRetry];
-            }
+            const isBaseRetry = baseRatioForRetry === retryRatioKey
+                || !baseFileExtensionForRetry || typeof baseFileExtensionForRetry !== 'string' || baseFileExtensionForRetry.trim().length === 0 || baseHasErrorForRetry;
             const webhookUrl = `${baseUrl}/webhook/replicate/image/ratios?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}&ratioKey=${encodeURIComponent(retryRatioKey)}&attempt=${encodeURIComponent(String(attempt))}`;
-            const wrappedCaptionForRetry = `INSTRUCTION: Use the input image ONLY to preserve the product/person identity (shape, color, material, lace, perforations, stitching). Do NOT copy its background, floor, shadows or wall — recreate the product with pixel-perfect edges on the new scene described below.\n\nSCENE: ${caption}`;
-            await replicateClient.postAdImageEditPrediction({
-                model: ReplicateImageModelId.NANO_BANANA,
-                prompt: wrappedCaptionForRetry,
-                imageUrls: referenceUrlsForRetry,
-                aspectRatio: retryRatioKey,
-                webhookUrl,
-            });
+            try {
+                if (isBaseRetry) {
+                    // base 자체 재시도 → base 생성과 동일 (Seedream + creativePrompt + 원본)
+                    const caption = adCreativeSpec.creativePrompt;
+                    if (!caption || typeof caption !== 'string' || caption.trim().length === 0) {
+                        return getNextBaseResponse({
+                            success: false,
+                            status: 400,
+                            error: `Caption for base ratio ${retryRatioKey} is missing.`,
+                        });
+                    }
+                    let originalUrlsForRetry: string[] = [];
+                    try {
+                        originalUrlsForRetry = await adImageServerAPI.getAdOriginalImageSignedUrls(adGenerationBatch);
+                    } catch {
+                        originalUrlsForRetry = [];
+                    }
+                    const wrappedCaption = `INSTRUCTION: Use the input image ONLY to preserve the product/person identity (shape, color, material, lace, perforations, stitching). Do NOT copy its background, floor, shadows or wall — recreate the product with pixel-perfect edges on the new scene described below.\n\nSCENE: ${caption}`;
+                    await replicateClient.postAdImageEditPrediction({
+                        prompt: wrappedCaption,
+                        imageUrls: originalUrlsForRetry,
+                        aspectRatio: retryRatioKey,
+                        model: selectImageModel(aspectRatios as string[]),
+                        imageTags: buildOriginalTagOrder(adGenerationBatch),
+                        webhookUrl,
+                    });
+                } else {
+                    // 파생 재시도 → BRIA 확장 (base 1장 참조)
+                    const baseSignedUrlForRetry = await adImageServerAPI.getAdResultImageSignedUrl(adGenerationBatch.user_id, adGenerationBatch.id, creativeIndex, baseRatioForRetry, baseFileExtensionForRetry as string);
+                    await replicateClient.postAdImageEditPrediction({
+                        prompt: "",
+                        imageUrls: [baseSignedUrlForRetry],
+                        aspectRatio: retryRatioKey,
+                        model: ReplicateModelId.BRIA_EXPAND,
+                        webhookUrl,
+                    });
+                }
+            } catch (submitError) {
+                await markSubmissionFailed(batchId, creativeIndex, retryRatioKey, submitError);
+                throw submitError;
+            }
             return getNextBaseResponse({
                 success: true,
                 status: 200,
@@ -138,72 +175,39 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        // 직통 모드: 비율 1개 — 원본 참조로 1장만 제출
-        if (batch.aspect_ratios.length === 1) {
-            const singleRatio = batch.aspect_ratios[0] as AdRatioKey;
-            const caption = creativeSpec.imagePromptRecord[singleRatio];
-
-            if (!caption || typeof caption !== 'string' || caption.trim().length === 0) {
-                return getNextBaseResponse({
-                    success: false,
-                    status: 400,
-                    error: `Caption for ratio ${singleRatio} is missing. Prompt step must be completed before generation.`
-                });
-            }
-
-            let originalImageUrls: string[] = [];
-            try {
-                originalImageUrls = await adImageServerAPI.getAdOriginalImageSignedUrls(batch);
-            } catch {
-                originalImageUrls = [];
-            }
-            const webhookUrl = `${baseUrl}/webhook/replicate/image/ratios?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}&ratioKey=${encodeURIComponent(singleRatio)}&attempt=${encodeURIComponent(String(attempt))}`;
-            const wrappedCaptionForSingle = `INSTRUCTION: Use the input image ONLY to preserve the product/person identity (shape, color, material, lace, perforations, stitching). Do NOT copy its background, floor, shadows or wall — recreate the product with pixel-perfect edges on the new scene described below.\n\nSCENE: ${caption}`;
-            await replicateClient.postAdImageEditPrediction({
-                model: ReplicateImageModelId.NANO_BANANA,
-                prompt: wrappedCaptionForSingle,
-                imageUrls: originalImageUrls,
-                aspectRatio: singleRatio,
-                webhookUrl,
-            });
-
-            return getNextBaseResponse({
-                success: true,
-                status: 200,
-                message: "Ratio image prediction submitted.",
-            });
-        }
-
-        // 뒤따름 모드: 기준 이미지 + 남은 비율 전부 제출 — fail-soft: base 실패 시 원본만으로 폴백
-        const baseRatio = selectBaseRatio(batch.aspect_ratios as AdRatioKey[]);
-        const baseImageResult = batch.ad_creative_results?.[creativeIndex]?.imageResults?.[baseRatio] as
+        // 뒤따름 모드: 기준 이미지 + 남은 비율 전부 제출
+        const baseRatio = selectBaseRatio(aspectRatios);
+        const baseImageResult = adGenerationBatch.ad_creative_results?.[creativeIndex]?.imageResults?.[baseRatio] as
             | { imageFileExtension?: string | null; error?: unknown }
             | undefined;
         const baseFileExtension = baseImageResult?.imageFileExtension;
         const baseHasError = !!(baseImageResult as { error?: unknown } | undefined)?.error;
 
-        let referenceUrlsWithBase: string[];
-        let originalImageUrls: string[] = [];
-        try {
-            originalImageUrls = await adImageServerAPI.getAdOriginalImageSignedUrls(batch);
-        } catch {
-            originalImageUrls = [];
+        // base 실패 시 파생 전부 스킵 — base가 곧 제품이라 원본 폴백은 모순.
+        // 스킵된 타일은 error 마킹해서 기존 에러 UI로 보여준다
+        if (!baseFileExtension || typeof baseFileExtension !== 'string' || baseFileExtension.trim().length === 0 || baseHasError) {
+            console.warn(`[generation/ratios] base ${baseRatio} failed for creative ${creativeIndex}, skipping ratio generation`);
+            const skippedRatios = (aspectRatios as AdRatioKey[]).filter((ratio) => ratio !== baseRatio);
+            for (const skippedRatio of skippedRatios) {
+                await markSubmissionFailed(batchId, creativeIndex, skippedRatio, new Error(`Base ${baseRatio} failed, skipping ratio generation.`));
+            }
+            return getNextBaseResponse({
+                success: true,
+                status: 200,
+                message: "Base failed, ratio generation skipped.",
+            });
         }
 
-        if (!baseFileExtension || typeof baseFileExtension !== 'string' || baseFileExtension.trim().length === 0 || baseHasError) {
-            console.warn(`[generation/ratios] base ${baseRatio} not ready or errored for creative ${creativeIndex}, falling back to originals only (fail-soft)`);
-            referenceUrlsWithBase = [...originalImageUrls];
-        } else {
-            const baseImageSignedUrl = await adImageServerAPI.getAdResultImageSignedUrl(
-                batch.user_id,
-                batch.id,
-                creativeIndex,
-                baseRatio,
-                baseFileExtension,
-            );
-            referenceUrlsWithBase = [baseImageSignedUrl, ...originalImageUrls];
-        }
-        const remainingRatios = (batch.aspect_ratios as AdRatioKey[]).filter((ratio) => ratio !== baseRatio);
+        // 참조는 base 1장만 (원본 보조 없음)
+        const baseImageSignedUrl = await adImageServerAPI.getAdResultImageSignedUrl(
+            adGenerationBatch.user_id,
+            adGenerationBatch.id,
+            creativeIndex,
+            baseRatio,
+            baseFileExtension,
+        );
+        const referenceUrlsWithBase = [baseImageSignedUrl];
+        const remainingRatios = (aspectRatios as AdRatioKey[]).filter((ratio) => ratio !== baseRatio);
 
         if (remainingRatios.length === 0) {
             return getNextBaseResponse({
@@ -214,25 +218,21 @@ export async function POST(request: NextRequest) {
         }
 
         for (const ratioKey of remainingRatios) {
-            const caption = creativeSpec.imagePromptRecord[ratioKey];
-
-            if (!caption || typeof caption !== 'string' || caption.trim().length === 0) {
-                return getNextBaseResponse({
-                    success: false,
-                    status: 400,
-                    error: `Caption for ratio ${ratioKey} is missing. Prompt step must be completed before generation.`
-                });
-            }
-
+            // BRIA 전문 확장 — 원본 앵커 고정 + 주변만 생성. 프롬프트는 매퍼 고정.
             const webhookUrl = `${baseUrl}/webhook/replicate/image/ratios?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}&ratioKey=${encodeURIComponent(ratioKey)}&attempt=${encodeURIComponent(String(attempt))}`;
-            const wrappedCaptionForRatio = `INSTRUCTION: Use the input image ONLY to preserve the product/person identity (shape, color, material, lace, perforations, stitching). Do NOT copy its background, floor, shadows or wall — recreate the product with pixel-perfect edges on the new scene described below.\n\nSCENE: ${caption}`;
-            await replicateClient.postAdImageEditPrediction({
-                model: ReplicateImageModelId.NANO_BANANA,
-                prompt: wrappedCaptionForRatio,
-                imageUrls: referenceUrlsWithBase,
-                aspectRatio: ratioKey,
-                webhookUrl,
-            });
+            try {
+                await replicateClient.postAdImageEditPrediction({
+                    prompt: "",
+                    imageUrls: referenceUrlsWithBase,
+                    aspectRatio: ratioKey,
+                    model: ReplicateModelId.BRIA_EXPAND,
+                    webhookUrl,
+                });
+            } catch (submitError) {
+                // 해당 비율만 error 마킹하고 나머지 비율은 계속 제출 (fail-soft)
+                console.error(`[generation/ratios] submit failed (batch=${batchId}, creative=${creativeIndex}, ratio=${ratioKey}):`, submitError);
+                await markSubmissionFailed(batchId, creativeIndex, ratioKey, submitError);
+            }
         }
 
         return getNextBaseResponse({

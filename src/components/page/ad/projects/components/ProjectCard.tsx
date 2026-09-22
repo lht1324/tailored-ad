@@ -2,7 +2,7 @@
 
 import { memo, useMemo } from 'react';
 import Image from 'next/image';
-import { Clock, Layers, AlertTriangle, CheckCircle2, Loader2, ImageIcon } from 'lucide-react';
+import { Clock, Layers, AlertTriangle, CheckCircle2, Loader2, ImageIcon, Pencil } from 'lucide-react';
 import { AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { getProjectProgress } from "@/lib/api/client/ad/adProjectClientAPI";
 
@@ -41,9 +41,10 @@ interface ProjectCardProps {
     thumbnailUrl?: string | null;
     thumbnailRatio?: AdRatioKey | null;
     onClick: () => void;
+    onEdit: () => void;
 }
 
-function ProjectCard({ project, thumbnailUrl, thumbnailRatio, onClick }: ProjectCardProps) {
+function ProjectCard({ project, thumbnailUrl, thumbnailRatio, onClick, onEdit }: ProjectCardProps) {
     const progress = useMemo(() => getProjectProgress(project), [project]);
     const totalAssets = project.concept_count * project.aspect_ratios.length;
 
@@ -53,11 +54,19 @@ function ProjectCard({ project, thumbnailUrl, thumbnailRatio, onClick }: Project
     const hasFailure = progress.failed > 0;
     const isRunning = project.status !== 'completed' && project.status !== 'failed';
 
+    const onClickEditButton = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onEdit();
+    };
+
     return (
-        <button
-            type="button"
+        <div
+            role="button"
+            tabIndex={0}
             onClick={onClick}
-            className="group flex w-full flex-col overflow-hidden rounded-[1.5rem] border border-hairline bg-surface text-left transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-text2/30 hover:shadow-xl hover:shadow-black/5 hover:-translate-y-0.5 active:scale-[0.99] active:translate-y-0"
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
+            aria-label={`Open project ${project.id.slice(0, 6)}`}
+            className="group relative flex w-full cursor-pointer flex-col overflow-hidden rounded-[1.5rem] border border-hairline bg-surface text-left transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-text2/30 hover:shadow-xl hover:shadow-black/5 hover:-translate-y-0.5 active:scale-[0.99] active:translate-y-0"
         >
             {/* 썸네일 영역 — 최고점 커버 또는 상태 시각화 */}
             <div className="relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden bg-canvas">
@@ -131,6 +140,17 @@ function ProjectCard({ project, thumbnailUrl, thumbnailRatio, onClick }: Project
                     </div>
                 )}
 
+                {/* Edit — 썸네일 우하단 (모바일은 항상 표시, hover-only 금지) */}
+                <button
+                    type="button"
+                    onClick={onClickEditButton}
+                    aria-label={`Edit project ${project.id.slice(0, 6)}`}
+                    className="absolute bottom-4 right-3 inline-flex items-center gap-1.5 rounded-full bg-surface/90 px-3 py-1.5 text-[11px] font-semibold text-text1 opacity-100 backdrop-blur-sm transition-all hover:scale-105 md:opacity-0 md:group-hover:opacity-100"
+                >
+                    <Pencil className="h-3 w-3" strokeWidth={2} />
+                    Edit
+                </button>
+
                 {/* 하단 진행 바 */}
                 <div className="absolute inset-x-0 bottom-0 h-1 bg-hairline">
                     <div
@@ -172,7 +192,7 @@ function ProjectCard({ project, thumbnailUrl, thumbnailRatio, onClick }: Project
                     {isRunning ? `${progress.pending} pending · live updating` : hasFailure ? `${progress.failed} failed · ${progress.completed} ready` : `${progress.completed} ready · downloads unlimited`}
                 </p>
             </div>
-        </button>
+        </div>
     );
 }
 

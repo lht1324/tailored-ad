@@ -8,6 +8,7 @@ import {
     adImageServerAPI,
 } from "@/lib/api/server/ad/imageServerAPI";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/supabaseServiceRole";
+import { usageServerAPI } from "@/lib/api/server/usageServerAPI";
 import { AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { selectBaseRatio } from "@/lib/api/server/ad/creativeCombinationSampler";
 
@@ -51,8 +52,9 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const body = await request.json();
-        const replicatePayload = body?.replicatePayload;
+        const {
+            replicatePayload,
+        } = await request.json();
 
         if (!replicatePayload || typeof replicatePayload.id !== 'string' || typeof replicatePayload.status !== 'string') {
             throw new Error("Invalid replicatePayload: missing id or status.");
@@ -94,11 +96,15 @@ export async function POST(request: NextRequest) {
             }
 
             try {
-                const batchForFallback = await adGenerationBatchServerAPI.getAdGenerationBatchById(batchId);
-                if (batchForFallback) {
-                    const doneKeys = new Set(Object.keys(batchForFallback.ad_creative_results?.[creativeIndex]?.imageResults ?? {}));
+                const adGenerationBatch = await adGenerationBatchServerAPI.getAdGenerationBatchById(batchId);
+                if (adGenerationBatch) {
+                    const adCreativeResults = adGenerationBatch.ad_creative_results;
+                    const aspectRatios = adGenerationBatch.aspect_ratios;
+
+                    const doneKeys = new Set(Object.keys(adCreativeResults?.[creativeIndex]?.imageResults ?? {}));
                     // 실패한 base도 done으로 간주되므로, 남은 것 중 다음 base 선정
-                    const remainingRatios = (batchForFallback.aspect_ratios as AdRatioKey[]).filter((r) => !doneKeys.has(r));
+                    const remainingRatios = (aspectRatios as AdRatioKey[]).filter((adRatioKey) => !doneKeys.has(adRatioKey));
+
                     if (remainingRatios.length > 0) {
                         const nextBase = selectBaseRatio(remainingRatios);
                         console.log(`[process/base] fallback to next base ${nextBase} after ${effectiveRatioKeyForError} exhausted n=${MAX_SAME_RATIO_ATTEMPTS}`);
@@ -143,11 +149,16 @@ export async function POST(request: NextRequest) {
             throw new Error("No output URL found in replicate payload.");
         }
 
-        const batch = await adGenerationBatchServerAPI.getAdGenerationBatchById(batchId);
+        const adGenerationBatch = await adGenerationBatchServerAPI.getAdGenerationBatchById(batchId);
 
-        if (!batch) {
+        if (!adGenerationBatch) {
             throw new Error(`Batch not found: ${batchId}`);
         }
+
+        const {
+            user_id: userId,
+            aspect_ratios: aspectRatios,
+        } = adGenerationBatch;
 
         const imageResponse = await fetch(outputUrl);
 
@@ -161,15 +172,21 @@ export async function POST(request: NextRequest) {
         const fileExtension = adImageServerAPI.inferFileExtension(contentType, outputUrl);
 
         const filePath = adImageServerAPI.getAdResultImagePath(
-            batch.user_id,
-            batch.id,
+            userId,
+            batchId,
             creativeIndex,
             effectiveRatioKey as AdRatioKey,
             fileExtension,
         );
 
         const supabase = createSupabaseServiceRoleClient();
-        const uploadContentType = fileExtension === 'jpeg' ? 'image/jpeg' : fileExtension === 'png' ? 'image/png' : fileExtension === 'webp' ? 'image/webp' : `image/${fileExtension}`;
+        const uploadContentType = fileExtension === 'jpeg'
+            ? 'image/jpeg'
+            : fileExtension === 'png'
+                ? 'image/png'
+                : fileExtension === 'webp'
+                    ? 'image/webp'
+                    : `image/${fileExtension}`;
 
         const { error: uploadError } = await supabase.storage
             .from(AD_IMAGE_STORAGE_BUCKET)
@@ -182,6 +199,18 @@ export async function POST(request: NextRequest) {
             throw new Error(`Supabase Storage upload failed (${filePath}): ${uploadError.message}`);
         }
 
+        // 과금 원장 — 저장 확정분만 1줄. 중복 무시, 실패는 로그 후 계속 (유저 플로우 보호)
+        try {
+            await usageServerAPI.recordImageUsage({
+                userId,
+                batchId,
+                creativeIndex,
+                ratioKey: effectiveRatioKey,
+            });
+        } catch (ledgerError) {
+            console.error(`[usage] ledger record failed (batch=${batchId}, creative=${creativeIndex}):`, ledgerError);
+        }
+
         await adGenerationBatchServerAPI.updateCreativeImageByRatioGenerationCompleted(
             batchId,
             creativeIndex,
@@ -190,10 +219,18 @@ export async function POST(request: NextRequest) {
         );
 
         // 파생 단계 개시 — 중립 실행자(ratios)가 모드를 스스로 판별한다
-        internalFireAndForgetFetch(
-            `${process.env.BASE_URL}/api/image/generation/ratios?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}`,
-            { method: "POST" },
-        );
+
+        if (aspectRatios.length === 1) {
+            internalFireAndForgetFetch(
+                `${process.env.BASE_URL}/api/creative/${creativeIndex}/analysis?batchId=${encodeURIComponent(batchId)}`,
+                { method: "POST" },
+            );
+        } else {
+            internalFireAndForgetFetch(
+                `${process.env.BASE_URL}/api/image/generation/ratios?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}`,
+                { method: "POST" },
+            );
+        }
 
         return getNextBaseResponse({
             success: true,

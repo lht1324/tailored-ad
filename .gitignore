@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+/.next-docker/
 /out/
 
 # production
@@ -45,3 +46,8 @@ cloudflare-env.d.ts
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.neon
+
+# Agents
+.agents/*
+skills-lock.json

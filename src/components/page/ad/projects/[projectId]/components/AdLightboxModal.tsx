@@ -1,13 +1,17 @@
 'use client'
 
-import { memo, useCallback, useEffect } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
-import { X, Download } from 'lucide-react';
-import AdOverlay from "@/components/page/ad/results/components/AdOverlay";
-import { AdDesignLayout } from "@/lib/api/client/ad/adClientAPI";
+import { X, Pencil } from 'lucide-react';
+import AdOverlay from "@/components/public/AdOverlay";
+import DownloadMenuButton from "@/components/page/ad/projects/[projectId]/components/DownloadMenuButton";
+import { downloadCompositedImage, downloadRawFile, buildRawFileName } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
+import { AdDesignLayout } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 
 interface AdLightboxModalProps {
     imageUrl: string;
+    projectShortId: string;
+    ratioKey: string;
     ratioLabel: string;
     creativeIndex: number;
     design?: AdDesignLayout | null;
@@ -15,15 +19,56 @@ interface AdLightboxModalProps {
     headline?: string | null;
     headlineFontFamily?: string | null;
     headlineFontWeight?: number | null;
-    headlineColor?: 'white' | 'black' | null;
+    headlineColor?: string | null;
     brandLogoUrl?: string | null;
     onClose: () => void;
+    onEdit: (() => void) | null;
 }
 
-function AdLightboxModal({ imageUrl, ratioLabel, creativeIndex, design, score, headline, headlineFontFamily, headlineFontWeight, headlineColor, brandLogoUrl, onClose }: AdLightboxModalProps) {
+function AdLightboxModal({ imageUrl, projectShortId, ratioKey, ratioLabel, creativeIndex, design, score, headline, headlineFontFamily, headlineFontWeight, headlineColor, brandLogoUrl, onClose, onEdit }: AdLightboxModalProps) {
     const onClickBackdrop = useCallback((e: React.MouseEvent) => {
         if (e.target === e.currentTarget) onClose();
     }, [onClose]);
+
+    const [isDownloading, setIsDownloading] = useState(false);
+    const [isDownloadingRaw, setIsDownloadingRaw] = useState(false);
+    const onClickDownload = useCallback(async () => {
+        if (!design) {
+            window.open(imageUrl, '_blank');
+            return;
+        }
+        setIsDownloading(true);
+        try {
+            await downloadCompositedImage({
+                projectShortId,
+                imageUrl,
+                design,
+                ratioKey,
+                creativeIndex,
+                headlineFontFamily: headlineFontFamily ?? null,
+                headlineFontWeight: headlineFontWeight ?? null,
+                headlineColor: headlineColor ?? 'white',
+                brandLogoUrl: brandLogoUrl ?? null,
+            });
+        } catch (err) {
+            console.error('download failed', err);
+            window.open(imageUrl, '_blank');
+        } finally {
+            setIsDownloading(false);
+        }
+    }, [imageUrl, projectShortId, design, ratioKey, creativeIndex, headlineFontFamily, headlineFontWeight, headlineColor, brandLogoUrl]);
+
+    const onClickDownloadOriginal = useCallback(async () => {
+        setIsDownloadingRaw(true);
+        try {
+            await downloadRawFile(imageUrl, buildRawFileName(projectShortId, creativeIndex, ratioKey));
+        } catch (err) {
+            console.error('original download failed', err);
+            window.open(imageUrl, '_blank');
+        } finally {
+            setIsDownloadingRaw(false);
+        }
+    }, [imageUrl, projectShortId, creativeIndex, ratioKey]);
 
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
@@ -55,14 +100,37 @@ function AdLightboxModal({ imageUrl, ratioLabel, creativeIndex, design, score, h
                         )}
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                        <a
-                            href={imageUrl}
-                            download={`tailorad-creative-${creativeIndex + 1}-${ratioLabel}.png`}
-                            className="inline-flex items-center gap-2 rounded-full bg-text1 px-4 py-1.5 text-[12px] font-medium text-canvas hover:opacity-90"
-                        >
-                            <Download className="h-3.5 w-3.5" strokeWidth={1.8} />
-                            Download
-                        </a>
+                        <DownloadMenuButton
+                            size="sm"
+                            items={[
+                                {
+                                    key: 'composed',
+                                    label: 'Final',
+                                    hint: 'PNG',
+                                    icon: 'text',
+                                    onSelect: onClickDownload,
+                                },
+                                {
+                                    key: 'raw',
+                                    label: 'Original',
+                                    hint: 'PNG',
+                                    icon: 'image',
+                                    onSelect: onClickDownloadOriginal,
+                                },
+                            ]}
+                            busy={isDownloading || isDownloadingRaw}
+                            busyLabel="Preparing…"
+                        />
+                        {onEdit && (
+                            <button
+                                type="button"
+                                onClick={onEdit}
+                                className="inline-flex items-center gap-2 rounded-full border border-hairline bg-canvas px-4 py-1.5 text-[12px] font-medium text-text1 hover:bg-surface"
+                            >
+                                <Pencil className="h-3.5 w-3.5" strokeWidth={1.8} />
+                                Edit
+                            </button>
+                        )}
                         <button
                             type="button"
                             onClick={onClose}

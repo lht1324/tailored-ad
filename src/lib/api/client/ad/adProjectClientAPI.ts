@@ -1,4 +1,4 @@
-import { getFetch, postFetch } from "@/lib/api/client/baseFetch";
+import { getFetch, postFetch, postFormFetch } from "@/lib/api/client/baseFetch";
 import { AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 
 // ---- AdGenerationBatch 클라이언트 API (정석: DB명 유지) ----
@@ -12,13 +12,13 @@ export interface AdGenerationBatchListResponse {
         offset: number;
         count: number;
     };
-    thumbnailSignedUrls: Record<string, string>;
+    thumbnailCreativeIndexes: Record<string, number>;
     thumbnailRatioKeys: Record<string, AdRatioKey>;
 }
 
 export interface AdGenerationBatchDetailResponse {
     batch: AdGenerationBatch;
-    signedUrls: Record<string, string>; // key: `${creativeIndex}_${ratioKey}`
+    signedUrls: Record<string, string>; // key: `${creativeIndex}_${ratioKey}` — 원본
     brandLogoSignedUrl: string | null;
 }
 
@@ -35,6 +35,14 @@ export type AdPipelineStartClientRequest = {
     ctaEnabled?: boolean;
     brandPalette?: string[] | null;
 };
+
+/** 잔액 소진 — /create 업셀 모달 판별용 (402 전용) */
+export class BalanceExhaustedError extends Error {
+    constructor() {
+        super('Image balance exhausted.');
+        this.name = 'BalanceExhaustedError';
+    }
+}
 
 export const adGenerationBatchClientAPI = {
     async listBatches(options?: { limit?: number; offset?: number }): Promise<AdGenerationBatchListResponse> {
@@ -53,7 +61,7 @@ export const adGenerationBatchClientAPI = {
         return {
             batches,
             pagination: data.pagination as AdGenerationBatchListResponse['pagination'],
-            thumbnailSignedUrls: (data.thumbnailSignedUrls as Record<string, string>) ?? {},
+            thumbnailCreativeIndexes: (data.thumbnailCreativeIndexes as Record<string, number>) ?? {},
             thumbnailRatioKeys: (data.thumbnailRatioKeys as Record<string, AdRatioKey>) ?? {},
         };
     },
@@ -73,13 +81,36 @@ export const adGenerationBatchClientAPI = {
         };
     },
 
-    async createBatch(request: AdPipelineStartClientRequest): Promise<{ batchId: string }> {
-        const response = await postFetch('/api/image', request);
-        const result = await response.json();
-        if (!result.success || !result.data) {
-            throw new Error(result.error ?? 'Failed to create batch');
+    /**
+     * 배치 생성 + 원본 업로드를 multipart 1요청으로.
+     * 서버가 생성→업로드→specs 순으로 처리해 파이프라인 시작 시 파일 존재가 보장된다.
+     */
+    async createBatch(
+        request: AdPipelineStartClientRequest,
+        files?: { product?: File | null; person?: File | null; brandLogo?: File | null },
+    ): Promise<{ batchId: string }> {
+        try {
+            const formData = new FormData();
+            formData.append("payload", JSON.stringify(request));
+            if (files?.product) formData.append("product", files.product);
+            if (files?.person) formData.append("person", files.person);
+            if (files?.brandLogo) formData.append("brand_logo", files.brandLogo);
+            const response = await postFormFetch('/api/image', formData);
+            const result = await response.json();
+            if (!result.success || !result.data) {
+                // gateway가 HTTP 상태로 바꿔 내려 body를 못 읽는 경우 — 402 잔액 소진 판별
+                if (result.status === 402 || /balance exhausted/i.test(result.error ?? '')) {
+                    throw new BalanceExhaustedError();
+                }
+                throw new Error(result.error ?? 'Failed to create batch');
+            }
+            return result.data as { batchId: string };
+        } catch (error) {
+            if (error instanceof Error && /\[402\]/.test(error.message)) {
+                throw new BalanceExhaustedError();
+            }
+            throw error;
         }
-        return result.data as { batchId: string };
     },
 };
 
@@ -91,7 +122,7 @@ export const adProjectClientAPI = {
             projects: data.batches,
             batches: data.batches,
             pagination: data.pagination,
-            thumbnailSignedUrls: data.thumbnailSignedUrls,
+            thumbnailCreativeIndexes: data.thumbnailCreativeIndexes,
             thumbnailRatioKeys: data.thumbnailRatioKeys,
         } as unknown as AdProjectListResponse;
     },
@@ -104,8 +135,11 @@ export const adProjectClientAPI = {
             brandLogoSignedUrl: data.brandLogoSignedUrl,
         } as AdProjectDetailResponse;
     },
-    async createProject(request: AdPipelineStartClientRequest): Promise<{ batchId: string }> {
-        return adGenerationBatchClientAPI.createBatch(request);
+    async createProject(
+        request: AdPipelineStartClientRequest,
+        files?: { product?: File | null; person?: File | null; brandLogo?: File | null },
+    ): Promise<{ batchId: string }> {
+        return adGenerationBatchClientAPI.createBatch(request, files);
     },
 };
 

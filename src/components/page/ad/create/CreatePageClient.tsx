@@ -8,9 +8,9 @@ import CreateForm from "@/components/page/ad/create/components/CreateForm";
 import {
     AdAspectRatio,
     AdUploadedComponent,
-} from "@/lib/api/client/ad/adClientAPI";
-import { adProjectClientAPI } from "@/lib/api/client/ad/adProjectClientAPI";
-import { postFormFetch } from "@/lib/api/client/baseFetch";
+} from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+import { adProjectClientAPI, BalanceExhaustedError } from "@/lib/api/client/ad/adProjectClientAPI";
+import { downscaleImageFile } from "@/lib/imageResize";
 
 function inferFileExtension(fileName: string): string {
     const ext = fileName.split('.').pop()?.toLowerCase() ?? 'png';
@@ -36,6 +36,7 @@ export default function CreatePageClient() {
     // 생성 진행
     const [isGenerating, setIsGenerating] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showUpsell, setShowUpsell] = useState(false);
 
     const hasSubject = useMemo(() => product !== null || person !== null, [product, person]);
 
@@ -75,6 +76,14 @@ export default function CreatePageClient() {
                   }
                 : null;
 
+            // 생성 + 원본 업로드를 multipart 1요청으로 (서버가 생성→업로드→specs 순 처리).
+            // 전송 전에 긴 변 1024px로 다운스케일 (미리보기는 원본 유지, 실제 전송만 축소).
+            // 근거: Gemini 768 타일·Flux 입력 1MP 상한·Replicate 입력 $0.014/MP
+            const [productFile, personFile, logoFile] = await Promise.all([
+                product?.file ? downscaleImageFile(product.file) : null,
+                person?.file ? downscaleImageFile(person.file) : null,
+                brandLogo?.file ? downscaleImageFile(brandLogo.file) : null,
+            ]);
             const { batchId } = await adProjectClientAPI.createProject({
                 productImage,
                 personImage,
@@ -83,33 +92,27 @@ export default function CreatePageClient() {
                 conceptCount,
                 ctaEnabled,
                 brandPalette: validPalette,
+            }, {
+                product: productFile,
+                person: personFile,
+                brandLogo: logoFile,
             });
-
-            // 원본 이미지 업로드 — batch 생성 직후 FormData로 전송 (gateway multipart 지원)
-            // 업로드는 실패해도 batch 생성 자체는 유효하므로 폴백 진행
-            const hasUpload = Boolean(product?.file || person?.file || brandLogo?.file);
-            if (hasUpload) {
-                try {
-                    const formData = new FormData();
-                    if (product?.file) formData.append('product', product.file);
-                    if (person?.file) formData.append('person', person.file);
-                    if (brandLogo?.file) formData.append('brand_logo', brandLogo.file);
-                    await postFormFetch(`/api/ad-generation-batches/${batchId}/images`, formData);
-                } catch (uploadError) {
-                    console.warn('[Create] original image upload failed, fallback to text-only:', uploadError);
-                }
-            }
 
             router.push(`/projects/${batchId}`);
         } catch (err) {
+            if (err instanceof BalanceExhaustedError) {
+                setShowUpsell(true);
+                setIsGenerating(false);
+                return;
+            }
             setError(err instanceof Error ? err.message : 'Failed to start generation. Please try again.');
             setIsGenerating(false);
         }
     }, [hasSubject, isGenerating, product, person, brandLogo, aspectRatios, conceptCount, ctaEnabled, brandPalette, router]);
 
     const hintText = !hasSubject
-        ? 'Add a product or person to start — the AI paints a different background for each creative.'
-        : 'Ready — each creative gets its own AI background. Success assets only are credited.';
+        ? 'Add a product or person to start. The AI paints a different background for each creative.'
+        : 'Ready. Each creative gets its own AI background. Success assets only are credited.';
 
     return (
         <>
@@ -174,6 +177,32 @@ export default function CreatePageClient() {
                     </button>
                 </div>
             </div>
+
+            {showUpsell && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+                    <div className="w-full max-w-sm rounded-2xl border border-hairline bg-surface p-8 text-center">
+                        <h2 className="text-xl font-bold tracking-tight text-text1">Out of images</h2>
+                        <p className="mt-3 text-[14px] leading-relaxed text-text2">
+                            You&apos;ve used all your images, including the free trial.
+                            Subscribe to keep creating. Unused images never expire.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => router.push('/#pricing')}
+                            className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-text1 px-6 py-3 text-[14px] font-semibold text-canvas"
+                        >
+                            View plans
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setShowUpsell(false)}
+                            className="mt-3 inline-flex w-full items-center justify-center rounded-full px-6 py-2.5 text-[13px] font-medium text-text2"
+                        >
+                            Not now
+                        </button>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

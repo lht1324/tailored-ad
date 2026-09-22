@@ -120,11 +120,12 @@ export const adGenerationBatchServerAPI = {
         return adGenerationBatchServerAPI.patchAdGenerationBatch(batchId, { status });
     },
 
-    // RPC - 프롬프트 산출물 저장 (imagePromptRecord + copy) — creative당 1회, 행 잠금
+    // RPC - 프롬프트 산출물 저장 (creativePrompt + copy) — creative당 1회
     async updateCreativePromptOutputs(
         batchId: string,
         creativeIndex: number,
-        imagePromptRecord: Record<string, string>,
+        creativePrompt: string,
+        baseRatio: string,
         copy: { headline: string | null; cta: string | null },
     ): Promise<void> {
         const supabase = createSupabaseServiceRoleClient();
@@ -132,7 +133,8 @@ export const adGenerationBatchServerAPI = {
         const { error } = await supabase.rpc('update_creative_prompt_outputs', {
             p_batch_id: batchId,
             p_creative_index: creativeIndex,
-            p_image_prompt_record: imagePromptRecord,
+            p_creative_prompt: creativePrompt,
+            p_base_ratio: baseRatio,
             p_copy: copy,
         });
 

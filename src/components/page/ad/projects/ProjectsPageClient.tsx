@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FolderOpen, Plus, RefreshCw } from 'lucide-react';
+import { FolderOpen, Loader2, Plus, RefreshCw } from 'lucide-react';
 import AppHeader from "@/components/page/ad/app-header/AppHeader";
 import ProjectCard from "@/components/page/ad/projects/components/ProjectCard";
 import { adProjectClientAPI } from "@/lib/api/client/ad/adProjectClientAPI";
 import { AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+import { buildProjectImageUrl } from "@/lib/projectImageUrl";
 import { supabase } from "@/lib/supabase/supabaseClient";
 
 type FilterKey = 'all' | 'running' | 'completed';
@@ -24,13 +25,18 @@ function isRunningStatus(status: string): boolean {
 export default function ProjectsPageClient() {
     const router = useRouter();
     const [projects, setProjects] = useState<AdGenerationBatch[]>([]);
-    const [thumbnailSignedUrls, setThumbnailSignedUrls] = useState<Record<string, string>>({});
+    const [thumbnailCreativeIndexes, setThumbnailCreativeIndexes] = useState<Record<string, number>>({});
     const [thumbnailRatioKeys, setThumbnailRatioKeys] = useState<Record<string, AdRatioKey>>({});
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [filter, setFilter] = useState<FilterKey>('all');
     const [hasMore, setHasMore] = useState(false);
+    const [headerReady, setHeaderReady] = useState(false);
+
+    const onHeaderUsageLoaded = useCallback(() => {
+        setHeaderReady(true);
+    }, []);
 
     const fetchProjects = useCallback(async (showRefreshing = false) => {
         if (showRefreshing) setIsRefreshing(true);
@@ -39,7 +45,7 @@ export default function ProjectsPageClient() {
         try {
             const data = await adProjectClientAPI.listProjects({ limit: 20, offset: 0 });
             setProjects(data.projects);
-            setThumbnailSignedUrls((data as unknown as { thumbnailSignedUrls?: Record<string, string> }).thumbnailSignedUrls ?? {});
+            setThumbnailCreativeIndexes((data as unknown as { thumbnailCreativeIndexes?: Record<string, number> }).thumbnailCreativeIndexes ?? {});
             setThumbnailRatioKeys((data as unknown as { thumbnailRatioKeys?: Record<string, AdRatioKey> }).thumbnailRatioKeys ?? {});
             setHasMore(data.pagination.count === 20);
         } catch (err) {
@@ -86,7 +92,7 @@ export default function ProjectsPageClient() {
                             fetchProjects(true);
                         } else if (payload.eventType === 'DELETE') {
                             setProjects((prev) => prev.filter((p) => p.id !== (payload.old as AdGenerationBatch).id));
-                            setThumbnailSignedUrls((prev) => {
+                            setThumbnailCreativeIndexes((prev) => {
                                 const next = { ...prev };
                                 delete next[(payload.old as AdGenerationBatch).id];
                                 return next;
@@ -115,6 +121,10 @@ export default function ProjectsPageClient() {
         router.push(`/projects/${projectId}`);
     }, [router]);
 
+    const onClickEditProject = useCallback((projectId: string) => {
+        router.push(`/projects/${projectId}/edit`);
+    }, [router]);
+
     const filtered = useMemo(() => {
         if (filter === 'all') return projects;
         if (filter === 'running') return projects.filter((p) => isRunningStatus(p.status));
@@ -125,9 +135,9 @@ export default function ProjectsPageClient() {
         try {
             const data = await adProjectClientAPI.listProjects({ limit: 20, offset: projects.length });
             setProjects((prev) => [...prev, ...data.projects]);
-            const moreThumbs = (data as unknown as { thumbnailSignedUrls?: Record<string, string> }).thumbnailSignedUrls ?? {};
+            const moreThumbs = (data as unknown as { thumbnailCreativeIndexes?: Record<string, number> }).thumbnailCreativeIndexes ?? {};
             const moreRatios = (data as unknown as { thumbnailRatioKeys?: Record<string, AdRatioKey> }).thumbnailRatioKeys ?? {};
-            setThumbnailSignedUrls((prev) => ({ ...prev, ...moreThumbs }));
+            setThumbnailCreativeIndexes((prev) => ({ ...prev, ...moreThumbs }));
             setThumbnailRatioKeys((prev) => ({ ...prev, ...moreRatios }));
             setHasMore(data.pagination.count === 20);
         } catch (err) {
@@ -137,7 +147,17 @@ export default function ProjectsPageClient() {
 
     return (
         <>
-            <AppHeader />
+            <AppHeader onUsageLoaded={onHeaderUsageLoaded} />
+
+            {/* 초기 로딩 전체 오버레이 — 목록+헤더 사용량 둘 다 끝나야 해제. 수동 Refresh 때는 띄우지 않음 */}
+            {(isLoading || !headerReady) && (
+                <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-canvas/80 backdrop-blur-sm">
+                    <Loader2 className="h-8 w-8 animate-spin text-text2" strokeWidth={1.8} />
+                    <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-text2">
+                        Loading projects…
+                    </p>
+                </div>
+            )}
 
             <main className="mx-auto max-w-[90rem] px-8 pb-24 pt-32">
                 <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
@@ -258,9 +278,12 @@ export default function ProjectsPageClient() {
                                 <ProjectCard
                                     key={project.id}
                                     project={project}
-                                    thumbnailUrl={thumbnailSignedUrls[project.id] ?? null}
+                                    thumbnailUrl={thumbnailRatioKeys[project.id] != null && thumbnailCreativeIndexes[project.id] != null
+                                        ? buildProjectImageUrl(project.id, thumbnailCreativeIndexes[project.id], thumbnailRatioKeys[project.id], 'list')
+                                        : null}
                                     thumbnailRatio={thumbnailRatioKeys[project.id] ?? null}
                                     onClick={() => onClickProject(project.id)}
+                                    onEdit={() => onClickEditProject(project.id)}
                                 />
                             ))}
                         </div>

@@ -1,8 +1,12 @@
 import { AdCopySpec, AdCreativeSpec, AdImageResult, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
-import { AdDesignLayout } from "@/lib/api/client/ad/adClientAPI";
+import { AdDesignLayout } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { cleanAndParseJSON } from "@/lib/utils/jsonUtils";
 import { OpenRouterClient, OpenRouterModel } from "@/lib/OpenRouterClient";
-import { POST_AD_CREATIVE_PROMPT } from "@/lib/llm-prompts/ad/POST_AD_CREATIVE_PROMPT";
+import {
+    POST_AD_CREATIVE_PROMPT,
+    PRODUCT_ONLY_CREATIVE_PROMPT,
+    PERSON_ONLY_CREATIVE_PROMPT,
+} from "@/lib/llm-prompts/ad/POST_AD_CREATIVE_PROMPT";
 import { POST_AD_IMAGE_ANALYSIS_PROMPT } from "@/lib/llm-prompts/ad/POST_AD_IMAGE_ANALYSIS_PROMPT";
 import { fontMap } from "@/lib/fonts";
 
@@ -10,16 +14,31 @@ import { fontMap } from "@/lib/fonts";
  * ad 도메인 전용 LLM 서버 API — creative 디렉터(텍스트) / Vision 분석(이미지) 분리.
  * 기존 llmServerAPI 패턴을 따른다.
  */
+
+/**
+ * 빈 응답 시 1회 재시도 (GLM이 추론만 하고 content 없이 끊기는 케이스 대응).
+ * PARSE_ERROR는 호출부에서 별도 판단 (재시도 의미 있음 — 호출부가 결정).
+ */
+async function completeWithRetry(
+    client: OpenRouterClient,
+    params: Parameters<OpenRouterClient["createCompletion"]>[0],
+    label: string,
+): Promise<string | null> {
+    const first = await client.createCompletion(params, label);
+    if (first) return first;
+    console.warn(`[${label}] empty response, retrying once`);
+    return client.createCompletion(params, `${label} (retry)`);
+}
 export const llmServerAPI = {
     /**
      * Creative 디렉터 — 코드가 배정한 5축 조합 + 유저 입력을 받아
-     * 비율별 캡션 레코드(imagePromptRecord) + 판매 카피(copy)를 1회 생성한다.
-     * 호출 단위 = creative마다 1회 (ad_variation_study.md §3).
+     * creative 1장 전용 프롬프트 1회 생성 — creativePrompt 문자열 + 판매 카피(copy).
+     * 호출 단위 = creative마다 1회.
      */
-    async postAdCreativePrompt(params: {
+    async postCreativeBaseImagePrompt(params: {
         creativeIndex: number;
         creativeSpec: AdCreativeSpec;
-        aspectRatios: AdRatioKey[];
+        baseRatio: AdRatioKey;
         productNote: string | null;
         personNote: string | null;
         ctaEnabled: boolean;
@@ -30,7 +49,7 @@ export const llmServerAPI = {
         brandLogoBase64?: string | null;
     }): Promise<{
         success: boolean;
-        imagePromptRecord?: Partial<Record<AdRatioKey, string>>;
+        creativePrompt?: string;
         copy?: AdCopySpec;
         reasoning?: string;
         ratioReasonings?: Partial<Record<AdRatioKey, string>>;
@@ -40,7 +59,7 @@ export const llmServerAPI = {
             const {
                 creativeIndex,
                 creativeSpec,
-                aspectRatios,
+                baseRatio,
                 productNote,
                 personNote,
                 ctaEnabled,
@@ -65,6 +84,14 @@ export const llmServerAPI = {
             const displayFonts = ['Anton', 'Archivo Black', 'Bebas Neue', 'Fredoka', 'Paytone One', 'Staatliches', 'Syne', 'Teko', 'Unbounded'];
             const availableFontsGrouped = `sans: ${sansFonts.join(', ')} | serif: ${serifFonts.join(', ')} | display: ${displayFonts.join(', ')}`;
 
+            // 모드 선확정: 해당 모드 노트 태그만 전송 (반대쪽은 태그째 생략)
+            const hasProductImage = Boolean(productImageBase64);
+            const hasPersonImage = Boolean(personImageBase64);
+            const noteLines = [
+                hasProductImage ? `  <product_note>${productNote ?? ""}</product_note>` : null,
+                hasPersonImage ? `  <person_note>${personNote ?? ""}</person_note>` : null,
+            ].filter((line): line is string => line !== null).join("\n");
+
             const userMessage = `
 <input_data>
   <creative_spec>
@@ -75,9 +102,8 @@ export const llmServerAPI = {
     <layout_tone>${creativeSpec.layout_tone}</layout_tone>
     <seed>${seed}</seed>
   </creative_spec>
-  <aspect_ratios>${JSON.stringify(aspectRatios)}</aspect_ratios>
-  <product_note>${productNote ?? ""}</product_note>
-  <person_note>${personNote ?? ""}</person_note>
+  <aspect_ratio>${baseRatio}</aspect_ratio>
+${noteLines}
   <cta_enabled>${ctaEnabled}</cta_enabled>
   <brand_palette>${brandPalette && brandPalette.length > 0 ? JSON.stringify(brandPalette) : "null"}</brand_palette>
   <brand_logo>${brandLogoBase64 ? 'true' : 'false'}</brand_logo>
@@ -90,12 +116,18 @@ ${attachedInfo}
 Instruction: Generate ratio-specific I2I captions and ad copy according to the system prompt.
 `;
 
+            const systemMessage = hasProductImage && hasPersonImage
+                ? POST_AD_CREATIVE_PROMPT
+                : hasPersonImage
+                    ? PERSON_ONLY_CREATIVE_PROMPT
+                    : PRODUCT_ONLY_CREATIVE_PROMPT;
+
             const client = new OpenRouterClient();
 
-            const generatedContent = await client.createCompletion(
+            const generatedContent = await completeWithRetry(client,
                 {
                     model: OpenRouterModel.GLM_5_3_FLASH,
-                    systemMessage: POST_AD_CREATIVE_PROMPT,
+                    systemMessage: systemMessage,
                     userMessage,
                     imageBase64List: imageBase64List.length > 0 ? imageBase64List : undefined,
                     imageDetail: "high",
@@ -119,7 +151,7 @@ Instruction: Generate ratio-specific I2I captions and ad copy according to the s
                 const parsed: {
                     reasoning: string;
                     ratio_reasonings: Partial<Record<AdRatioKey, string>>;
-                    image_prompt_record: Partial<Record<AdRatioKey, string>>;
+                    creative_prompt: string;
                     copy: AdCopySpec;
                 } = cleanAndParseJSON(generatedContent);
 
@@ -133,7 +165,7 @@ Instruction: Generate ratio-specific I2I captions and ad copy according to the s
 
                 return {
                     success: true,
-                    imagePromptRecord: parsed.image_prompt_record,
+                    creativePrompt: parsed.creative_prompt,
                     copy: parsed.copy,
                     reasoning: parsed.reasoning,
                     ratioReasonings: parsed.ratio_reasonings,
@@ -162,7 +194,7 @@ Instruction: Generate ratio-specific I2I captions and ad copy according to the s
     /**
      * Vision 분석 — creative에 속한 생성 이미지 묶음을 보고
      * 비율별 design(오버레이 지오메트리) + score(0.0~10.0)를 평가한다.
-     * 호출 단위 = creative 묶음 완료(isLastCreative) 시 1회, 모델 = QWEN_3_8_27B.
+     * 호출 단위 = creative 묶음 완료(isLastCreative) 시 1회, 모델 = GLM_5_3_FLASH.
      */
     async postAdImageAnalysis(params: {
         creativeIndex: number;
@@ -208,7 +240,7 @@ Each of the first ${imageInputs.length} images corresponds to the ratio at the s
 
             const client = new OpenRouterClient();
 
-            const generatedContent = await client.createCompletion(
+            const generatedContent = await completeWithRetry(client,
                 {
                     model: OpenRouterModel.GLM_5_3_FLASH,
                     systemMessage: POST_AD_IMAGE_ANALYSIS_PROMPT,

@@ -1,4 +1,11 @@
 import Replicate, { WebhookEventType } from "replicate";
+import { acquireReplicateSlot } from "@/lib/replicateRateLimit";
+import {
+    buildReplicateImageInput,
+    resolveImageInputTags,
+    ReplicateModelId,
+    type ImageInputTag,
+} from "@/lib/replicateInputMapper";
 
 /**
  * Replicate 클라이언트 — ad 이미지 생성(prediction 제출) 전용 래퍼.
@@ -10,20 +17,9 @@ import Replicate, { WebhookEventType } from "replicate";
  */
 
 /**
- * ad 이미지 편집에 쓰는 모델 — google 공식 모델은 {owner}/{name} 식별자로 최신 버전이 실행된다.
- * 모델 교체는 이 enum이면 충분하도록 입력 조립을 여기서 캡슐화한다.
+ * 모델 식별·입력 조립·태그 치환은 replicateInputMapper가 전담.
+ * 이 파일은 제출(비동기 prediction + 웹훅 + 레이트리밋)만 한다.
  */
-
-export enum ReplicateImageModelId {
-    /** Gemini 2.5 Flash Image — 원본. aspect_ratio 지원 */
-    NANO_BANANA = "google/nano-banana",
-    /** Gemini 3 Pro Image — SOTA. aspect_ratio·해상도(최대 4K) 지원 */
-    NANO_BANANA_PRO = "google/nano-banana-pro",
-    /** Gemini 3.1 Flash Image — 현재 올라운드 주력. aspect_ratio 지원 */
-    NANO_BANANA_2 = "google/nano-banana-2",
-    /** Gemini 3.1 Flash-Lite Image — 최저가·최저지연, 1K 출력 한정. aspect_ratio 지원 */
-    NANO_BANANA_2_LITE = "google/nano-banana-2-lite",
-}
 
 /** prediction 완료(성공·실패·취소 전부) 때만 웹훅을 받는다 */
 const WEBHOOK_EVENTS_FILTER: WebhookEventType[] = ["completed"];
@@ -41,14 +37,16 @@ function createReplicateInstance(): Replicate {
 }
 
 export interface AdImageEditPredictionParams {
-    /** 사용 모델 — 미지정 시 원본 nano-banana */
-    model?: ReplicateImageModelId;
-    /** I2I 지시문 — creative의 캡션(imagePromptRecord) */
+    /** I2I 지시문 — creative의 프롬프트(creativePrompt) */
     prompt: string;
     /** 참조 이미지 URL 목록 — [원본 상품/인물] 또는 [기준 이미지 + 원본] */
     imageUrls: string[];
     /** 출력 비율 ('9_16' → '9:16' 형태로 변환해서 전달) */
     aspectRatio?: string;
+    /** 배치 단위 판정 모델 (selectImageModel) — 미지정 시 5.0 Lite */
+    model?: ReplicateModelId;
+    /** image_input 배열의 태그 순서 — 캡션 내 태그 치환용. 미지정 시 치환 생략. */
+    imageTags?: ImageInputTag[];
     /** 완료 웹훅 URL — batch_id·creative_index 등 식별자를 query로 붙여서 전달 */
     webhookUrl: string;
 }
@@ -90,37 +88,87 @@ function collectOutputUrls(output: unknown): string[] {
     return [];
 }
 
+/** 429 판별 — SDK 버전별 에러 형태 차이 대비 */
+function isRateLimitError(error: unknown): boolean {
+    const direct = (error as { status?: unknown })?.status;
+    if (direct === 429) return true;
+    const nested = (error as { response?: { status?: unknown } })?.response?.status;
+    return nested === 429;
+}
+
+/** 서버가 준 Retry-After(초) 존중, 상한 10초 (waitUntil 30초 천장과 겹치지 않게) */
+function getRetryDelayMs(error: unknown, fallbackMs: number): number {
+    const CAP_MS = 10_000;
+    try {
+        const headers = (error as { response?: { headers?: unknown } })?.response?.headers;
+        let raw: string | null = null;
+        if (headers && typeof (headers as Headers).get === "function") {
+            raw = (headers as Headers).get("retry-after");
+        } else if (headers && typeof headers === "object") {
+            const record = headers as Record<string, unknown>;
+            const value = record["retry-after"] ?? record["Retry-After"];
+            if (typeof value === "string") raw = value;
+        }
+        const seconds = raw != null ? Number.parseInt(raw, 10) : Number.NaN;
+        if (!Number.isNaN(seconds) && seconds > 0) return Math.min(seconds * 1000, CAP_MS);
+    } catch {
+        /* header parse 실패 → fallback */
+    }
+    return fallbackMs;
+}
+
+function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+const MAX_SUBMIT_ATTEMPTS = 3; // 최초 1회 + 429 재시도 2회
+
 export const replicateClient = {
     /**
      * I2I 편집 prediction 제출 — 생성을 기다리지 않고 즉시 반환한다.
      * 완료는 webhookUrl로 도착한다.
+     *
+     * 제출 전 Upstash 스로틀 슬롯을 확보하고(429 사전 방지),
+     * 그래도 429를 맞으면 Retry-After를 존중해 최대 2회 재시도한다.
      */
     async postAdImageEditPrediction(params: AdImageEditPredictionParams): Promise<ReplicatePredictionSubmission> {
         const replicate = createReplicateInstance();
 
-        const input: Record<string, unknown> = {
-            prompt: params.prompt,
-        };
-
-        if (params.imageUrls.length > 0) {
-            input.image_input = params.imageUrls;
-        }
-
-        if (params.aspectRatio) {
-            input.aspect_ratio = params.aspectRatio.replace('_', ':');
-        }
-
-        const prediction = await replicate.predictions.create({
-            model: params.model ?? ReplicateImageModelId.NANO_BANANA,
-            input: input,
-            webhook: params.webhookUrl,
-            webhook_events_filter: WEBHOOK_EVENTS_FILTER,
+        const resolvedPrompt = params.imageTags
+            ? resolveImageInputTags(params.prompt, params.imageTags)
+            : params.prompt;
+        const model = params.model ?? ReplicateModelId.SEEDREAM_5_LITE;
+        const input = buildReplicateImageInput(model, {
+            prompt: resolvedPrompt,
+            imageUrls: params.imageUrls,
+            aspectRatio: params.aspectRatio,
         });
 
-        return {
-            predictionId: prediction.id,
-            status: prediction.status,
-        };
+        await acquireReplicateSlot();
+
+        let lastError: unknown = null;
+        for (let attempt = 1; attempt <= MAX_SUBMIT_ATTEMPTS; attempt++) {
+            try {
+                const prediction = await replicate.predictions.create({
+                    model: model,
+                    input: input,
+                    webhook: params.webhookUrl,
+                    webhook_events_filter: WEBHOOK_EVENTS_FILTER,
+                });
+
+                return {
+                    predictionId: prediction.id,
+                    status: prediction.status,
+                };
+            } catch (error) {
+                lastError = error;
+                if (!isRateLimitError(error) || attempt === MAX_SUBMIT_ATTEMPTS) throw error;
+                const waitMs = getRetryDelayMs(error, attempt === 1 ? 5000 : 10000);
+                console.warn(`[replicate] 429 throttled, retrying submit in ${waitMs}ms (attempt ${attempt + 1}/${MAX_SUBMIT_ATTEMPTS})`);
+                await sleep(waitMs);
+            }
+        }
+        throw lastError;
     },
 
     /**

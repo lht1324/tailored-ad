@@ -94,6 +94,8 @@ export const adImageServerAPI = {
 
     /**
      * 결과 이미지 1장의 signed URL — 확장자는 RPC 마커(imageFileExtension)에서 얻는다.
+     * transform 지정 시 Supabase image transformation URL로 발급 (표시용 경량본).
+     * 미지정 시 원본 (다운로드·에디터·파이프라인용).
      */
     async getAdResultImageSignedUrl(
         userId: string,
@@ -101,13 +103,14 @@ export const adImageServerAPI = {
         creativeIndex: number,
         ratioKey: AdRatioKey,
         imageFileExtension: string,
+        transform?: { width?: number; height?: number; quality?: number; resize?: 'cover' | 'contain' | 'fill' },
     ): Promise<string> {
         const supabase = createSupabaseServiceRoleClient();
         const filePath = getAdResultImagePath(userId, batchId, creativeIndex, ratioKey, imageFileExtension);
 
         const { data, error } = await supabase.storage
             .from(AD_IMAGE_STORAGE_BUCKET)
-            .createSignedUrl(filePath, 60 * 60 * 24);
+            .createSignedUrl(filePath, 60 * 60 * 24, transform ? { transform } : undefined);
 
         if (error || !data?.signedUrl) {
             throw new Error(

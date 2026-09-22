@@ -6,13 +6,13 @@ import { createClient } from '@supabase/supabase-js'
 export function createSupabaseServiceRoleClient() {
     if (
         !process.env.SUPABASE_URL ||
-        !process.env.SUPABASE_SERVICE_ROLE_KEY
+        !process.env.SUPABASE_SECRET_KEY
     ) {
         throw new Error('Supabase URL or Service Role Key is not set.')
     }
 
     return createClient(
         process.env.SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY
+        process.env.SUPABASE_SECRET_KEY
     )
 }

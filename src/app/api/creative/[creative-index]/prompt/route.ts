@@ -4,13 +4,14 @@ import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { internalFireAndForgetFetch } from "@/lib/utils/internalFetch";
 import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatchServerAPI";
 import { adImageServerAPI } from "@/lib/api/server/ad/imageServerAPI";
+import { selectBaseRatio } from "@/lib/api/server/ad/creativeCombinationSampler";
 import { llmServerAPI } from "@/lib/api/server/ad/llmServerAPI";
 import { fontMap } from "@/lib/fonts";
 import FONT_FAMILY_LIST from "@/lib/FontFamilyList";
 
 /**
  * Creative별 프롬프트(LLM) 단계 — Creative마다 1회 호출 (ad_variation_study.md §3).
- * 코드가 배정한 5축 조합 + 사용자 입력을 받아 비율별 캡션 레코드(imagePromptRecord)와
+ * 코드가 배정한 5축 조합 + 사용자 입력을 받아 creative 프롬프트(creativePrompt)와
  * 판매 카피(headline/CTA, headline은 조건부 — 무헤드라인 원본 렌더도 지원)를 한 번에 생성한다.
  */
 export async function POST(
@@ -47,9 +48,9 @@ export async function POST(
     }
 
     try {
-        const batch = await adGenerationBatchServerAPI.getAdGenerationBatchById(batchId);
+        const adGenerationBatch = await adGenerationBatchServerAPI.getAdGenerationBatchById(batchId);
 
-        if (!batch) {
+        if (!adGenerationBatch) {
             return getNextBaseResponse({
                 success: false,
                 status: 400,
@@ -57,9 +58,9 @@ export async function POST(
             });
         }
 
-        const creativeSpec = batch.ad_creative_specs[creativeIndex];
+        const adCreativeSpec = adGenerationBatch.ad_creative_specs[creativeIndex];
 
-        if (!creativeSpec || creativeSpec.creativeIndex !== creativeIndex) {
+        if (!adCreativeSpec || adCreativeSpec.creativeIndex !== creativeIndex) {
             return getNextBaseResponse({
                 success: false,
                 status: 400,
@@ -72,7 +73,7 @@ export async function POST(
         let personImageBase64: string | null = null;
         let brandLogoBase64: string | null = null;
         try {
-            const originalUrls = await adImageServerAPI.getAdOriginalImageSignedUrls(batch);
+            const originalUrls = await adImageServerAPI.getAdOriginalImageSignedUrls(adGenerationBatch);
             let urlIdx = 0;
             const fetchBase64 = async (url: string) => {
                 const res = await fetch(url);
@@ -80,18 +81,18 @@ export async function POST(
                 const buf = await res.arrayBuffer();
                 return Buffer.from(buf).toString('base64');
             };
-            if (batch.product_image) {
+            if (adGenerationBatch.product_image) {
                 const url = originalUrls[urlIdx++];
                 if (url) productImageBase64 = await fetchBase64(url);
             }
-            if (batch.person_image) {
+            if (adGenerationBatch.person_image) {
                 const url = originalUrls[urlIdx++];
                 if (url) personImageBase64 = await fetchBase64(url);
             }
-            if ((batch as unknown as { brand_logo?: { imageFileExtension?: string } | null }).brand_logo) {
-                const brandLogoRecord = (batch as unknown as { brand_logo: { imageFileExtension: string } }).brand_logo;
+            if ((adGenerationBatch as unknown as { brand_logo?: { imageFileExtension?: string } | null }).brand_logo) {
+                const brandLogoRecord = (adGenerationBatch as unknown as { brand_logo: { imageFileExtension: string } }).brand_logo;
                 try {
-                    const brandLogoUrl = await adImageServerAPI.getBatchBrandLogoSignedUrl(batch.user_id, batch.id, brandLogoRecord.imageFileExtension);
+                    const brandLogoUrl = await adImageServerAPI.getBatchBrandLogoSignedUrl(adGenerationBatch.user_id, adGenerationBatch.id, brandLogoRecord.imageFileExtension);
                     brandLogoBase64 = await fetchBase64(brandLogoUrl);
                 } catch (e) {
                     console.warn(`[prompt] failed to fetch brand logo for batch ${batchId}:`, e);
@@ -101,22 +102,24 @@ export async function POST(
             console.warn(`[prompt] failed to fetch original images for batch ${batchId} creative ${creativeIndex}:`, e);
         }
 
-        // 1) GLM 5.3 Flash 호출 — 5축 + aspect_ratios + notes + cta + brandPalette + brandLogo + seed + images
-        const llmResult = await llmServerAPI.postAdCreativePrompt({
+        // 1) GLM 5.3 Flash 호출 — 5축 + aspect_ratios + base_ratio + notes + cta + brandPalette + brandLogo + seed + images
+        //    creative 프롬프트(creative_prompt 문자열) 1장 발주
+        const baseRatio = selectBaseRatio(adGenerationBatch.aspect_ratios);
+        const llmResult = await llmServerAPI.postCreativeBaseImagePrompt({
             creativeIndex,
-            creativeSpec,
-            aspectRatios: batch.aspect_ratios,
-            productNote: batch.product_image?.note ?? null,
-            personNote: batch.person_image?.note ?? null,
-            ctaEnabled: batch.cta_enabled,
-            brandPalette: batch.brand_palette ?? null,
-            seed: creativeSpec.seed,
+            creativeSpec: adCreativeSpec,
+            baseRatio,
+            productNote: adGenerationBatch.product_image?.note ?? null,
+            personNote: adGenerationBatch.person_image?.note ?? null,
+            ctaEnabled: adGenerationBatch.cta_enabled,
+            brandPalette: adGenerationBatch.brand_palette ?? null,
+            seed: adCreativeSpec.seed,
             productImageBase64,
             personImageBase64,
             brandLogoBase64,
         });
 
-        if (!llmResult.success || !llmResult.imagePromptRecord || !llmResult.copy) {
+        if (!llmResult.success || !llmResult.creativePrompt || !llmResult.copy) {
             console.error(`[prompt] LLM failed creative #${creativeIndex} batch ${batchId}:`, llmResult.error);
 
             // fail-soft: creative 단위 실패는 배치 전체 failed로 전이하지 않음 — 호출자가 재시도
@@ -155,12 +158,12 @@ export async function POST(
             llmResult.copy.headlineColor = 'white';
         }
 
-        // 2) RPC로 저장 — imagePromptRecord + copy (headline nullable, cta nullable)
-        //    B안 키(imagePromptRecord) 우선, 구 키(imageSpecs) 폴백은 RPC에서 처리
+        // 2) RPC로 저장 — creativePrompt + copy
         await adGenerationBatchServerAPI.updateCreativePromptOutputs(
             batchId,
             creativeIndex,
-            llmResult.imagePromptRecord as Record<string, string>,
+            llmResult.creativePrompt,
+            baseRatio,
             llmResult.copy,
         );
 
@@ -171,19 +174,10 @@ export async function POST(
             throw new Error("BASE_URL is not configured.");
         }
 
-        if (batch.aspect_ratios.length === 1) {
-            // 직통: 비율 1개 → ratios가 원본 참조로 1장 제출
-            internalFireAndForgetFetch(
-                `${baseUrl}/api/image/generation/ratios?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}`,
-                { method: "POST" },
-            );
-        } else {
-            // 복수: 기준 1장 먼저 → webhook/process가 나머지 ratios 팬아웃
-            internalFireAndForgetFetch(
-                `${baseUrl}/api/image/generation/base?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}`,
-                { method: "POST" },
-            );
-        }
+        internalFireAndForgetFetch(
+            `${baseUrl}/api/image/generation/base?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}`,
+            { method: "POST" },
+        )
 
         return getNextBaseResponse({
             success: true,
@@ -191,7 +185,7 @@ export async function POST(
             message: "Creative prompt generated and generation dispatched.",
             data: {
                 creativeIndex,
-                imagePromptRecord: llmResult.imagePromptRecord,
+                creativePrompt: llmResult.creativePrompt,
                 copy: llmResult.copy,
             },
         });

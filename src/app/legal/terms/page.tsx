@@ -4,10 +4,10 @@ import { LegalDataType } from "@/components/page/legal/LegalDataType";
 
 export const metadata: Metadata = {
     title: 'Terms of Service',
-    description: 'Read TailorAd Terms of Service. User rights and responsibilities.',
+    description: 'Read TailoredAd Terms of Service. User rights and responsibilities.',
     openGraph: {
-        title: 'Terms of Service - TailorAd',
-        description: 'Read TailorAd Terms of Service. User rights and responsibilities.',
+        title: 'Terms of Service - TailoredAd',
+        description: 'Read TailoredAd Terms of Service. User rights and responsibilities.',
         url: 'https://tailoredad.com/legal/terms',
     },
     alternates: {

@@ -1,18 +1,60 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, AlertTriangle, CheckCircle2, Clock, Download, Layers, Loader2, Palette, RefreshCw } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, CheckCircle2, Clock, Layers, Loader2, Palette, Pencil, RefreshCw } from 'lucide-react';
 import AppHeader from "@/components/page/ad/app-header/AppHeader";
 import CreativeRow from "@/components/page/ad/projects/[projectId]/components/CreativeRow";
 import AdLightboxModal from "@/components/page/ad/projects/[projectId]/components/AdLightboxModal";
+import DownloadMenuButton from "@/components/page/ad/projects/[projectId]/components/DownloadMenuButton";
+import { downloadItemsAsZip, downloadRawItemsAsZip, type CompositeDownloadOptions, type RawDownloadItem } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
+import { fontMap } from "@/lib/fonts";
 import { adProjectClientAPI, getProjectProgress } from "@/lib/api/client/ad/adProjectClientAPI";
-import { AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
-import { AdDesignLayout } from "@/lib/api/client/ad/adClientAPI";
+import { buildProjectImageUrl } from "@/lib/projectImageUrl";
+import { AdCreativeResult, AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+import { AdDesignLayout } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { supabase } from "@/lib/supabase/supabaseClient";
 
 type DetailStatus = 'loading' | 'ready' | 'error';
+
+type SortMode = 'best' | 'avg' | 'index';
+
+function parseTileKey(tileKey: string): { creativeIndex: number; ratioKey: string } {
+    const sep = tileKey.indexOf('_');
+    if (sep === -1) return { creativeIndex: Number.NaN, ratioKey: '' };
+    return { creativeIndex: parseInt(tileKey.slice(0, sep), 10), ratioKey: tileKey.slice(sep + 1) };
+}
+
+// 타일 프리뷰와 동일한 입력으로 합성 아이템 조립 (완성 타일이 아니면 null)
+// — 선택바·전체 다운로드가 같은 기준으로 묶이도록 공용화
+function buildCompositeItem(
+    projectShortId: string,
+    creativeIndex: number,
+    ratioKey: string,
+    result: AdCreativeResult | null | undefined,
+    imageUrl: string,
+    brandLogoUrl: string | null,
+): CompositeDownloadOptions | null {
+    const ir = result?.imageResults?.[ratioKey as AdRatioKey] as unknown as { design?: AdDesignLayout | null; error?: unknown } | undefined;
+    const design = (ir?.design as AdDesignLayout) ?? null;
+    if (!design || ir?.error) return null;
+    const copy = result?.copy as unknown as { fontFamily?: string | null; fontWeight?: number | null; headlineColor?: string | null } | undefined;
+    const rawName = copy?.fontFamily as string | undefined;
+    const resolved = rawName ? (fontMap as Record<string, { style: { fontFamily: string } }>)[rawName] : undefined;
+    const designColor = (design.headline as unknown as { color?: string } | null)?.color;
+    return {
+        projectShortId,
+        imageUrl,
+        design,
+        ratioKey,
+        creativeIndex,
+        headlineFontFamily: resolved ? resolved.style.fontFamily : null,
+        headlineFontWeight: typeof copy?.fontWeight === 'number' ? copy.fontWeight : null,
+        headlineColor: designColor ?? copy?.headlineColor ?? null,
+        brandLogoUrl,
+    };
+}
 
 export default function ProjectDetailPageClient({ projectId }: { projectId: string }) {
     const router = useRouter();
@@ -22,34 +64,50 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
     const [status, setStatus] = useState<DetailStatus>('loading');
     const [error, setError] = useState<string | null>(null);
     const [isPolling, setIsPolling] = useState(false);
-    const [selectedKey, setSelectedKey] = useState<string | null>(null);
     const [lightboxKey, setLightboxKey] = useState<string | null>(null);
+    const [isPreparingAll, setIsPreparingAll] = useState(false);
+    const [isPreparingRaw, setIsPreparingRaw] = useState(false);
+    const [allProgress, setAllProgress] = useState<{ done: number; total: number; phase: 'render' | 'zip' } | null>(null);
+    const [allResult, setAllResult] = useState<string | null>(null);
+    const [rawProgress, setRawProgress] = useState<{ done: number; total: number; phase: 'render' | 'zip' } | null>(null);
+    const [rawResult, setRawResult] = useState<string | null>(null);
+    const [sortMode, setSortMode] = useState<SortMode>('best');
 
-    const fetchProject = useCallback(async (showPolling = false) => {
+    // 겹친 fetch는 마지막 것만 반영한다 (StrictMode 이중 마운트·폴링 겹침 대비).
+    // 이전 방식(진행 중이면 새 호출 버리기)은 취소된 호출의 응답까지 버려져
+    // 화면이 영원히 loading에 갇혔음. 버리지 말고 덮어쓴다.
+    const fetchRequestIdRef = useRef(0);
+
+    const fetchProject = useCallback(async (showPolling = false, options?: { isInitial?: boolean; isCancelled?: () => boolean }) => {
+        const requestId = fetchRequestIdRef.current + 1;
+        fetchRequestIdRef.current = requestId;
+        const isStale = () => requestId !== fetchRequestIdRef.current || options?.isCancelled?.() === true;
         if (showPolling) setIsPolling(true);
         try {
             const data = await adProjectClientAPI.getProject(projectId);
+            if (isStale()) return;
             setProject(data.project);
             setSignedUrls(data.signedUrls);
-            setBrandLogoSignedUrl((data as unknown as { brandLogoSignedUrl?: string | null }).brandLogoSignedUrl ?? null);
+            setBrandLogoSignedUrl(data.brandLogoSignedUrl ?? null);
             setStatus('ready');
             setError(null);
         } catch (err) {
+            if (isStale()) return;
             setError(err instanceof Error ? err.message : 'Failed to load project');
-            setStatus('error');
+            if (options?.isInitial) setStatus('error');
         } finally {
-            setIsPolling(false);
+            if (!isStale()) setIsPolling(false);
         }
     }, [projectId]);
 
     useEffect(() => {
         let cancelled = false;
-        const run = async () => {
+        // 동기 setState는 lint(react-hooks/set-state-in-effect) 위반이라 콜백 안으로
+        void Promise.resolve().then(() => {
             if (cancelled) return;
             setStatus('loading');
-            await fetchProject(false);
-        };
-        void run();
+            void fetchProject(false, { isInitial: true, isCancelled: () => cancelled });
+        });
         return () => {
             cancelled = true;
         };
@@ -65,11 +123,12 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
     useEffect(() => {
         if (status !== 'ready') return;
 
+        let cancelled = false;
         let channel: ReturnType<typeof supabase.channel> | null = null;
 
         (async () => {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+            if (cancelled || !user) return;
 
             channel = supabase
                 .channel(`ad-batch-${projectId}-${Math.random().toString(36).slice(2, 6)}`)
@@ -85,18 +144,10 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
         })();
 
         return () => {
+            cancelled = true;
             if (channel) supabase.removeChannel(channel);
         };
     }, [projectId, status, fetchProject]);
-
-    // Realtime 끊김 대비 폴링 안전망 — running일 때만 4초 간격
-    useEffect(() => {
-        if (!isRunning || status !== 'ready') return;
-        const intervalId = window.setInterval(() => {
-            fetchProject(true);
-        }, 4000);
-        return () => window.clearInterval(intervalId);
-    }, [isRunning, status, fetchProject]);
 
     const progress = useMemo(() => {
         if (!project) return null;
@@ -115,54 +166,182 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
         // concept_count 범위 내에서 creative 0..count-1 모두 생성 (spec 없는 것도 pending으로 표시)
         const indices = Array.from({ length: count }, (_, i) => i);
 
-        // 완료된 건 best score 내림차순, 그 외는 인덱스순 — but running 중엔 인덱스순 유지가 덜 혼란
-        const withScores = indices.map((idx) => {
+        // 점수 집계 — best(천장) + avg(완성분 평균, 실패·pending 제외)
+        const creativeScores = indices.map((idx) => {
             const r = mapResult.get(idx);
             let best: number | null = null;
-            if (r) {
+            let sum = 0;
+            let scored = 0;
+            if (r?.imageResults) {
                 for (const rk of project.aspect_ratios) {
                     const ir = (r.imageResults as Record<string, { score?: number | null }>)[rk as string];
-                    if (ir?.score != null && (best == null || ir.score > best)) best = ir.score;
+                    if (ir?.score != null) {
+                        if (best == null || ir.score > best) best = ir.score;
+                        sum += ir.score;
+                        scored += 1;
+                    }
                 }
             }
-            return { idx, best };
+            return { idx, best, avg: scored > 0 ? sum / scored : null, scored };
         });
 
-        const shouldSortByScore = !isRunning && withScores.some((x) => x.best != null);
-        const ordered = shouldSortByScore
-            ? [...withScores].sort((a, b) => (b.best ?? -1) - (a.best ?? -1) || a.idx - b.idx).map((x) => x.idx)
+        // running 중엔 인덱스순 유지가 덜 혼란 (완성될 때마다 순서가 춤추는 것 방지)
+        const hasAnyScore = creativeScores.some((x) => x.best != null);
+        const ordered = !isRunning && hasAnyScore && sortMode !== 'index'
+            ? [...creativeScores]
+                .sort((a, b) => sortMode === 'avg'
+                    ? (b.avg ?? -1) - (a.avg ?? -1) || (b.best ?? -1) - (a.best ?? -1) || a.idx - b.idx
+                    : (b.best ?? -1) - (a.best ?? -1) || a.idx - b.idx)
+                .map((x) => x.idx)
             : indices;
 
+        const mapScore = new Map(creativeScores.map((s) => [s.idx, s]));
         return ordered.map((idx) => ({
             creativeIndex: idx,
             spec: mapSpec.get(idx) ?? null,
             result: mapResult.get(idx) ?? null,
+            avg: mapScore.get(idx)?.avg ?? null,
+            scored: mapScore.get(idx)?.scored ?? 0,
         }));
-    }, [project, isRunning]);
+    }, [project, isRunning, sortMode]);
 
-    const onSelectTile = useCallback((key: string) => {
-        setSelectedKey(key);
-    }, []);
+    const hasAnyScore = useMemo(() => {
+        if (!project) return false;
+        return (project.ad_creative_results ?? []).some((r) =>
+            project.aspect_ratios.some((rk) => {
+                const ir = (r.imageResults as Record<string, { score?: number | null }> | undefined)?.[rk as string];
+                return ir?.score != null;
+            }),
+        );
+    }, [project]);
 
     const onExpandTile = useCallback((key: string) => {
         setLightboxKey(key);
-        setSelectedKey(key);
     }, []);
 
     const onCloseLightbox = useCallback(() => {
         setLightboxKey(null);
     }, []);
 
-    const totalAssets = project ? project.concept_count * project.aspect_ratios.length : 0;
+    const onClickEditFromLightbox = useCallback(() => {
+        if (!lightboxKey) return;
+        const { creativeIndex: cIdx, ratioKey } = parseTileKey(lightboxKey);
+        if (Number.isNaN(cIdx)) return;
+        router.push(`/projects/${projectId}/edit?creative=${cIdx}&ratio=${encodeURIComponent(ratioKey)}`);
+    }, [lightboxKey, router, projectId]);
+
+    const onChangeSort = useCallback((e: ChangeEvent<HTMLSelectElement>) => {
+        setSortMode(e.target.value as SortMode);
+    }, []);
 
     const onClickBack = useCallback(() => {
         router.push('/projects');
     }, [router]);
 
+    const onClickRefresh = useCallback(() => {
+        fetchProject(true);
+    }, [fetchProject]);
+
+    const onClickOpenEditor = useCallback(() => {
+        router.push(`/projects/${projectId}/edit`);
+    }, [router, projectId]);
+
+    // 전체 다운로드 — 완성 타일만 ZIP
+    const allCompletedItems = useMemo(() => {
+        if (!project) return [];
+        const items: CompositeDownloadOptions[] = [];
+        for (const { creativeIndex, result } of sortedCreatives) {
+            for (const rk of project.aspect_ratios) {
+                const url = signedUrls[`${creativeIndex}_${rk}`];
+                if (!url) continue;
+                const item = buildCompositeItem(project.id.slice(0, 6), creativeIndex, rk, result, url, brandLogoSignedUrl);
+                if (item) items.push(item);
+            }
+        }
+        return items;
+    }, [project, sortedCreatives, signedUrls, brandLogoSignedUrl]);
+
+    const onClickDownloadAll = useCallback(async () => {
+        if (allCompletedItems.length === 0 || isPreparingAll) return;
+        setIsPreparingAll(true);
+        setAllResult(null);
+        setAllProgress({ done: 0, total: allCompletedItems.length, phase: 'render' });
+        try {
+            const { saved, total } = await downloadItemsAsZip(
+                allCompletedItems,
+                `tailored-ad-${project?.id.slice(0, 6) ?? 'project'}-finals.zip`,
+                (p) => setAllProgress({ done: p.done, total: p.total, phase: p.phase }),
+            );
+            setAllResult(`Saved ${saved}/${total}`);
+        } catch (err) {
+            console.error('download all failed', err);
+            setAllResult('Download failed');
+        } finally {
+            setIsPreparingAll(false);
+        }
+    }, [allCompletedItems, isPreparingAll, project]);
+
+    // 원본 벌크 — 합성 없이 저장 파일 그대로 (design 없어도 URL+무에러면 포함)
+    const rawCompletedItems = useMemo(() => {
+        if (!project) return [];
+        const items: RawDownloadItem[] = [];
+        for (let idx = 0; idx < project.concept_count; idx++) {
+            const result = sortedCreatives.find((c) => c.creativeIndex === idx)?.result ?? null;
+            for (const rk of project.aspect_ratios) {
+                const url = signedUrls[`${idx}_${rk}`];
+                if (!url) continue;
+                const ir = result?.imageResults?.[rk as AdRatioKey] as unknown as { error?: unknown } | undefined;
+                if (ir?.error) continue;
+                items.push({ projectShortId: project.id.slice(0, 6), imageUrl: url, creativeIndex: idx, ratioKey: rk as string });
+            }
+        }
+        return items;
+    }, [project, sortedCreatives, signedUrls]);
+
+    const onClickDownloadOriginals = useCallback(async () => {
+        if (rawCompletedItems.length === 0 || isPreparingRaw) return;
+        setIsPreparingRaw(true);
+        setRawResult(null);
+        setRawProgress({ done: 0, total: rawCompletedItems.length, phase: 'render' });
+        try {
+            const { saved, total, skipped } = await downloadRawItemsAsZip(
+                rawCompletedItems,
+                `tailored-ad-${project?.id.slice(0, 6) ?? 'project'}-originals.zip`,
+                (p) => setRawProgress({ done: p.done, total: p.total, phase: p.phase }),
+            );
+            setRawResult(`Saved ${saved}/${total}${skipped > 0 ? ` (${skipped} skipped)` : ''}`);
+        } catch (err) {
+            console.error('download originals failed', err);
+            setRawResult('Download failed');
+        } finally {
+            setIsPreparingRaw(false);
+        }
+    }, [rawCompletedItems, isPreparingRaw, project]);
+
+    const totalAssets = useMemo(() => {
+        if (!project) return 0;
+        return project.concept_count * project.aspect_ratios.length;
+    }, [project]);
+
+    const hasFailure = useMemo(() => {
+        return (progress?.failed ?? 0) > 0;
+    }, [progress]);
+
+    const isCompleted = useMemo(() => {
+        if (!project) return false;
+        return project.status === 'completed';
+    }, [project]);
+
     if (status === 'loading') {
         return (
             <>
                 <AppHeader />
+                <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-canvas/80 backdrop-blur-sm">
+                    <Loader2 className="h-8 w-8 animate-spin text-text2" strokeWidth={1.8} />
+                    <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-text2">
+                        Loading project…
+                    </p>
+                </div>
                 <main className="mx-auto max-w-[90rem] px-8 pb-24 pt-32">
                     <div className="animate-pulse space-y-6">
                         <div className="h-6 w-32 rounded bg-canvas" />
@@ -197,9 +376,6 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
             </>
         );
     }
-
-    const hasFailure = progress.failed > 0;
-    const isCompleted = project.status === 'completed';
 
     return (
         <>
@@ -269,18 +445,71 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
                             </p>
                         </div>
 
-                        <div className="flex shrink-0 items-center gap-2">
+                        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                            {allResult && !isPreparingAll && (
+                                <span className="font-mono text-[11px] text-text2">{allResult}</span>
+                            )}
+                            {rawResult && !isPreparingRaw && (
+                                <span className="font-mono text-[11px] text-text2">{rawResult}</span>
+                            )}
+                            <DownloadMenuButton
+                                items={[
+                                    {
+                                        key: 'composed',
+                                        label: 'Final',
+                                        hint: `${allCompletedItems.length} images · ZIP`,
+                                        icon: 'text',
+                                        disabled: allCompletedItems.length === 0,
+                                        onSelect: onClickDownloadAll,
+                                    },
+                                    {
+                                        key: 'raw',
+                                        label: 'Originals',
+                                        hint: `${rawCompletedItems.length} images · ZIP`,
+                                        icon: 'image',
+                                        disabled: rawCompletedItems.length === 0,
+                                        onSelect: onClickDownloadOriginals,
+                                    },
+                                ]}
+                                disabled={allCompletedItems.length === 0 && rawCompletedItems.length === 0}
+                                busy={isPreparingAll || isPreparingRaw}
+                                busyLabel={
+                                    isPreparingAll
+                                        ? allProgress?.phase === 'zip'
+                                            ? 'Compressing…'
+                                            : `Preparing ${allProgress?.done ?? 0}/${allProgress?.total ?? allCompletedItems.length}…`
+                                        : isPreparingRaw
+                                            ? rawProgress?.phase === 'zip'
+                                                ? 'Compressing…'
+                                                : `Preparing ${rawProgress?.done ?? 0}/${rawProgress?.total ?? rawCompletedItems.length}…`
+                                            : undefined
+                                }
+                            />
                             <button
                                 type="button"
-                                onClick={() => fetchProject(true)}
+                                onClick={onClickRefresh}
                                 disabled={isPolling}
                                 className="inline-flex items-center gap-2 rounded-full border border-hairline bg-canvas px-4 py-2 text-[13px] font-medium text-text1 hover:bg-surface disabled:opacity-50"
                             >
                                 <RefreshCw className={`h-4 w-4 ${isPolling ? 'animate-spin' : ''}`} strokeWidth={1.8} />
                                 Refresh
                             </button>
+                            <button
+                                type="button"
+                                onClick={onClickOpenEditor}
+                                className="inline-flex items-center gap-2 rounded-full border border-hairline bg-canvas px-4 py-2 text-[13px] font-medium text-text1 hover:bg-surface"
+                            >
+                                <Pencil className="h-4 w-4" strokeWidth={1.8} />
+                                Editor
+                            </button>
                         </div>
                     </div>
+
+                    {error && (
+                        <div className="border-t border-hairline bg-amber-500/10 px-6 py-2.5 text-[12px] text-amber-700 dark:text-amber-300">
+                            Refresh failed: {error} · showing last loaded data.
+                        </div>
+                    )}
 
                     {/* 진행 바 */}
                     <div className="h-1.5 w-full bg-canvas">
@@ -303,9 +532,28 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
                     </div>
                 </div>
 
-                {/* Creative 리스트 */}
-                <div className="mt-8 space-y-5">
-                    {sortedCreatives.map(({ creativeIndex, spec, result }) => (
+                {/* Creative 리스트 — 정렬 툴바 */}
+                <div className="mt-8 mb-3 flex items-center justify-between">
+                    <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-text2">
+                        {sortedCreatives.length} creatives
+                    </p>
+                    <label className="inline-flex items-center gap-2 text-[12px] text-text2">
+                        Sort
+                        <select
+                            value={sortMode}
+                            onChange={onChangeSort}
+                            disabled={isRunning || !hasAnyScore}
+                            title={isRunning ? 'Sorting available when generation completes' : 'Sort creatives'}
+                            className="rounded-full border border-hairline bg-surface px-3 py-1.5 text-[12px] text-text1 disabled:opacity-50"
+                        >
+                            <option value="best">Best score</option>
+                            <option value="avg">Average score</option>
+                            <option value="index">Creative order</option>
+                        </select>
+                    </label>
+                </div>
+                <div className="space-y-5">
+                    {sortedCreatives.map(({ creativeIndex, spec, result, avg, scored }) => (
                         <CreativeRow
                             key={creativeIndex}
                             creativeIndex={creativeIndex}
@@ -315,56 +563,28 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
                             signedUrls={signedUrls}
                             brandLogoUrl={brandLogoSignedUrl}
                             isProjectRunning={isRunning}
-                            selectedKey={selectedKey}
-                            onSelectTile={onSelectTile}
                             onExpandTile={onExpandTile}
+                            avgScore={avg}
+                            scoredCount={scored}
                         />
                     ))}
                 </div>
 
-                {/* 선택된 타일 디테일 — 간단 다운로드 바 */}
-                {selectedKey && (() => {
-                    const sep = selectedKey.indexOf('_');
-                    const cIdxStr = sep === -1 ? selectedKey : selectedKey.slice(0, sep);
-                    const ratioKey = sep === -1 ? '' : selectedKey.slice(sep + 1);
-                    const cIdx = parseInt(cIdxStr, 10);
-                    const url = signedUrls[selectedKey];
-                    if (!url) return null;
-                    const ratioLabel = (ratioKey as string).replace('_', ':');
-                    return (
-                        <div className="mt-6 flex items-center justify-between gap-4 rounded-[1.25rem] border border-hairline bg-surface px-5 py-4">
-                            <div>
-                                <p className="text-[13px] font-medium text-text1">Creative {String(cIdx + 1).padStart(2, '0')} · {ratioLabel} selected</p>
-                                <p className="mt-0.5 font-mono text-[11px] text-text2">Signed URL expires in 24h · downloads unlimited</p>
-                            </div>
-                            <a
-                                href={url}
-                                download={`tailorad-project-${project.id.slice(0, 6)}-c${cIdx + 1}-${ratioLabel}.png`}
-                                className="inline-flex items-center gap-2 rounded-full bg-text1 px-5 py-2.5 text-[13px] font-semibold text-canvas hover:scale-[1.02] active:scale-[0.98] transition-transform"
-                            >
-                                <Download className="h-4 w-4" strokeWidth={1.8} />
-                                Download {ratioLabel}
-                            </a>
-                        </div>
-                    );
-                })()}
-
                 {/* 라이트박스 — WorkspaceEditor와 동일 패턴 */}
                 {lightboxKey && (() => {
-                    const url = signedUrls[lightboxKey];
-                    if (!url) return null;
-                    const sep2 = lightboxKey.indexOf('_');
-                    const cIdxStr = sep2 === -1 ? lightboxKey : lightboxKey.slice(0, sep2);
-                    const ratioKey = sep2 === -1 ? '' : lightboxKey.slice(sep2 + 1);
-                    const cIdx = parseInt(cIdxStr, 10);
-                    const ratioLabel = (ratioKey as string).replace('_', ':');
+                    const { creativeIndex: cIdx, ratioKey } = parseTileKey(lightboxKey);
+                    if (Number.isNaN(cIdx)) return null;
+                    const url = buildProjectImageUrl(projectId, cIdx, ratioKey, 'full');
+                    const ratioLabel = ratioKey.replace('_', ':');
                     const creative = sortedCreatives.find((c) => c.creativeIndex === cIdx);
                     const ir = creative?.result?.imageResults?.[ratioKey as AdRatioKey] as { design?: import("@/lib/api/types/supabase/ad/AdGenerationBatch").AdImageResult['design']; score?: number | null } | undefined;
-                    const copyForLightbox = creative?.result?.copy as unknown as { fontFamily?: string | null; fontWeight?: number | null; headlineColor?: 'white' | 'black' | null } | undefined;
-                    const designHeadlineColor = (ir as unknown as { design?: { headline?: { color?: string | null } } })?.design?.headline?.color as 'white' | 'black' | null | undefined;
+                    const copyForLightbox = creative?.result?.copy as unknown as { fontFamily?: string | null; fontWeight?: number | null; headlineColor?: string | null } | undefined;
+                    const designHeadlineColor = (ir as unknown as { design?: { headline?: { color?: string | null } } })?.design?.headline?.color as string | null | undefined;
                     return (
                         <AdLightboxModal
                             imageUrl={url}
+                            projectShortId={project.id.slice(0, 6)}
+                            ratioKey={ratioKey}
                             ratioLabel={ratioLabel}
                             creativeIndex={cIdx}
                             design={(ir?.design as AdDesignLayout) ?? null}
@@ -372,9 +592,10 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
                             headline={creative?.result?.copy?.headline ?? null}
                             headlineFontFamily={copyForLightbox?.fontFamily ?? null}
                             headlineFontWeight={copyForLightbox?.fontWeight ?? null}
-                            headlineColor={designHeadlineColor ?? copyForLightbox?.headlineColor ?? 'white'}
+                            headlineColor={designHeadlineColor ?? copyForLightbox?.headlineColor ?? null}
                             brandLogoUrl={brandLogoSignedUrl}
                             onClose={onCloseLightbox}
+                            onEdit={onClickEditFromLightbox}
                         />
                     );
                 })()}

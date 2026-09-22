@@ -1,19 +1,44 @@
 'use client'
 
-import { memo } from 'react';
+import { memo, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
-import ThemeToggle from "@/components/page/ad/ThemeToggle";
+import ThemeToggle from "@/components/page/ad/public/ThemeToggle";
+import { useAuth } from "@/context/AuthContext";
+import { usersClientAPI, type UserUsageSummary } from "@/lib/api/client/usersClientAPI";
+import { PLAN_DISPLAY_NAME } from "@/lib/polar";
 
-// 가라 사용량 (mock — 실 데이터 연동 시 교체)
-const MOCK_USAGE = { used: 847, total: 1000 };
+function planLabel(plan: string | null | undefined): string {
+    if (!plan) return 'Free plan';
+    return PLAN_DISPLAY_NAME[plan] ?? plan;
+}
 
-function AppHeader() {
+function AppHeader({ onUsageLoaded }: { onUsageLoaded?: () => void }) {
+    const { supabaseUser } = useAuth();
+    const [usage, setUsage] = useState<UserUsageSummary | null>(null);
+
+    useEffect(() => {
+        if (!supabaseUser) {
+            setUsage(null);
+            onUsageLoaded?.();
+            return;
+        }
+        let live = true;
+        void usersClientAPI.getUserUsageSummary(supabaseUser.id).then((result) => {
+            if (live) {
+                setUsage(result);
+                onUsageLoaded?.();
+            }
+        });
+        return () => {
+            live = false;
+        };
+    }, [supabaseUser?.id, onUsageLoaded]);
     return (
         <header className="fixed inset-x-0 top-4 z-50 px-4">
             <nav className="mx-auto flex max-w-[87.5rem] items-center justify-between rounded-full border border-hairline bg-surface/70 py-2 pl-5 pr-2 backdrop-blur-xl">
                 <Link href="/" className="flex items-center gap-2.5">
-                    <span className="text-[15px] font-bold tracking-tight text-text1">TailorAd</span>
+                    <span className="text-[15px] font-bold tracking-tight text-text1">TailoredAd</span>
                     <span className="rounded-[6px] bg-accent px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-canvas">
                         Ad
                     </span>
@@ -26,11 +51,20 @@ function AppHeader() {
                     >
                         Projects
                     </Link>
-                    <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-text2">
-                        {MOCK_USAGE.used.toLocaleString()} / {MOCK_USAGE.total.toLocaleString()} images
-                    </span>
+                    {usage && usage.remaining <= 0 ? (
+                        <Link
+                            href="/#pricing"
+                            className="rounded-full bg-text1 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-canvas"
+                        >
+                            Upgrade
+                        </Link>
+                    ) : (
+                        <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-text2">
+                            {usage ? `${usage.remaining.toLocaleString()} images left` : '… images'}
+                        </span>
+                    )}
                     <span className="rounded-full border border-hairline px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-text2">
-                        Growth plan
+                        {usage ? planLabel(usage.plan) : '… plan'}
                     </span>
                 </div>
 
