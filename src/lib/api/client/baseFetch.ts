@@ -18,10 +18,14 @@ function getGatewayRoute(route: string) {
     return route;
 }
 
+const FETCH_TIMEOUT_MS = 30_000;
+const FORM_TIMEOUT_MS = 60_000;
+
 export async function getFetch(route: string) {
     const rootPath = getRootPath(route);
     const gatewayRoute = getGatewayRoute(route);
     const response = await fetch(`${rootPath}${gatewayRoute}`, {
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -45,6 +49,7 @@ export async function postFetch(route: string, body?: unknown) {
     const gatewayRoute = getGatewayRoute(route);
     console.log(`[${route}]: ${rootPath}${gatewayRoute}`);
     const response = await fetch(`${rootPath}${gatewayRoute}`, {
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -69,6 +74,7 @@ export async function postFormFetch(route: string, formData: FormData) {
     const gatewayRoute = getGatewayRoute(route);
     console.log(`[${route}][form]: ${rootPath}${gatewayRoute}`);
     const response = await fetch(`${rootPath}${gatewayRoute}`, {
+        signal: AbortSignal.timeout(FORM_TIMEOUT_MS),
         method: 'POST',
         // multipart/form-data는 브라우저가 boundary를 자동 생성하므로 Content-Type을 수동 설정하지 않음
         headers: {
@@ -92,6 +98,7 @@ export async function patchFetch(route: string, body?: unknown) {
     const rootPath = getRootPath(route);
     const gatewayRoute = getGatewayRoute(route);
     const response = await fetch(`${rootPath}${gatewayRoute}`, {
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
@@ -115,6 +122,7 @@ export async function deleteFetch(route: string) {
     const rootPath = getRootPath(route);
     const gatewayRoute = getGatewayRoute(route);
     const response = await fetch(`${rootPath}${gatewayRoute}`, {
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
