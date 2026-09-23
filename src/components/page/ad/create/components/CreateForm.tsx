@@ -2,7 +2,7 @@
 
 import { memo, useCallback, useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, Check, ChevronDown, Palette, Plus, Sparkles, X } from 'lucide-react';
+import { AlertTriangle, Check, Palette, Plus, Sparkles, X } from 'lucide-react';
 import { HexColorPicker } from 'react-colorful';
 import { AdAspectRatio, AdUploadedComponent } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { AD_ASPECT_RATIO_INFO, AD_CONCEPT_OPTIONS } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
@@ -125,11 +125,7 @@ function CreateForm({
         onBrandPaletteChange(next);
     }, [brandPalette, onBrandPaletteChange]);
 
-    const [isPersonaNoteOpen, setIsPersonaNoteOpen] = useState(false);
-
-    const onClickPersonaNoteToggle = useCallback(() => {
-        setIsPersonaNoteOpen((current) => !current);
-    }, []);
+    const [activePickerIndex, setActivePickerIndex] = useState<number | null>(null);
 
     // Where 한 줄이 가로로 벗어나지 않는 최대 높이 — (W - gaps) / sumFactors
     const whereRef = useRef<HTMLDivElement>(null);
@@ -235,7 +231,6 @@ function CreateForm({
                                         type="button"
                                         onClick={() => {
                                             onPersonaEnabledChange(false);
-                                            setIsPersonaNoteOpen(false);
                                         }}
                                         className="rounded-full p-1.5 text-text2 transition-colors hover:bg-surface hover:text-text1"
                                         aria-label="Remove AI model"
@@ -263,72 +258,17 @@ function CreateForm({
                             )}
 
                             {personaEnabled && (
-                                <div className="relative mt-2">
-                                    <button
-                                        type="button"
-                                        onClick={onClickPersonaNoteToggle}
-                                        aria-expanded={isPersonaNoteOpen}
-                                        className="flex w-full items-center justify-between gap-2 rounded-full border border-hairline bg-canvas px-3 py-2 text-[12px] transition-colors hover:border-text2/30"
-                                    >
-                                        <span className="flex min-w-0 flex-1 items-center gap-2 truncate">
-                                            {personaBrief.trim() ? (
-                                                <>
-                                                    <span className="truncate text-text1">{personaBrief.trim()}</span>
-                                                    <span className="shrink-0 rounded-full bg-accent/10 px-1.5 py-0.5 text-[10px] font-medium text-accent">note</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Plus
-                                                        className="h-3 w-3 shrink-0 text-text2"
-                                                        strokeWidth={2}
-                                                    />
-                                                    <span className="truncate text-text2">
-                                                        Add note
-                                                    </span>
-                                                    <span className="shrink-0 rounded-full border border-hairline bg-surface px-1.5 py-0.5 text-[10px] font-medium text-text2">
-                                                        optional
-                                                    </span>
-                                                    <span className="hidden sm:inline shrink-0 text-[11px] text-text2/60">· leave empty to auto-cast</span>
-                                                </>
-                                            )}
-                                        </span>
-                                        <ChevronDown
-                                            className={`h-3.5 w-3.5 shrink-0 text-text2 transition-transform duration-200 ${
-                                                isPersonaNoteOpen ? 'rotate-180' : ''
-                                            }`}
-                                            strokeWidth={2}
-                                        />
-                                    </button>
-                                    {isPersonaNoteOpen && (
-                                        <div className="absolute left-0 right-0 top-full z-20 mt-2 rounded-xl border border-hairline bg-surface p-3 shadow-xl">
-                                            <textarea
-                                                value={personaBrief}
-                                                onChange={(e) => onPersonaBriefChange(e.target.value)}
-                                                placeholder="e.g. Woman in her late 20s, shoulder-length dark hair, warm and confident — athletic wear vibe. Empty = auto-cast."
-                                                rows={2}
-                                                className="max-h-[7rem] min-h-[4.5rem] w-full resize-none rounded-lg border border-hairline bg-canvas px-3 py-2 text-[12px] leading-relaxed text-text1 placeholder:text-text2/60 focus:border-text2/40 focus:outline-none"
-                                            />
-                                            <div className="mt-3 flex justify-end gap-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        onPersonaBriefChange('');
-                                                        setIsPersonaNoteOpen(false);
-                                                    }}
-                                                    className="rounded-full px-3 py-1.5 text-[11px] text-text2 hover:bg-canvas"
-                                                >
-                                                    Clear
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setIsPersonaNoteOpen(false)}
-                                                    className="rounded-full bg-text1 px-4 py-1.5 text-[11px] font-medium text-canvas"
-                                                >
-                                                    Done
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
+                                <div className="mt-2 rounded-xl border border-hairline bg-canvas p-3">
+                                    <p className="mb-2 text-[11px] leading-relaxed text-text2">
+                                        Describe your model — age, look, mood. Empty = auto-cast.
+                                    </p>
+                                    <textarea
+                                        value={personaBrief}
+                                        onChange={(e) => onPersonaBriefChange(e.target.value)}
+                                        rows={3}
+                                        placeholder="e.g. Woman in her late 20s, shoulder-length dark hair, warm and confident."
+                                        className="min-h-[4.5rem] w-full resize-none rounded-lg border border-hairline bg-surface px-2.5 py-2 text-[12px] leading-relaxed text-text1 placeholder:text-text2/50 focus:border-text2/40 focus:outline-none"
+                                    />
                                 </div>
                             )}
                         </div>
