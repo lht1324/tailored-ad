@@ -193,29 +193,37 @@ Instruction: Generate ratio-specific I2I captions and ad copy according to the s
     },
 
     /**
-     * 페르소나 묘사 — 유저 brief(없으면 seed 창작) + product note를 받아
-     * 가상 광고 모델 1문 묘사를 생성한다. 텍스트 전용 호출(이미지 없음).
+     * 페르소나 T2I 프롬프트 — 유저 brief(없으면 seed 창작) + product note + 제품 이미지(있을 때만)를 받아
+     * 제출 직행용 T2I 프롬프트 1개를 생성한다. 텍스트+Vision 호출(이미지 조건부).
      * 호출 단위 = 인물 포함 배치당 1회.
      */
     async postPersonaDescription(params: {
         brief: string | null;
         productNote: string | null;
         seed: number;
+        productImageBase64?: string | null;
     }): Promise<{
         success: boolean;
-        description?: string;
+        t2iPrompt?: string;
         error?: { message: string; code: string };
     }> {
         try {
-            const { brief, productNote, seed } = params;
+            const { brief, productNote, seed, productImageBase64 } = params;
+            const imageBase64List: string[] = [];
+            if (productImageBase64) imageBase64List.push(productImageBase64);
             const userMessage = `
 <input_data>
   <brief>${brief ?? ""}</brief>
   <product_note>${productNote ?? ""}</product_note>
   <seed>${seed}</seed>
+  <brief_mode>${brief ? "guided" : "auto"}</brief_mode>
 </input_data>
 
-Instruction: Write one fictional model portrait brief according to the system prompt.
+${imageBase64List.length > 0
+    ? `Attached images: 1 product image — cast a model who fits its campaign.`
+    : `Attached images: none (person-only batch) — cast from brief and seed only.`}
+
+Instruction: Write one submit-ready persona T2I prompt according to the system prompt.
 `;
             const client = new OpenRouterClient();
             const generatedContent = await completeWithRetry(client,
@@ -223,8 +231,10 @@ Instruction: Write one fictional model portrait brief according to the system pr
                     model: OpenRouterModel.GLM_5_3_FLASH,
                     systemMessage: POST_AD_PERSONA_PROMPT,
                     userMessage,
-                    maxCompletionTokens: 512,
-                    temperature: 0.9,
+                    imageBase64List: imageBase64List.length > 0 ? imageBase64List : undefined,
+                    imageDetail: "high",
+                    maxCompletionTokens: 1024,
+                    temperature: 0.8,
                     reasoning: false,
                 },
                 `ad/persona/postPersonaDescription()`,
@@ -238,11 +248,11 @@ Instruction: Write one fictional model portrait brief according to the system pr
             }
 
             try {
-                const parsed: { persona: string } = cleanAndParseJSON(generatedContent);
-                if (!parsed.persona || typeof parsed.persona !== 'string' || parsed.persona.trim().length === 0) {
-                    throw new Error("Empty persona description");
+                const parsed: { t2i_prompt: string } = cleanAndParseJSON(generatedContent);
+                if (!parsed.t2i_prompt || typeof parsed.t2i_prompt !== 'string' || parsed.t2i_prompt.trim().length === 0) {
+                    throw new Error("Empty t2i prompt");
                 }
-                return { success: true, description: parsed.persona.trim() };
+                return { success: true, t2iPrompt: parsed.t2i_prompt.trim() };
             } catch (parseError) {
                 console.error(`[ad/persona] raw LLM output on PARSE_ERROR:`, generatedContent.slice(0, 1000));
                 return {

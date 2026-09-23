@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatchServerAPI";
+import { adImageServerAPI } from "@/lib/api/server/ad/imageServerAPI";
 import { llmServerAPI } from "@/lib/api/server/ad/llmServerAPI";
 import { replicateClient } from "@/lib/ReplicateClient";
 import { selectImageModel } from "@/lib/replicateInputMapper";
@@ -21,11 +22,6 @@ function derivePersonaSeed(batchId: string): number {
         hash = (hash * 31 + batchId.charCodeAt(i)) >>> 0;
     }
     return hash;
-}
-
-/** T2I 고정 가드 — 가상 인물 선언 + 정면 초상 규격 (태그 금지: _IMAGE 단어 없음) */
-function buildPersonaImagePrompt(description: string): string {
-    return `${description} Fully fictional person, no real likeness. Front-facing studio portrait, head and shoulders, neutral background, square 1:1 canvas.`;
 }
 
 export async function POST(request: NextRequest) {
@@ -77,19 +73,38 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        // 1) LLM 묘사 1콜 (brief 반영, 없으면 seed 창작)
+        // 1) 제품 원본 (있을 때만) — person 슬롯은 아직 비어 있어 [0]이 product
+        let productImageBase64: string | null = null;
+        if (batch.product_image) {
+            try {
+                const originalUrls = await adImageServerAPI.getAdOriginalImageSignedUrls(batch);
+                const url = originalUrls[0];
+                if (url) {
+                    const res = await fetch(url);
+                    if (res.ok) {
+                        const buf = await res.arrayBuffer();
+                        productImageBase64 = Buffer.from(buf).toString('base64');
+                    }
+                }
+            } catch (e) {
+                console.warn(`[persona] failed to fetch product image for batch ${batchId}:`, e);
+            }
+        }
+
+        // 2) LLM T2I 프롬프트 1콜 (brief 반영, 없으면 seed 창작 — 제출 직행문)
         const seed = derivePersonaSeed(batchId);
         const llmResult = await llmServerAPI.postPersonaDescription({
             brief: personaBrief,
             productNote: batch.product_image?.note ?? null,
             seed,
+            productImageBase64,
         });
 
-        if (!llmResult.success || !llmResult.description) {
-            throw new Error(llmResult.error?.message ?? "Persona description failed");
+        if (!llmResult.success || !llmResult.t2iPrompt) {
+            throw new Error(llmResult.error?.message ?? "Persona T2I prompt failed");
         }
 
-        // 2) Seedream T2I 제출 (참조 이미지 없음 — image_input 생략)
+        // 3) Seedream T2I 제출 (참조 이미지 없음 — image_input 생략)
         const baseUrl = await getServerEnv('BASE_URL');
 
         if (!baseUrl) {
@@ -99,7 +114,7 @@ export async function POST(request: NextRequest) {
         const webhookUrl = `${baseUrl}/webhook/replicate/persona?batchId=${encodeURIComponent(batchId)}${personaBrief ? `&brief=${encodeURIComponent(personaBrief)}` : ""}`;
 
         await replicateClient.postAdImageEditPrediction({
-            prompt: buildPersonaImagePrompt(llmResult.description),
+            prompt: llmResult.t2iPrompt,
             imageUrls: [],
             aspectRatio: '1_1',
             model: selectImageModel(batch.aspect_ratios as string[]),
