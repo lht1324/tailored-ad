@@ -155,7 +155,7 @@ function CreateForm({
                         <div>
                             <h3 className="text-[15px] font-semibold tracking-tight text-text1">Subjects</h3>
                             <p className="mt-0.5 text-[12px] leading-relaxed text-text2">
-                                Upload your product or enable an AI model. The AI paints a different background for each creative.
+                                Upload your product or add a virtual model. The AI paints a different background for each creative.
                                 For best quality, add a one-line note: how it should look in the ad (mood, setting, details).
                             </p>
                         </div>
@@ -217,7 +217,7 @@ function CreateForm({
                             {personaEnabled ? (
                                 <div className="mt-0 flex flex-1 min-h-[10rem] flex-col rounded-xl border border-hairline bg-canvas p-3">
                                     <p className="mb-2 shrink-0 text-[11px] leading-relaxed text-text2">
-                                        Describe your model — age, look, mood. Empty = auto-cast.
+                                        Describe your model. Age, look, mood. Leave empty and we will cast one for you.
                                     </p>
                                     <textarea
                                         value={personaBrief}
@@ -267,7 +267,7 @@ function CreateForm({
                         >
                             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-700 dark:text-amber-500" strokeWidth={2} />
                             <p className="text-[12px] leading-relaxed text-text1 dark:text-amber-200/90">
-                                Combining a product and a person? Add a note to each. Specific art direction is
+                                Combining a product and a model? Add a note to each. Specific art direction is
                                 the strongest lever for composite quality.
                             </p>
                         </motion.div>

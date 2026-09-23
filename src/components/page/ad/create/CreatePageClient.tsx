@@ -123,7 +123,7 @@ export default function CreatePageClient() {
     }, [hasSubject, isGenerating, product, personaEnabled, personaBrief, brandLogo, aspectRatios, conceptCount, ctaEnabled, brandPalette, router]);
 
     const hintText = !hasSubject
-        ? 'Add a product or enable an AI model to start. The AI paints a different background for each creative.'
+        ? 'Add a product or cast a virtual model to start. The AI paints a different background for each creative.'
         : 'Ready. Each creative gets its own AI background. Success assets only are credited.';
 
     return (
