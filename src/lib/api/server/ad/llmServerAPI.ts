@@ -235,7 +235,7 @@ Instruction: Write one submit-ready persona T2I prompt according to the system p
                     imageDetail: "high",
                     maxCompletionTokens: 10240,
                     temperature: 0.8,
-                    reasoning: false,
+                    reasoning: true,
                 },
                 `ad/persona/postAdPersonaImagePrompt()`,
             );

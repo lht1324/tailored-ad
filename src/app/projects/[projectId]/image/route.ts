@@ -9,10 +9,12 @@ export const dynamic = 'force-dynamic';
 
 const VALID_RATIOS = ['1_1', '4_5', '9_16', '16_9', '2_3'] as const;
 
-/** 표시용 변형 — full은 원본 그대로 */
+/** 표시용 변형 — 쿼터 고갈(월 원본 100개)로 변환 폐지, 전 변형 원본 중계 + CSS 사이징.
+ *  full뿐 아니라 list·thumb도 원본 바이트 (브라우저 캐시가帯域을 흡수).
+ *  v 파라미터는 URL 안정용으로 유지 (캐시 무효화 방지). */
 const VARIANT_TRANSFORM: Record<string, { width?: number; height?: number; resize: 'contain' } | null> = {
-    list: { width: 800, resize: 'contain' },
-    thumb: { height: 600, resize: 'contain' },
+    list: null,
+    thumb: null,
     full: null,
 };
 
