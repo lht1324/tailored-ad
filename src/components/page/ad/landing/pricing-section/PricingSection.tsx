@@ -24,9 +24,9 @@ const PLANS: Plan[] = [
     {
         planId: SubscriptionPlan.PLAN_1,
         name: 'Starter',
-        price: 9,
+        price: 19,
         images: '100 images / month',
-        perImage: '$0.090 / image',
+        perImage: '$0.190 / image',
         className: 'md:translate-y-6',
         features: [
             'Quality-gated batches',
@@ -40,9 +40,9 @@ const PLANS: Plan[] = [
     {
         planId: SubscriptionPlan.PLAN_2,
         name: 'Growth',
-        price: 39,
+        price: 49,
         images: '500 images / month',
-        perImage: '$0.078 / image',
+        perImage: '$0.098 / image',
         className: '-rotate-[0.5deg] md:translate-y-10',
         features: [
             'Everything in Starter',
@@ -52,9 +52,9 @@ const PLANS: Plan[] = [
     {
         planId: SubscriptionPlan.PLAN_3,
         name: 'Pro',
-        price: 69,
+        price: 99,
         images: '1,000 images / month',
-        perImage: '$0.069 / image',
+        perImage: '$0.099 / image',
         className: 'rotate-[0.5deg] md:translate-y-8',
         features: [
             'Everything in Growth',

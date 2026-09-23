@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-09-23 01:30)
+# TailoredAd — 작업 기록 (Last Updated: 2026-09-24 01:19)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -101,14 +101,26 @@
   코드 입력칸은 안 켬 (유출 원천 차단). API 실측 검증됨 (plan-1 첨부 50%/once/무코드,
   plan-2 제외, `external_id` 매핑 정상). Growth/Pro 첫결제에 붙이면 500 에러 나므로
   대시보드 Products 제한도 Starter만 유지할 것.
-- **Pricing 정직 개편**: 존재하지 않는 플랜 차등(후보 개수·멀티레퍼런스) 삭제 —
+- **가격 확정** (09-24): Starter $19/100장($0.190), Growth $49/500장($0.098),
+  Pro $99/1,000장($0.099). 旧 $9/39/69에서 인상.
+  근거: AdCreative $3.90/장·Predis $0.37/장 대비 50배 싸서 저품질 신호 + 마진 취약
+  (실패무료·체험$0.40·$9 응대 1건에 증발). 카운트·이월·실패무료는 유지, 숫자만 인상.
+  첫주문 50% 코드는 수식 기반이라 자동 갱신 (~~$19~~ $9.50, then $19/mo).
+  주의: 코드 표시만 바뀜 — Polar 샌드박스 상품($9/39/69)·LS 생성중 상품 금액은
+  대시보드에서 별도 수정 필수 (불일치 시 표시가와 실청구액이 갈림).
+- **Pricing 정직 개편** (09-22): 존재하지 않는 플랜 차등(후보 개수·멀티레퍼런스) 삭제 —
   코드에 게이팅이 없어 티어 차이는 월 장수뿐. 취소선($49/$99, 실판매가 없음) 삭제,
   Most popular 배지 삭제 (데이터 생기면 복귀), "re-renders" 삭제 (미구현),
   사이즈 5종 명시, CTA `Choose {plan}`, trial 10장 안내 추가.
-- **결제(Polar 확정, Dodo 탈락)**: Dodo는 한국 신분증이 Persona 인증에서 거부됨
-  (허용 목록엔 KR 있으나 템플릿 미포함 — Dodo 설정 문제, 지원팀 메일 양식 전달됨).
-  글로벌 타겟이라 카카오·네이버페이 강점도 무의미 + 수수료 동점(국제구독 실효 ~6%)이라 Polar로 런칭 확정.
-  Dodo는 보류 (한국 고객 생기면 두 번째 결제사로 추가 가능).
+- **결제(Polar 탈락 → LS·Creem 진행 중)** (09-23/24):
+  Polar 심사+어필 모두 기각 (AI 이미지 Restricted가 아니라 금지 조항
+  `enables face swaps or deep fakes`·`enables IP infringement` + sole discretion).
+  같은 논리 재어필 무의미 판정. 교훈: "우리는 착하다"가 아니라 "통제 가능하다"로 써야 함.
+  순위: Creem 1순위 (AI 이미지 명시 허용 + Moderation 체크리스트) → LS 2순위
+  (AI 명시 금지 없음, 탈락 보고 있음) → Stripe 직결 폴백. Paddle 강등 (실무 거부 보고 다수),
+  Dodo 최후순위 (KYC 막힘 + 어필 단회).
+  LS: 스토어 접수됨 (심사 대기 1~5일). 상품 3종 Subscription·draft→publish 예정.
+  Creem: 개인 트랙 가입 중 (생성형 AI 단일 선택, support@, AUP 절차 진행).
 - **Polar 현황**: 조직 Starter 요율 (5% + 50¢, 구독 추가요금 없음, 국제카드 +1.5% 별도).
   상품 3종 생성됨 — 전부 **샌드박스** (Starter $9/100장 `66953e34-…`,
   Growth $39/500장 `6d55ba76-…`, Pro $69/1000장 `b8d38860-…`, API 실측 확인).
@@ -326,7 +338,30 @@
   서버 전수 교체 (S2S 가드·service role·Replicate·OpenRouter·Polar·Upstash·BASE_URL·웹훅 시크릿).
   계기: `client-gateway`에 import 누락 (`getServerEnv` 미정의 → 500). 사장님이 발견.
   클라(`baseFetch` prod 상대경로, AuthContext origin)은 무영향.
+- **Profile 페이지** (09-24, develop): `/profile` + AppHeader 아바타(사진·없으면 아이콘).
+  서버 5종 (`products`·`orders`·`subscriptions` 조회, `change`, `cancel`, `revert`) +
+  게이트웨이 등록 + 클라 함수. 업그레이드 즉시(`invoice`), 다운그레이드 예약(`next_period`,
+  cron 불필요). 웹훅 `updated`는 차액만 부여 (`upgrade:{plan}`, 유니크 충돌 회피) —
+  reason 체크제약에 `LIKE 'upgrade:%'` 추가 SQL 필요 (사장님 실행).
+  환불은 업그레이드분 포함 순합 전액 회수. 예약 변경 표시 (`pendingUpdate`→Scheduled 박스) +
+  되돌리기 (pending 제거·해지 철회). proxy 가드 + 헤더 프로필 아이콘(정렬 수정됨).
+  OAT 스코프 확대 필수 (`orders:read`·`subscriptions:write` — dev 403 실측).
+  샌드박스 OAT 1건 로그 평문 노출 → 폐기·재생성할 것.
+- **AI 페르소나 (Virtual Model)** (09-24, develop — PoC 통과 `c4d14a`):
+  실사 인물 업로드 → 배치당 합성 페르소나 1명으로 전환 (결제 심사 대응).
+  `POST_AD_PERSONA_PROMPT` (캐스팅핏·brief·T2I 문장공학, vision-grounded) +
+  `llmServerAPI.postAdPersonaImagePrompt` + `image/generation|process/persona` +
+  `webhook/replicate/persona` + `image/route` 3분기. person_image 슬롯 점유라
+  하류(specs·prompt·base·analysis·원장) 무수정. PoC 4장 동일 인물·병 정체성 유지·킬 0.
+  UI: 업로드 주석+맥락 메모 (CreateForm·CreatePageClient·UploadZone 위치 기록),
+  Virtual Model 토글+brief (AI Model 명칭 기각 — LLM 혼동).
+  원가 배치당 LLM 1콜 + $0.04, 유저 차감 없음. ratios 테스트 불필요 (BRIA 무관).
 - **플랜명 표시** (09-22, 배포됨): `lib/polar.ts`에 `PLAN_DISPLAY_NAME` 추가
+  (plan-1→Starter, plan-2→Growth, plan-3→Pro, none→Free plan, plan-4 원값 폴백).
+  `AppHeader planLabel()`이 사용. 바깥 노출이라 영어 유지.
+- **표시용 변환 폐지** (09-24, develop): Supabase transformation 쿼터 고갈 (106/100).
+  전 변형 원본 중계 + CSS 사이징 (`image/route.ts` 변환 null). Workers CPU 10ms라
+  서버 가공 불가. 대시보드 Storage > Settings 변환 토글 OFF 권장.
   (plan-1→Starter, plan-2→Growth, plan-3→Pro, none→Free plan, plan-4 원값 폴백).
   `AppHeader planLabel()`이 사용. 바깥 노출이라 영어 유지.
 - **예쁜 이미지 경로** (09-22, 배포됨): `GET /projects/[projectId]/image?c=&r=&v=`
@@ -334,7 +369,8 @@
   목록 썸네일·Detail 타일·모달·에디터 4면이 토큰 없는 동일 출처 URL 사용.
   다운로드는 원본 서명 URL 유지 (Final 스냅샷 품질 보장).
   `lib/projectImageUrl.ts` 조립기. 목록 route는 위치정보만 반환 (토큰 발급 삭제).
-- **표시용 변환** (09-22, 배포됨): Supabase image transformation (Pro, 기능 확인됨).
+- **표시용 변환** (09-22 도입 → 09-24 폐지): 쿼터 고갈 (106/100)로 전 변형 원본 중계로 회귀.
+  도입 당시 주의 3점 중 quota 항목이 현실화됨. 아래 폐지 기록 참조.
   주의 3점: (1) 한 축만 주면 기본 resize=cover가 크롭함 — 반드시 `resize:'contain'` 명시
   (1:1 원본 + height 600 → 2048×600 잘림 실측). (2) 별도 quota: 월 원본 100개 포함,
   초과 $5/1,000 (원본 파일당 1개, variants 무관). (3) egress는 별도.
@@ -367,8 +403,8 @@
 
 - [x] 실생성 이미지 19장 → 랜딩 배치 완료 (Hero 8 + Portfolio 11, `public/preview/` 실파일, §10 09-21 기록)
 - [ ] `support@tailoredad.com` (+`contact@`) Email Routing (tailoredad.com 도메인에서 별도 설정)
-- [ ] Polar 과금 연결 (블로커 — 진행 중):
-  - [x] 상품 3종 + metadata + Checkout Description
+- [ ] Polar 과금 연결 (블로커 — 09-24 탈락으로 중단, 코드는 develop에 보존):
+  - [x] 상품 3종 + metadata + Checkout Description (샌드박스 $9/39/69 — 新 가격 $19/49/99 미반영)
   - [x] `lib/polar.ts` 매핑표, 웹훅 리시버, 잔액제 코드
   - [x] Supabase SQL 2종 + users 주기 컬럼 + trial SQL (실행됨)
   - [x] `npm install` (`@polar-sh/sdk` 0.49.0 설치 확인)
@@ -377,8 +413,16 @@
   - [x] 체크아웃 생성 API + 요금제 버튼 배선 + 성공 페이지
   - [x] 코드 없는 discount 생성 + `POLAR_FIRST_ORDER_DISCOUNT_ID` 입력 + API 실측 검증
     (50%/once/무코드, Starter 첨부·Growth 제외, duration=Once 확인됨)
-  - [ ] E2E 테스트 (결제 → grant → 잔액 표시 → 생성 → 차감 → 환불 회수)
-  - [ ] Cloudflare Secrets에 `POLAR_API_KEY`·`POLAR_WEBHOOK_SECRET`·`POLAR_FIRST_ORDER_DISCOUNT_ID` 등록 (배포 때)
+  - [x] 구독 관리 서버 (조회 3종·change·cancel·revert) + Profile UI — develop, 샌드박스 403 확인
+    (OAT 스코프 부족. `orders:read`·`subscriptions:write` 추가 후 E2E 가능)
+  - [ ] E2E 테스트 (기각으로 보류 — 재신청 시점에 Wiederaufnahme)
+- [ ] LS 심사 대응 (09-24 진행 중): 스토어 접수됨. 상품 3종 Subscription ($19/49/99) draft→publish.
+  첫주문 할인은 Discount Codes에서 별도 생성.
+- [ ] Creem 심사 대응 (09-24 진행 중): 개인 트랙. 사전 문의 초안 있음 (얼굴 처리 단락).
+  승인 후 숙제: Moderation API 연동 (note 심사) + AUP 페이지 + ToS NSFW 문구.
+- [ ] Supabase SQL (사장님): `subscription_grants` reason 제약에 `OR reason LIKE 'upgrade:%'` 추가
+  (제약명 조회 후 교체 실행).
+- [ ] OAT 정리 (사장님): dev 샌드박스 토큰 폐기·재생성 (로그 노출) + 스코프 확대.
 - [ ] 약관 실체 검토 (한국 조항 유지 여부 포함)
 - [ ] `tailorad.com` 구매 + 리다이렉트
 - [ ] `shortreal.ai/ad` → 301 (런칭 당일)
@@ -401,6 +445,11 @@
 - [x] 웹훅 403 해결 + 수신/처리 분리 (E2E grant 적립 확인)
 - [x] 생성·업로드 단일 요청 합치기 (multipart 1요청 — 완료, 푸시됨)
 - [x] Seedream 하이브리드 (5.0 Lite + 4.5 — 코드·SQL 완료, 푸시됨)
+- [x] AI 페르소나 파이프라인 (09-24 — 프롬프트·3 route·UI·PoC `c4d14a` 통과, develop)
+- [x] 표시용 변환 폐지 (09-24 — 원본 중계 회귀, develop)
+- [x] Pricing 新 가격 (09-24 — $19/49/99 + 장당가, develop. 대시보드 상품 금액 동기화 대기)
+- [ ] **결제사 확정 후 코드 이식**: Polar 구조 복사 (체크아웃·웹훅·grant 3점, 수일 규모).
+  LS vs Creem 결과 보고 결정. 지금이 제일 쌀 때 (고객 생기면 마이그레이션 지옥).
 - [x] 프롬프트 컴포지션 1순위 (구조만 — 바이트 동일 검증, 푸시됨)
 - [x] 태그 정의·치환 + 스키마 분리 + reframe RPC (코드·SQL 완료)
 - [x] ratios route 재설계 1차 (고정 문구·폴백 삭제·base-only·매퍼 분리 — 완료)
