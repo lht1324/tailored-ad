@@ -125,8 +125,6 @@ function CreateForm({
         onBrandPaletteChange(next);
     }, [brandPalette, onBrandPaletteChange]);
 
-    const [activePickerIndex, setActivePickerIndex] = useState<number | null>(null);
-
     // Where 한 줄이 가로로 벗어나지 않는 최대 높이 — (W - gaps) / sumFactors
     const whereRef = useRef<HTMLDivElement>(null);
     const [whereH, setWhereH] = useState(96);
