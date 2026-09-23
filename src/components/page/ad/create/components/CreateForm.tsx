@@ -195,7 +195,7 @@ function CreateForm({
                         */}
                         <div className="group relative flex flex-col flex-1 min-h-0">
                             <div className="mb-2 flex items-center justify-between shrink-0">
-                                <span className="text-[13px] font-medium text-text1">AI Model</span>
+                                <span className="text-[13px] font-medium text-text1">Virtual Model</span>
                                 <button
                                     type="button"
                                     role="switch"
