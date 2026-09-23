@@ -65,20 +65,22 @@ function AppHeader({ onUsageLoaded }: { onUsageLoaded?: () => void }) {
                     </span>
                 </div>
 
-                <Link
-                    href="/profile"
-                    aria-label="Profile"
-                    className="flex items-center justify-center rounded-full border border-hairline p-2.5 text-text2 transition-colors hover:bg-canvas hover:text-text1"
-                >
-                    <User className="h-4 w-4" strokeWidth={2.2} />
-                </Link>
-                <Link
-                    href="/create"
-                    className="flex items-center gap-2 rounded-full bg-text1 px-5 py-2.5 text-[13px] font-semibold text-canvas transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.02] active:scale-[0.98]"
-                >
-                    <Plus className="h-3.5 w-3.5" strokeWidth={2.2} />
-                    <span>New generation</span>
-                </Link>
+                <div className="flex items-center gap-2">
+                    <Link
+                        href="/profile"
+                        aria-label="Profile"
+                        className="flex items-center justify-center rounded-full border border-hairline p-2.5 text-text2 transition-colors hover:bg-canvas hover:text-text1"
+                    >
+                        <User className="h-4 w-4" strokeWidth={2.2} />
+                    </Link>
+                    <Link
+                        href="/create"
+                        className="flex items-center gap-2 rounded-full bg-text1 px-5 py-2.5 text-[13px] font-semibold text-canvas transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                        <Plus className="h-3.5 w-3.5" strokeWidth={2.2} />
+                        <span>New generation</span>
+                    </Link>
+                </div>
             </nav>
             <ThemeToggle />
         </header>
