@@ -215,26 +215,17 @@ function CreateForm({
                             </div>
 
                             {personaEnabled ? (
-                                <div className="flex flex-1 min-h-[10rem] items-center gap-3 rounded-xl border border-hairline bg-canvas p-4">
-                                    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-hairline bg-surface">
-                                        <Sparkles className="h-5 w-5 text-text2" strokeWidth={1.8} />
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <p className="truncate text-[13px] font-medium text-text1">Fictional model</p>
-                                        <p className="mt-0.5 truncate text-[11px] text-text2">
-                                            {personaBrief.trim() ? personaBrief.trim() : 'auto-cast · no real person'}
-                                        </p>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            onPersonaEnabledChange(false);
-                                        }}
-                                        className="rounded-full p-1.5 text-text2 transition-colors hover:bg-surface hover:text-text1"
-                                        aria-label="Remove AI model"
-                                    >
-                                        <X className="h-4 w-4" strokeWidth={2} />
-                                    </button>
+                                <div className="mt-0 flex flex-1 min-h-[10rem] flex-col rounded-xl border border-hairline bg-canvas p-3">
+                                    <p className="mb-2 shrink-0 text-[11px] leading-relaxed text-text2">
+                                        Describe your model — age, look, mood. Empty = auto-cast.
+                                    </p>
+                                    <textarea
+                                        value={personaBrief}
+                                        onChange={(e) => onPersonaBriefChange(e.target.value)}
+                                        rows={3}
+                                        placeholder="e.g. Woman in her late 20s, shoulder-length dark hair, warm and confident."
+                                        className="min-h-0 w-full flex-1 resize-none rounded-lg border border-hairline bg-surface px-2.5 py-2 text-[12px] leading-relaxed text-text1 placeholder:text-text2/50 focus:border-text2/40 focus:outline-none"
+                                    />
                                 </div>
                             ) : (
                                 <div className="flex w-full flex-1 min-h-[10rem] flex-col items-center justify-center gap-3 rounded-xl border border-hairline bg-canvas/50 px-4 py-8 sm:py-10">
@@ -252,21 +243,6 @@ function CreateForm({
                                     >
                                         Generate a model
                                     </button>
-                                </div>
-                            )}
-
-                            {personaEnabled && (
-                                <div className="mt-2 rounded-xl border border-hairline bg-canvas p-3">
-                                    <p className="mb-2 text-[11px] leading-relaxed text-text2">
-                                        Describe your model — age, look, mood. Empty = auto-cast.
-                                    </p>
-                                    <textarea
-                                        value={personaBrief}
-                                        onChange={(e) => onPersonaBriefChange(e.target.value)}
-                                        rows={3}
-                                        placeholder="e.g. Woman in her late 20s, shoulder-length dark hair, warm and confident."
-                                        className="min-h-[4.5rem] w-full resize-none rounded-lg border border-hairline bg-surface px-2.5 py-2 text-[12px] leading-relaxed text-text1 placeholder:text-text2/50 focus:border-text2/40 focus:outline-none"
-                                    />
                                 </div>
                             )}
                         </div>
