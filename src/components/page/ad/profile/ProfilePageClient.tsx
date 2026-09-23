@@ -259,6 +259,14 @@ function ProfilePageClient() {
                                 </p>
                             </div>
                         )}
+                        {subscriptionData.scheduledPlan && (
+                            <div className="mb-6 rounded-xl border border-hairline bg-canvas p-5">
+                                <h4 className="mb-1 text-sm font-semibold">Scheduled Change</h4>
+                                <p className="text-xs leading-relaxed text-text2">
+                                    {subscriptionData.productName} → {PLAN_DISPLAY_NAME[subscriptionData.scheduledPlan] ?? subscriptionData.scheduledPlan} on {formatDate(subscriptionData.scheduledAppliesAt)}. Your current plan stays active until then.
+                                </p>
+                            </div>
+                        )}
                         <div className="space-y-3 text-sm">
                             <div className="flex items-center justify-between border-b border-hairline py-2">
                                 <span className="text-text2">Status</span>

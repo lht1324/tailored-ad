@@ -14,4 +14,7 @@ export interface SubscriptionData {
     cancelAtPeriodEnd: boolean;
     canceledAt?: string; // ISO
     createdAt: string; // ISO
+    /** 다음 사이클 적용 예약 (다운그레이드). 없으면 null */
+    scheduledPlan?: string | null; // plan id (plan-1/2/3)
+    scheduledAppliesAt?: string | null; // ISO
 }

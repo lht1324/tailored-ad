@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { getPolarClient } from "@/lib/polarClient";
+import { getPlanByPolarProduct } from "@/lib/polar";
 import type { SubscriptionData } from "@/lib/api/types/api/polar/subscriptions/SubscriptionData";
 
 /**
@@ -72,6 +73,7 @@ export async function GET(request: NextRequest) {
         }
 
         const subscription = sorted[0];
+        const pendingProductId = subscription.pendingUpdate?.productId ?? null;
         const subscriptionData: SubscriptionData = {
             id: subscription.id,
             status: subscription.status,
@@ -87,6 +89,8 @@ export async function GET(request: NextRequest) {
             cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
             canceledAt: subscription.canceledAt?.toISOString(),
             createdAt: subscription.createdAt.toISOString(),
+            scheduledPlan: pendingProductId ? getPlanByPolarProduct(pendingProductId) : null,
+            scheduledAppliesAt: subscription.pendingUpdate?.appliesAt?.toISOString() ?? null,
         };
 
         return getNextBaseResponse({
