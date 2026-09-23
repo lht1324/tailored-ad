@@ -244,19 +244,22 @@ function CreateForm({
                                     </button>
                                 </div>
                             ) : (
-                                <button
-                                    type="button"
-                                    onClick={() => onPersonaEnabledChange(true)}
-                                    className="flex w-full flex-1 min-h-[10rem] flex-col items-center justify-center gap-2.5 rounded-xl border border-dashed border-hairline px-4 py-8 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-text2/50 sm:py-10"
-                                >
+                                <div className="flex w-full flex-1 min-h-[10rem] flex-col items-center justify-center gap-3 rounded-xl border border-hairline bg-canvas/50 px-4 py-8 sm:py-10">
                                     <Sparkles
                                         className="h-5 w-5 shrink-0 text-text2"
                                         strokeWidth={1.8}
                                     />
-                                    <span className="mt-1 truncate text-[13px] text-text2">
-                                        Add a model or <span className="text-text1 underline underline-offset-2">generate one</span>
-                                    </span>
-                                </button>
+                                    <p className="text-[13px] text-text2">
+                                        No model yet
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => onPersonaEnabledChange(true)}
+                                        className="rounded-full bg-text1 px-5 py-2 text-[12px] font-semibold text-canvas transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.02] active:scale-[0.98]"
+                                    >
+                                        Generate a model
+                                    </button>
+                                </div>
                             )}
 
                             {personaEnabled && (
