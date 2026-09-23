@@ -6,8 +6,8 @@ import {
     POST_AD_CREATIVE_PROMPT,
     PRODUCT_ONLY_CREATIVE_PROMPT,
     PERSON_ONLY_CREATIVE_PROMPT,
-} from "@/lib/llm-prompts/ad/POST_AD_CREATIVE_PROMPT";
-import { POST_AD_IMAGE_ANALYSIS_PROMPT } from "@/lib/llm-prompts/ad/POST_AD_IMAGE_ANALYSIS_PROMPT";
+} from "@/lib/llm-prompts/POST_AD_CREATIVE_PROMPT";
+import { POST_AD_IMAGE_ANALYSIS_PROMPT } from "@/lib/llm-prompts/POST_AD_IMAGE_ANALYSIS_PROMPT";
 import { fontMap } from "@/lib/fonts";
 
 /**
