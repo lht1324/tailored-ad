@@ -77,16 +77,33 @@ async function handleSubscriptionEvent(type: string, data: PolarSubscriptionData
         return;
     }
 
-    // active/cycled/updated(활성) — 사이클 부여 + 유저 동기화
+    // active/cycled/updated(활성) — 사이클 부여 + 유저 동기화.
+    // 잔액제라 같은 사이클 중복 부여 금지: 이미 찍힌 순합과 새 플랜 한도를 비교해
+    // 차액만 추가한다 (업그레이드 top-up). 차액 없으면 스킵 — 다운그레이드 pending
+    // 이벤트·웹훅 재시도 흡수. reason은 'upgrade:{plan}' (사이클 내複수 업그레이드의
+    // 유니크 충돌 회피. 체크제약에 LIKE 'upgrade:%' 추가 필요).
     if (periodStart && periodEnd) {
-        await usageServerAPI.recordGrant({
-            userId,
-            polarSubscriptionId: data.id,
-            cycleStart: periodStart,
-            cycleEnd: periodEnd,
-            granted: PLAN_IMAGE_LIMIT[plan],
-            reason: 'subscription',
-        });
+        const target = PLAN_IMAGE_LIMIT[plan];
+        const already = await usageServerAPI.sumGrantedForSubscriptionCycle(data.id, periodStart);
+        if (already === 0) {
+            await usageServerAPI.recordGrant({
+                userId,
+                polarSubscriptionId: data.id,
+                cycleStart: periodStart,
+                cycleEnd: periodEnd,
+                granted: target,
+                reason: 'subscription',
+            });
+        } else if (target > already) {
+            await usageServerAPI.recordGrant({
+                userId,
+                polarSubscriptionId: data.id,
+                cycleStart: periodStart,
+                cycleEnd: periodEnd,
+                granted: target - already,
+                reason: `upgrade:${plan}`,
+            });
+        }
     }
     await usersServerAPI.patchUserByUserId(userId, {
         plan,
@@ -103,18 +120,24 @@ async function handleOrderRefunded(data: PolarOrderData) {
         console.warn(`[polar/process] order.refunded: no subscription (order=${data.id})`);
         return;
     }
-    // 해당 구독의 최신 사이클 부여분을 전액 회수 (부분환불도 동일 처리 — 감사 로그로 금액 추적)
+    // 해당 구독의 최신 사이클 순부여합을 전액 회수 (업그레이드 top-up 포함).
+    // 부분환불도 동일 처리 — 감사 로그로 금액 추적
     const latest = await usageServerAPI.latestGrantForSubscription(subscriptionId);
     if (!latest) {
         console.warn(`[polar/process] order.refunded: no grant found (subscription=${subscriptionId})`);
         return;
     }
+    const net = await usageServerAPI.sumGrantedForSubscriptionCycle(
+        subscriptionId,
+        latest.cycle_start,
+    );
+    if (net === 0) return;
     await usageServerAPI.recordGrant({
         userId: latest.user_id,
         polarSubscriptionId: subscriptionId,
         cycleStart: latest.cycle_start,
         cycleEnd: latest.cycle_end,
-        granted: -latest.granted,
+        granted: -net,
         reason: 'refund',
     });
 }

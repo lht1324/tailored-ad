@@ -26,6 +26,11 @@ async function loadHandlers(): Promise<Array<{ method: string; pattern: string[]
         creativeDesign,
         polarCheckouts,
         polarProcess,
+        polarProducts,
+        polarOrders,
+        polarSubscriptions,
+        polarChange,
+        polarCancel,
     ] = await Promise.all([
         import("@/app/api/ad-generation-batches/route"),
         import("@/app/api/ad-generation-batches/[batchId]/route"),
@@ -41,6 +46,11 @@ async function loadHandlers(): Promise<Array<{ method: string; pattern: string[]
         import("@/app/api/creative/[creative-index]/design/route"),
         import("@/app/api/polar/checkouts/route"),
         import("@/app/api/polar/process/route"),
+        import("@/app/api/polar/products/route"),
+        import("@/app/api/polar/orders/route"),
+        import("@/app/api/polar/subscriptions/route"),
+        import("@/app/api/polar/subscriptions/change/route"),
+        import("@/app/api/polar/subscriptions/cancel/route"),
     ]);
     const at = (mod: Record<string, unknown>, key: string): RouteHandler | undefined =>
         typeof mod[key] === 'function' ? (mod[key] as RouteHandler) : undefined;
@@ -60,6 +70,11 @@ async function loadHandlers(): Promise<Array<{ method: string; pattern: string[]
         { method: 'PATCH', pattern: ['api', 'creative', ':creative-index', 'design'], mod: creativeDesign as unknown as Record<string, unknown> },
         { method: 'POST', pattern: ['api', 'polar', 'checkouts'], mod: polarCheckouts as unknown as Record<string, unknown> },
         { method: 'POST', pattern: ['api', 'polar', 'process'], mod: polarProcess as unknown as Record<string, unknown> },
+        { method: 'GET', pattern: ['api', 'polar', 'products'], mod: polarProducts as unknown as Record<string, unknown> },
+        { method: 'GET', pattern: ['api', 'polar', 'orders'], mod: polarOrders as unknown as Record<string, unknown> },
+        { method: 'GET', pattern: ['api', 'polar', 'subscriptions'], mod: polarSubscriptions as unknown as Record<string, unknown> },
+        { method: 'POST', pattern: ['api', 'polar', 'subscriptions', 'change'], mod: polarChange as unknown as Record<string, unknown> },
+        { method: 'DELETE', pattern: ['api', 'polar', 'subscriptions', 'cancel'], mod: polarCancel as unknown as Record<string, unknown> },
     ];
     const out: Array<{ method: string; pattern: string[]; handler: RouteHandler }> = [];
     for (const e of entries) {

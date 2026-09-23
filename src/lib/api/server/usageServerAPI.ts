@@ -104,8 +104,7 @@ export const usageServerAPI = {
     // 환불 회수용 — 해당 구독의 최신 'subscription' 부여행
     async latestGrantForSubscription(
         polarSubscriptionId: string,
-    ): Promise<{ user_id: string; cycle_start: string; cycle_end: string; granted: number } | null> {
-        const supabase = await createSupabaseServiceRoleClient();
+    ): Promise<{ user_id: string; cycle_start: string; cycle_end: string; granted: number } | null> {        const supabase = await createSupabaseServiceRoleClient();
         const { data, error } = await supabase
             .from('subscription_grants')
             .select('user_id, cycle_start, cycle_end, granted')
@@ -118,6 +117,24 @@ export const usageServerAPI = {
             throw new Error(`Failed to fetch latest grant: ${error.message}`);
         }
         return data;
+    },
+
+    // 사이클 순부여합 — 같은 구독·사이클에 찍힌 전 사유 합 (subscription + upgrade:* − refund).
+    // 업그레이드 차액 계산 + 환불 전액 회수용. 행 없으면 0.
+    async sumGrantedForSubscriptionCycle(
+        polarSubscriptionId: string,
+        cycleStart: string,
+    ): Promise<number> {
+        const supabase = await createSupabaseServiceRoleClient();
+        const { data, error } = await supabase
+            .from('subscription_grants')
+            .select('granted')
+            .eq('polar_subscription_id', polarSubscriptionId)
+            .eq('cycle_start', cycleStart);
+        if (error) {
+            throw new Error(`Failed to sum cycle grants: ${error.message}`);
+        }
+        return (data ?? []).reduce((sum, row) => sum + (row.granted ?? 0), 0);
     },
 
     // 사용량 상태 — 잔액제 단일. 부여 이력 없으면 trial 10장 lazy 부여 후 잔액제.
