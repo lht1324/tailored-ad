@@ -2,6 +2,7 @@
 
 import { memo, useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Plus, User } from 'lucide-react';
 import ThemeToggle from "@/components/page/ad/public/ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
@@ -14,7 +15,7 @@ function planLabel(plan: string | null | undefined): string {
 }
 
 function AppHeader({ onUsageLoaded }: { onUsageLoaded?: () => void }) {
-    const { supabaseUser } = useAuth();
+    const { supabaseUser, user } = useAuth();
     const [usage, setUsage] = useState<UserUsageSummary | null>(null);
 
     useEffect(() => {
@@ -69,9 +70,22 @@ function AppHeader({ onUsageLoaded }: { onUsageLoaded?: () => void }) {
                     <Link
                         href="/profile"
                         aria-label="Profile"
-                        className="flex items-center justify-center rounded-full border border-hairline p-2.5 text-text2 transition-colors hover:bg-canvas hover:text-text1"
+                        className="flex items-center justify-center overflow-hidden rounded-full border border-hairline text-text2 transition-colors hover:bg-canvas hover:text-text1"
                     >
-                        <User className="h-4 w-4" strokeWidth={2.2} />
+                        {user?.avatar_url ? (
+                            <Image
+                                src={user.avatar_url}
+                                alt="Profile"
+                                width={36}
+                                height={36}
+                                unoptimized
+                                className="h-9 w-9 rounded-full object-cover"
+                            />
+                        ) : (
+                            <span className="flex items-center justify-center p-2.5">
+                                <User className="h-4 w-4" strokeWidth={2.2} />
+                            </span>
+                        )}
                     </Link>
                     <Link
                         href="/create"
