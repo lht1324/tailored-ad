@@ -197,7 +197,7 @@ Instruction: Generate ratio-specific I2I captions and ad copy according to the s
      * 제출 직행용 T2I 프롬프트 1개를 생성한다. 텍스트+Vision 호출(이미지 조건부).
      * 호출 단위 = 인물 포함 배치당 1회.
      */
-    async postPersonaDescription(params: {
+    async postAdPersonaImagePrompt(params: {
         brief: string | null;
         productNote: string | null;
         seed: number;
@@ -233,11 +233,11 @@ Instruction: Write one submit-ready persona T2I prompt according to the system p
                     userMessage,
                     imageBase64List: imageBase64List.length > 0 ? imageBase64List : undefined,
                     imageDetail: "high",
-                    maxCompletionTokens: 1024,
+                    maxCompletionTokens: 10240,
                     temperature: 0.8,
                     reasoning: false,
                 },
-                `ad/persona/postPersonaDescription()`,
+                `ad/persona/postAdPersonaImagePrompt()`,
             );
 
             if (!generatedContent) {

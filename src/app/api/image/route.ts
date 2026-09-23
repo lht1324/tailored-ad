@@ -279,7 +279,7 @@ export async function POST(request: NextRequest) {
             : null;
         if (!hasPersonFile && personaRequested) {
             internalFireAndForgetFetch(
-                `${await getServerEnv('BASE_URL')}/api/persona?batchId=${createdAdGenerationBatch.id}`,
+                `${await getServerEnv('BASE_URL')}/api/image/generation/persona?batchId=${createdAdGenerationBatch.id}`,
                 { method: "POST" },
                 { personaBrief },
             );

@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
         }
 
         internalFireAndForgetFetch(
-            `${await getServerEnv('BASE_URL')}/api/persona/process?batchId=${batchId}${brief ? `&brief=${encodeURIComponent(brief)}` : ""}`,
+            `${await getServerEnv('BASE_URL')}/api/image/process/persona?batchId=${batchId}${brief ? `&brief=${encodeURIComponent(brief)}` : ""}`,
             { method: "POST" },
             {
                 replicatePayload: payload,

@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
 
         // 2) LLM T2I 프롬프트 1콜 (brief 반영, 없으면 seed 창작 — 제출 직행문)
         const seed = derivePersonaSeed(batchId);
-        const llmResult = await llmServerAPI.postPersonaDescription({
+        const llmResult = await llmServerAPI.postAdPersonaImagePrompt({
             brief: personaBrief,
             productNote: batch.product_image?.note ?? null,
             seed,
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
             message: "Persona generation submitted.",
         });
     } catch (error) {
-        console.error(`Error in POST /api/persona (batch=${batchId}):`, error);
+        console.error(`Error in POST /api/image/generation/persona (batch=${batchId}):`, error);
 
         await adGenerationBatchServerAPI.patchAdGenerationBatchStatus(batchId, 'failed').catch(() => {});
 
