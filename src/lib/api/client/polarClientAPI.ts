@@ -75,8 +75,7 @@ export const polarClientAPI = {
         }
     },
 
-    async cancelSubscription(subscriptionId: string): Promise<boolean> {
-        try {
+    async cancelSubscription(subscriptionId: string): Promise<boolean> {        try {
             const response = await deleteFetch(`/api/polar/subscriptions/cancel?subscriptionId=${encodeURIComponent(subscriptionId)}`);
             const result = await response.json();
             if (!result.success) {
@@ -85,6 +84,20 @@ export const polarClientAPI = {
             return true;
         } catch (error) {
             console.error('Error canceling Polar subscription:', error);
+            return false;
+        }
+    },
+
+    async revertScheduled(what: 'plan-change' | 'cancellation'): Promise<boolean> {
+        try {
+            const response = await postFetch(`/api/polar/subscriptions/revert`, { what });
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error ?? 'Failed to revert');
+            }
+            return true;
+        } catch (error) {
+            console.error('Error reverting Polar scheduled change:', error);
             return false;
         }
     },

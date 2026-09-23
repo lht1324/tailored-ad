@@ -45,6 +45,8 @@ function ProfilePageClient() {
     const [showChangePlanModal, setShowChangePlanModal] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [isCanceling, setIsCanceling] = useState(false);
+    const [revertTarget, setRevertTarget] = useState<'plan-change' | 'cancellation' | null>(null);
+    const [isReverting, setIsReverting] = useState(false);
 
     const onHeaderUsageLoaded = useCallback(() => {
         setHeaderReady(true);
@@ -153,6 +155,22 @@ function ProfilePageClient() {
         }
     }, [subscriptionData?.id, userEmail, loadBilling]);
 
+    const onConfirmRevert = useCallback(async () => {
+        if (!revertTarget) return;
+        setIsReverting(true);
+        try {
+            const ok = await polarClientAPI.revertScheduled(revertTarget);
+            setRevertTarget(null);
+            if (ok && userEmail) {
+                await loadBilling(userEmail);
+            } else if (!ok) {
+                alert("Failed to revert. Please try again later.");
+            }
+        } finally {
+            setIsReverting(false);
+        }
+    }, [revertTarget, userEmail, loadBilling]);
+
     return (
         <div className="min-h-screen bg-canvas text-text1">
             <AppHeader onUsageLoaded={onHeaderUsageLoaded} />
@@ -257,6 +275,12 @@ function ProfilePageClient() {
                                 <p className="text-xs leading-relaxed text-red-500/70">
                                     Your subscription will end on {formatDate(subscriptionData.currentPeriodEnd)}. Your remaining images stay available.
                                 </p>
+                                <button
+                                    onClick={() => setRevertTarget('cancellation')}
+                                    className="mt-3 rounded-xl border border-red-500/20 bg-surface px-4 py-2 text-xs font-bold text-red-500 transition-colors hover:bg-red-500/10"
+                                >
+                                    Keep subscription
+                                </button>
                             </div>
                         )}
                         {subscriptionData.scheduledPlan && (
@@ -265,6 +289,12 @@ function ProfilePageClient() {
                                 <p className="text-xs leading-relaxed text-text2">
                                     {subscriptionData.productName} → {PLAN_DISPLAY_NAME[subscriptionData.scheduledPlan] ?? subscriptionData.scheduledPlan} on {formatDate(subscriptionData.scheduledAppliesAt)}. Your current plan stays active until then.
                                 </p>
+                                <button
+                                    onClick={() => setRevertTarget('plan-change')}
+                                    className="mt-3 rounded-xl border border-hairline bg-surface px-4 py-2 text-xs font-bold text-text2 transition-colors hover:text-text1"
+                                >
+                                    Cancel scheduled change
+                                </button>
                             </div>
                         )}
                         <div className="space-y-3 text-sm">
@@ -356,6 +386,20 @@ function ProfilePageClient() {
                     onClickConfirm={isCanceling ? undefined : onConfirmCancelSubscription}
                     onClickCancel={() => {
                         if (!isCanceling) setShowCancelModal(false);
+                    }}
+                />
+            )}
+            {revertTarget && (
+                <DefaultModal
+                    title={revertTarget === 'plan-change' ? "Cancel Scheduled Change" : "Keep Subscription"}
+                    message={revertTarget === 'plan-change'
+                        ? "The scheduled plan change will be removed. Your current plan stays as is."
+                        : "The scheduled cancellation will be removed. Your subscription will renew normally."}
+                    confirmText={isReverting ? "Working..." : "Confirm"}
+                    cancelText="Back"
+                    onClickConfirm={isReverting ? undefined : onConfirmRevert}
+                    onClickCancel={() => {
+                        if (!isReverting) setRevertTarget(null);
                     }}
                 />
             )}
