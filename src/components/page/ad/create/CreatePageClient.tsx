@@ -24,8 +24,15 @@ export default function CreatePageClient() {
 
     // 구성 요소 — background는 AI가 creative마다 생성
     const [product, setProduct] = useState<AdUploadedComponent | null>(null);
-    const [person, setPerson] = useState<AdUploadedComponent | null>(null);
+    // PERSONA_MODE (2026-09-24): 실사 인물 업로드를 AI 페르소나 생성으로 대체.
+    // 아래 person state·전송부는 Enterprise 실사 부활용으로 주석 보존 (삭제 금지).
+    // 부활 시: 주석 해제 + CreateForm person 셀 복원 + image/route 실파일 분기(存置) 사용.
+    // const [person, setPerson] = useState<AdUploadedComponent | null>(null);
     const [brandLogo, setBrandLogo] = useState<AdUploadedComponent | null>(null);
+
+    // AI 모델(페르소나) 사용 여부 + brief — 인물 포함 배치 신호
+    const [personaEnabled, setPersonaEnabled] = useState(false);
+    const [personaBrief, setPersonaBrief] = useState('');
 
     // 생성 옵션
     const [aspectRatios, setAspectRatios] = useState<AdAspectRatio[]>(['1:1']);
@@ -38,7 +45,7 @@ export default function CreatePageClient() {
     const [error, setError] = useState<string | null>(null);
     const [showUpsell, setShowUpsell] = useState(false);
 
-    const hasSubject = useMemo(() => product !== null || person !== null, [product, person]);
+    const hasSubject = useMemo(() => product !== null || personaEnabled, [product, personaEnabled]);
 
     const canGenerate = useMemo(
         () => hasSubject && aspectRatios.length > 0 && !isGenerating,
@@ -63,12 +70,14 @@ export default function CreatePageClient() {
                   }
                 : null;
 
-            const personImage = person
-                ? {
-                      imageFileExtension: inferFileExtension(person.fileName),
-                      note: person.note,
-                  }
-                : null;
+            const personImage = null;
+            // PERSONA_MODE: 실사 전송부 주석 보존 (Enterprise 부활용)
+            // const personImage = person
+            //     ? {
+            //           imageFileExtension: inferFileExtension(person.fileName),
+            //           note: person.note,
+            //       }
+            //     : null;
 
             const brandLogoImage = brandLogo
                 ? {
@@ -79,11 +88,13 @@ export default function CreatePageClient() {
             // 생성 + 원본 업로드를 multipart 1요청으로 (서버가 생성→업로드→specs 순 처리).
             // 전송 전에 긴 변 1024px로 다운스케일 (미리보기는 원본 유지, 실제 전송만 축소).
             // 근거: Gemini 768 타일·Flux 입력 1MP 상한·Replicate 입력 $0.014/MP
-            const [productFile, personFile, logoFile] = await Promise.all([
+            const [productFile, logoFile] = await Promise.all([
                 product?.file ? downscaleImageFile(product.file) : null,
-                person?.file ? downscaleImageFile(person.file) : null,
                 brandLogo?.file ? downscaleImageFile(brandLogo.file) : null,
             ]);
+            // PERSONA_MODE: 실사 전송부 주석 보존 (Enterprise 부활용)
+            // person?.file ? downscaleImageFile(person.file) : null,
+            const personFile = null;
             const { batchId } = await adProjectClientAPI.createProject({
                 productImage,
                 personImage,
@@ -92,6 +103,7 @@ export default function CreatePageClient() {
                 conceptCount,
                 ctaEnabled,
                 brandPalette: validPalette,
+                personaBrief: personaEnabled ? personaBrief : undefined,
             }, {
                 product: productFile,
                 person: personFile,
@@ -108,10 +120,10 @@ export default function CreatePageClient() {
             setError(err instanceof Error ? err.message : 'Failed to start generation. Please try again.');
             setIsGenerating(false);
         }
-    }, [hasSubject, isGenerating, product, person, brandLogo, aspectRatios, conceptCount, ctaEnabled, brandPalette, router]);
+    }, [hasSubject, isGenerating, product, personaEnabled, personaBrief, brandLogo, aspectRatios, conceptCount, ctaEnabled, brandPalette, router]);
 
     const hintText = !hasSubject
-        ? 'Add a product or person to start. The AI paints a different background for each creative.'
+        ? 'Add a product or enable an AI model to start. The AI paints a different background for each creative.'
         : 'Ready. Each creative gets its own AI background. Success assets only are credited.';
 
     return (
@@ -131,11 +143,13 @@ export default function CreatePageClient() {
                     <div className="flex flex-1 flex-col min-h-0">
                         <CreateForm
                             product={product}
-                            person={person}
                             brandLogo={brandLogo}
                             onProductChange={setProduct}
-                            onPersonChange={setPerson}
                             onBrandLogoChange={setBrandLogo}
+                            personaEnabled={personaEnabled}
+                            personaBrief={personaBrief}
+                            onPersonaEnabledChange={setPersonaEnabled}
+                            onPersonaBriefChange={setPersonaBrief}
                             aspectRatios={aspectRatios}
                             conceptCount={conceptCount}
                             ctaEnabled={ctaEnabled}

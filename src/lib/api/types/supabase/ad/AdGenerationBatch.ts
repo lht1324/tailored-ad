@@ -123,6 +123,11 @@ export interface AdPipelineStartRequest {
     ctaEnabled?: boolean;
     /** 브랜드 팔레트 3-5 hex — nullable, 조건부 입력. 비어 있으면 7종 랜덤 분배 유지 */
     brandPalette?: string[] | null;
+    /**
+     * 페르소나 brief — 실사 인물 업로드 대신 AI 페르소나 생성 시 사용.
+     * 비어 있으면 seed 기본값으로 생성. personImage(실파일)와 동시 사용 금지.
+     */
+    personaBrief?: string | null;
 }
 
 export interface AdCreativeSpec {

@@ -8,6 +8,7 @@ import {
     PERSON_ONLY_CREATIVE_PROMPT,
 } from "@/lib/llm-prompts/POST_AD_CREATIVE_PROMPT";
 import { POST_AD_IMAGE_ANALYSIS_PROMPT } from "@/lib/llm-prompts/POST_AD_IMAGE_ANALYSIS_PROMPT";
+import { POST_AD_PERSONA_PROMPT } from "@/lib/llm-prompts/POST_AD_PERSONA_PROMPT";
 import { fontMap } from "@/lib/fonts";
 
 /**
@@ -172,6 +173,78 @@ Instruction: Generate ratio-specific I2I captions and ad copy according to the s
                 };
             } catch (parseError) {
                 console.error(`[ad/creative/${creativeIndex}] raw LLM output on PARSE_ERROR:`, generatedContent.slice(0, 4000));
+                return {
+                    success: false,
+                    error: {
+                        message: parseError instanceof Error ? parseError.message : "Failed to parse JSON",
+                        code: "PARSE_ERROR",
+                    },
+                };
+            }
+        } catch (error) {
+            return {
+                success: false,
+                error: {
+                    message: error instanceof Error ? error.message : "Unknown error",
+                    code: "INTERNAL_ERROR",
+                },
+            };
+        }
+    },
+
+    /**
+     * 페르소나 묘사 — 유저 brief(없으면 seed 창작) + product note를 받아
+     * 가상 광고 모델 1문 묘사를 생성한다. 텍스트 전용 호출(이미지 없음).
+     * 호출 단위 = 인물 포함 배치당 1회.
+     */
+    async postPersonaDescription(params: {
+        brief: string | null;
+        productNote: string | null;
+        seed: number;
+    }): Promise<{
+        success: boolean;
+        description?: string;
+        error?: { message: string; code: string };
+    }> {
+        try {
+            const { brief, productNote, seed } = params;
+            const userMessage = `
+<input_data>
+  <brief>${brief ?? ""}</brief>
+  <product_note>${productNote ?? ""}</product_note>
+  <seed>${seed}</seed>
+</input_data>
+
+Instruction: Write one fictional model portrait brief according to the system prompt.
+`;
+            const client = new OpenRouterClient();
+            const generatedContent = await completeWithRetry(client,
+                {
+                    model: OpenRouterModel.GLM_5_3_FLASH,
+                    systemMessage: POST_AD_PERSONA_PROMPT,
+                    userMessage,
+                    maxCompletionTokens: 512,
+                    temperature: 0.9,
+                    reasoning: false,
+                },
+                `ad/persona/postPersonaDescription()`,
+            );
+
+            if (!generatedContent) {
+                return {
+                    success: false,
+                    error: { message: "No content from LLM", code: "EMPTY_RESPONSE" },
+                };
+            }
+
+            try {
+                const parsed: { persona: string } = cleanAndParseJSON(generatedContent);
+                if (!parsed.persona || typeof parsed.persona !== 'string' || parsed.persona.trim().length === 0) {
+                    throw new Error("Empty persona description");
+                }
+                return { success: true, description: parsed.persona.trim() };
+            } catch (parseError) {
+                console.error(`[ad/persona] raw LLM output on PARSE_ERROR:`, generatedContent.slice(0, 1000));
                 return {
                     success: false,
                     error: {

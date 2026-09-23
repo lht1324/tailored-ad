@@ -267,11 +267,28 @@ export async function POST(request: NextRequest) {
             await adGenerationBatchServerAPI.patchAdGenerationBatch(createdAdGenerationBatch.id, recordPatch);
         }
 
-        // 조합 배분 단계로 fire-and-forget 체이닝 (이 시점에 Storage 파일 존재 보장됨)
-        internalFireAndForgetFetch(
-            `${await getServerEnv('BASE_URL')}/api/creative/specs?batchId=${createdAdGenerationBatch.id}`,
-            { method: "POST" },
-        );
+        // 다음 단계 체이닝 — 이 시점에 Storage 파일 존재 보장됨.
+        // 3분기: 실사 인물 업로드 → specs 직행 (Enterprise 부활 경로, 현행 유지).
+        // personaBrief → persona 1회 (슬롯 저장 후 specs 체인). 그 외 → specs 직행.
+        const hasPersonFile = Boolean(files.person);
+        const personaBriefRaw = body.personaBrief;
+        // 문자열 존재 자체가 persona 경로 신호 (빈 문자열=seed 기본값 생성)
+        const personaRequested = typeof personaBriefRaw === 'string';
+        const personaBrief = personaRequested && personaBriefRaw.trim().length > 0
+            ? personaBriefRaw.trim()
+            : null;
+        if (!hasPersonFile && personaRequested) {
+            internalFireAndForgetFetch(
+                `${await getServerEnv('BASE_URL')}/api/persona?batchId=${createdAdGenerationBatch.id}`,
+                { method: "POST" },
+                { personaBrief },
+            );
+        } else {
+            internalFireAndForgetFetch(
+                `${await getServerEnv('BASE_URL')}/api/creative/specs?batchId=${createdAdGenerationBatch.id}`,
+                { method: "POST" },
+            );
+        }
 
         return getNextBaseResponse({
             success: true,

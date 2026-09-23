@@ -34,11 +34,13 @@ function rgbToHex(r: number, g: number, b: number): string {
 
 interface CreateFormProps {
     product: AdUploadedComponent | null;
-    person: AdUploadedComponent | null;
     brandLogo: AdUploadedComponent | null;
     onProductChange: (file: AdUploadedComponent | null) => void;
-    onPersonChange: (file: AdUploadedComponent | null) => void;
     onBrandLogoChange: (file: AdUploadedComponent | null) => void;
+    personaEnabled: boolean;
+    personaBrief: string;
+    onPersonaEnabledChange: (enabled: boolean) => void;
+    onPersonaBriefChange: (brief: string) => void;
     aspectRatios: AdAspectRatio[];
     conceptCount: number;
     ctaEnabled: boolean;
@@ -51,11 +53,13 @@ interface CreateFormProps {
 
 function CreateForm({
     product,
-    person,
     brandLogo,
     onProductChange,
-    onPersonChange,
     onBrandLogoChange,
+    personaEnabled,
+    personaBrief,
+    onPersonaEnabledChange,
+    onPersonaBriefChange,
     aspectRatios,
     conceptCount,
     ctaEnabled,
@@ -151,7 +155,7 @@ function CreateForm({
                         <div>
                             <h3 className="text-[15px] font-semibold tracking-tight text-text1">Subjects</h3>
                             <p className="mt-0.5 text-[12px] leading-relaxed text-text2">
-                                Upload your product or person. The AI paints a different background for each creative.
+                                Upload your product or enable an AI model. The AI paints a different background for each creative.
                                 For best quality, add a one-line note: how it should look in the ad (mood, setting, details).
                             </p>
                         </div>
@@ -167,12 +171,16 @@ function CreateForm({
                                 tall
                                 help="A clear product photo on a simple background. The AI keeps your product identical in every scene. JPG, PNG or WebP, up to 10 MB."
                                 notePlaceholder="e.g. Frosted bottle on wet slate, blue-hour light"
-                                highlightNote={Boolean(product && person)}
+                                highlightNote={Boolean(product && personaEnabled)}
                                 file={product}
                                 onChange={onProductChange}
                             />
                         </div>
 
+                        {/*
+                        PERSONA_MODE (2026-09-24): 실사 인물 업로드를 AI 페르소나 생성으로 대체.
+                        아래 UploadZone 주석 보존 — Enterprise 실사 부활용 시 복원 (삭제 금지).
+                        부활 시: CreatePageClient person state·전송부 주석 해제 + 본 셀 복원.
                         <div className="flex flex-col flex-1 min-h-0">
                             <UploadZone
                                 label="Person"
@@ -183,6 +191,40 @@ function CreateForm({
                                 file={person}
                                 onChange={onPersonChange}
                             />
+                        </div>
+                        */}
+                        <div className="flex flex-col flex-1 min-h-0">
+                            <div className="flex flex-1 flex-col rounded-xl border border-hairline bg-canvas p-3 min-h-0">
+                                <div className="mb-2 flex items-center justify-between">
+                                    <span className="text-[13px] font-semibold text-text1">AI Model</span>
+                                    <button
+                                        type="button"
+                                        role="switch"
+                                        aria-checked={personaEnabled}
+                                        onClick={() => onPersonaEnabledChange(!personaEnabled)}
+                                        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-300 ${
+                                            personaEnabled ? 'bg-accent' : 'bg-hairline'
+                                        }`}
+                                    >
+                                        <span
+                                            className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-300 ${
+                                                personaEnabled ? 'translate-x-5' : 'translate-x-0'
+                                            }`}
+                                        />
+                                    </button>
+                                </div>
+                                <p className="mb-2 text-[11px] leading-relaxed text-text2">
+                                    A fictional model generated for this batch. No real person needed.
+                                </p>
+                                <textarea
+                                    value={personaBrief}
+                                    onChange={(e) => onPersonaBriefChange(e.target.value)}
+                                    disabled={!personaEnabled}
+                                    rows={3}
+                                    placeholder="e.g. Woman in her late 20s, shoulder-length dark hair, warm and confident — athletic wear vibe. Empty = auto-cast."
+                                    className="min-h-0 flex-1 resize-none rounded-lg border border-hairline bg-surface px-2.5 py-2 text-[12px] leading-relaxed text-text1 placeholder:text-text2/50 focus:border-text2/40 focus:outline-none disabled:opacity-40"
+                                />
+                            </div>
                         </div>
 
                         <div className="flex flex-col flex-1 min-h-0">
@@ -196,7 +238,7 @@ function CreateForm({
                         </div>
                     </div>
 
-                    {product && person && (
+                    {product && personaEnabled && (
                         <motion.div
                             initial={{ opacity: 0, y: 8 }}
                             animate={{ opacity: 1, y: 0 }}

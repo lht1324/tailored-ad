@@ -34,6 +34,8 @@ export type AdPipelineStartClientRequest = {
     conceptCount: number;
     ctaEnabled?: boolean;
     brandPalette?: string[] | null;
+    /** 페르소나 brief — 문자열이면 persona 경로 (빈 문자열=seed 기본값). undefined면 미사용 */
+    personaBrief?: string | null;
 };
 
 /** 잔액 소진 — /create 업셀 모달 판별용 (402 전용) */
