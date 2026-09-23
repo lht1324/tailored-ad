@@ -2,7 +2,7 @@
 
 import { memo, useCallback, useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, Check, Palette, Plus, X } from 'lucide-react';
+import { AlertTriangle, Check, ChevronDown, Palette, Plus, Sparkles, X } from 'lucide-react';
 import { HexColorPicker } from 'react-colorful';
 import { AdAspectRatio, AdUploadedComponent } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { AD_ASPECT_RATIO_INFO, AD_CONCEPT_OPTIONS } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
@@ -125,6 +125,12 @@ function CreateForm({
         onBrandPaletteChange(next);
     }, [brandPalette, onBrandPaletteChange]);
 
+    const [isPersonaNoteOpen, setIsPersonaNoteOpen] = useState(false);
+
+    const onClickPersonaNoteToggle = useCallback(() => {
+        setIsPersonaNoteOpen((current) => !current);
+    }, []);
+
     // Where 한 줄이 가로로 벗어나지 않는 최대 높이 — (W - gaps) / sumFactors
     const whereRef = useRef<HTMLDivElement>(null);
     const [whereH, setWhereH] = useState(96);
@@ -193,38 +199,135 @@ function CreateForm({
                             />
                         </div>
                         */}
-                        <div className="flex flex-col flex-1 min-h-0">
-                            <div className="flex flex-1 flex-col rounded-xl border border-hairline bg-canvas p-3 min-h-0">
-                                <div className="mb-2 flex items-center justify-between">
-                                    <span className="text-[13px] font-semibold text-text1">AI Model</span>
+                        <div className="group relative flex flex-col flex-1 min-h-0">
+                            <div className="mb-2 flex items-center justify-between shrink-0">
+                                <span className="text-[13px] font-medium text-text1">AI Model</span>
+                                <button
+                                    type="button"
+                                    role="switch"
+                                    aria-checked={personaEnabled}
+                                    aria-label="Toggle AI model"
+                                    onClick={() => onPersonaEnabledChange(!personaEnabled)}
+                                    className={`relative h-5 w-9 shrink-0 rounded-full transition-colors duration-300 ${
+                                        personaEnabled ? 'bg-accent' : 'bg-hairline'
+                                    }`}
+                                >
+                                    <span
+                                        className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${
+                                            personaEnabled ? 'translate-x-4' : 'translate-x-0'
+                                        }`}
+                                    />
+                                </button>
+                            </div>
+
+                            {personaEnabled ? (
+                                <div className="flex flex-1 min-h-[10rem] items-center gap-3 rounded-xl border border-hairline bg-canvas p-4">
+                                    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-hairline bg-surface">
+                                        <Sparkles className="h-5 w-5 text-text2" strokeWidth={1.8} />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate text-[13px] font-medium text-text1">Fictional model</p>
+                                        <p className="mt-0.5 truncate text-[11px] text-text2">
+                                            {personaBrief.trim() ? personaBrief.trim() : 'auto-cast · no real person'}
+                                        </p>
+                                    </div>
                                     <button
                                         type="button"
-                                        role="switch"
-                                        aria-checked={personaEnabled}
-                                        onClick={() => onPersonaEnabledChange(!personaEnabled)}
-                                        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-300 ${
-                                            personaEnabled ? 'bg-accent' : 'bg-hairline'
-                                        }`}
+                                        onClick={() => {
+                                            onPersonaEnabledChange(false);
+                                            setIsPersonaNoteOpen(false);
+                                        }}
+                                        className="rounded-full p-1.5 text-text2 transition-colors hover:bg-surface hover:text-text1"
+                                        aria-label="Remove AI model"
                                     >
-                                        <span
-                                            className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-300 ${
-                                                personaEnabled ? 'translate-x-5' : 'translate-x-0'
-                                            }`}
-                                        />
+                                        <X className="h-4 w-4" strokeWidth={2} />
                                     </button>
                                 </div>
-                                <p className="mb-2 text-[11px] leading-relaxed text-text2">
-                                    A fictional model generated for this batch. No real person needed.
-                                </p>
-                                <textarea
-                                    value={personaBrief}
-                                    onChange={(e) => onPersonaBriefChange(e.target.value)}
-                                    disabled={!personaEnabled}
-                                    rows={3}
-                                    placeholder="e.g. Woman in her late 20s, shoulder-length dark hair, warm and confident — athletic wear vibe. Empty = auto-cast."
-                                    className="min-h-0 flex-1 resize-none rounded-lg border border-hairline bg-surface px-2.5 py-2 text-[12px] leading-relaxed text-text1 placeholder:text-text2/50 focus:border-text2/40 focus:outline-none disabled:opacity-40"
-                                />
-                            </div>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={() => onPersonaEnabledChange(true)}
+                                    className="flex w-full flex-1 min-h-[10rem] flex-col items-center justify-center gap-2.5 rounded-xl border border-dashed border-hairline px-4 py-8 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-text2/50 sm:py-10"
+                                >
+                                    <Sparkles
+                                        className="h-5 w-5 shrink-0 text-text2"
+                                        strokeWidth={1.8}
+                                    />
+                                    <span className="mt-1 truncate text-[13px] text-text2">
+                                        Add a model or <span className="text-text1 underline underline-offset-2">generate one</span>
+                                    </span>
+                                </button>
+                            )}
+
+                            {personaEnabled && (
+                                <div className="relative mt-2">
+                                    <button
+                                        type="button"
+                                        onClick={onClickPersonaNoteToggle}
+                                        aria-expanded={isPersonaNoteOpen}
+                                        className="flex w-full items-center justify-between gap-2 rounded-full border border-hairline bg-canvas px-3 py-2 text-[12px] transition-colors hover:border-text2/30"
+                                    >
+                                        <span className="flex min-w-0 flex-1 items-center gap-2 truncate">
+                                            {personaBrief.trim() ? (
+                                                <>
+                                                    <span className="truncate text-text1">{personaBrief.trim()}</span>
+                                                    <span className="shrink-0 rounded-full bg-accent/10 px-1.5 py-0.5 text-[10px] font-medium text-accent">note</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Plus
+                                                        className="h-3 w-3 shrink-0 text-text2"
+                                                        strokeWidth={2}
+                                                    />
+                                                    <span className="truncate text-text2">
+                                                        Add note
+                                                    </span>
+                                                    <span className="shrink-0 rounded-full border border-hairline bg-surface px-1.5 py-0.5 text-[10px] font-medium text-text2">
+                                                        optional
+                                                    </span>
+                                                    <span className="hidden sm:inline shrink-0 text-[11px] text-text2/60">· leave empty to auto-cast</span>
+                                                </>
+                                            )}
+                                        </span>
+                                        <ChevronDown
+                                            className={`h-3.5 w-3.5 shrink-0 text-text2 transition-transform duration-200 ${
+                                                isPersonaNoteOpen ? 'rotate-180' : ''
+                                            }`}
+                                            strokeWidth={2}
+                                        />
+                                    </button>
+                                    {isPersonaNoteOpen && (
+                                        <div className="absolute left-0 right-0 top-full z-20 mt-2 rounded-xl border border-hairline bg-surface p-3 shadow-xl">
+                                            <textarea
+                                                value={personaBrief}
+                                                onChange={(e) => onPersonaBriefChange(e.target.value)}
+                                                placeholder="e.g. Woman in her late 20s, shoulder-length dark hair, warm and confident — athletic wear vibe. Empty = auto-cast."
+                                                rows={2}
+                                                className="max-h-[7rem] min-h-[4.5rem] w-full resize-none rounded-lg border border-hairline bg-canvas px-3 py-2 text-[12px] leading-relaxed text-text1 placeholder:text-text2/60 focus:border-text2/40 focus:outline-none"
+                                            />
+                                            <div className="mt-3 flex justify-end gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        onPersonaBriefChange('');
+                                                        setIsPersonaNoteOpen(false);
+                                                    }}
+                                                    className="rounded-full px-3 py-1.5 text-[11px] text-text2 hover:bg-canvas"
+                                                >
+                                                    Clear
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsPersonaNoteOpen(false)}
+                                                    className="rounded-full bg-text1 px-4 py-1.5 text-[11px] font-medium text-canvas"
+                                                >
+                                                    Done
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex flex-col flex-1 min-h-0">
