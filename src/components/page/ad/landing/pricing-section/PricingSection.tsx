@@ -153,13 +153,16 @@ export default function PricingSection() {
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
     const [discountEligible, setDiscountEligible] = useState(false);
 
-    // 첫주문 할인 대상 여부 — 유료 이력 없는 로그인 유저에게만 Starter 카드에 표시
+    // 첫주문 할인 표시 — 로그아웃·무료는 표시, 유료 이력만 숨김 (서버는 유료 이력 기준 부과)
     useEffect(() => {
-        if (!supabaseUser) return;
         let live = true;
         // 동기 setState는 lint(react-hooks/set-state-in-effect) 위반이라 마이크로태스크로 지연
         void Promise.resolve().then(() => {
             if (!live) return;
+            if (!supabaseUser) {
+                setDiscountEligible(true);
+                return;
+            }
             void usersClientAPI.getUserUsageSummary(supabaseUser.id).then((summary) => {
                 if (live) setDiscountEligible(!!summary && !summary.hasPaid);
             });
