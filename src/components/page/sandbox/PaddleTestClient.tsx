@@ -10,10 +10,10 @@ import { paddleClientAPI } from "@/lib/api/client/paddleClientAPI";
 import { PLAN_IMAGE_LIMIT, type PaidPlan } from "@/lib/paddle";
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
 
-const TEST_PLANS: { plan: PaidPlan; name: string; price: string }[] = [
-    { plan: SubscriptionPlan.PLAN_1, name: 'Starter', price: '$19 / month' },
-    { plan: SubscriptionPlan.PLAN_2, name: 'Growth', price: '$49 / month' },
-    { plan: SubscriptionPlan.PLAN_3, name: 'Pro', price: '$99 / month' },
+const TEST_PLANS: { plan: PaidPlan; name: string; price: string; images: string }[] = [
+    { plan: SubscriptionPlan.PLAN_1, name: 'Starter', price: '$19 / month', images: '100 images / month' },
+    { plan: SubscriptionPlan.PLAN_2, name: 'Growth', price: '$49 / month', images: '500 images / month' },
+    { plan: SubscriptionPlan.PLAN_3, name: 'Pro', price: '$99 / month', images: '1,000 images / month' },
 ];
 
 function PaddleTestClient() {
@@ -24,6 +24,7 @@ function PaddleTestClient() {
     const [envError, setEnvError] = useState<string | null>(null);
     const [busyPlan, setBusyPlan] = useState<PaidPlan | null>(null);
     const [activeTransactionId, setActiveTransactionId] = useState<string | null>(null);
+    const [activePlan, setActivePlan] = useState<(typeof TEST_PLANS)[number] | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -74,16 +75,17 @@ function PaddleTestClient() {
 
     const userEmail = useMemo(() => user?.email ?? supabaseUser?.email ?? null, [user?.email, supabaseUser?.email]);
 
-    const onClickSubscribe = useCallback(async (plan: PaidPlan) => {
+    const onClickSubscribe = useCallback(async (t: (typeof TEST_PLANS)[number]) => {
         if (!paddle) return;
         setError(null);
-        setBusyPlan(plan);
+        setBusyPlan(t.plan);
         try {
-            const transactionId = await paddleClientAPI.createTransaction(plan);
+            const transactionId = await paddleClientAPI.createTransaction(t.plan);
             if (!transactionId) {
                 throw new Error('Could not create transaction.');
             }
-            // 인라인 모달로 표시 (오버레이 복구 시 아래 1줄을 paddle.Checkout.open 오버레이 호출로 교체)
+            // 인라인 모달로 표시 (오버레이 복구 시 아래 2줄을 paddle.Checkout.open 오버레이 호출로 교체)
+            setActivePlan(t);
             setActiveTransactionId(transactionId);
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Checkout failed.');
@@ -94,6 +96,7 @@ function PaddleTestClient() {
 
     const onCloseInlineModal = useCallback(() => {
         setActiveTransactionId(null);
+        setActivePlan(null);
     }, []);
 
     return (
@@ -115,19 +118,19 @@ function PaddleTestClient() {
                     </p>
                 )}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    {TEST_PLANS.map(({ plan, name, price }) => (
-                        <div key={plan} className="rounded-2xl border border-hairline bg-surface/60 p-6 text-center">
-                            <p className="text-lg font-bold">{name}</p>
-                            <p className="mt-1 text-sm text-text2">{price}</p>
+                    {TEST_PLANS.map((t) => (
+                        <div key={t.plan} className="rounded-2xl border border-hairline bg-surface/60 p-6 text-center">
+                            <p className="text-lg font-bold">{t.name}</p>
+                            <p className="mt-1 text-sm text-text2">{t.price}</p>
                             <p className="mt-1 text-[11px] text-text2">
-                                {PLAN_IMAGE_LIMIT[plan].toLocaleString()} images / month
+                                {PLAN_IMAGE_LIMIT[t.plan].toLocaleString()} images / month
                             </p>
                             <button
-                                onClick={() => onClickSubscribe(plan)}
+                                onClick={() => onClickSubscribe(t)}
                                 disabled={!paddle || busyPlan !== null}
                                 className="mt-5 w-full rounded-xl bg-text1 px-4 py-2.5 text-sm font-semibold text-canvas transition-opacity hover:opacity-90 disabled:opacity-50"
                             >
-                                {busyPlan === plan ? 'Opening…' : 'Subscribe'}
+                                {busyPlan === t.plan ? 'Opening…' : 'Subscribe'}
                             </button>
                         </div>
                     ))}
@@ -136,11 +139,14 @@ function PaddleTestClient() {
                     <p className="mt-6 text-center text-sm text-red-500">{error}</p>
                 )}
             </main>
-            {paddle && activeTransactionId && (
+            {paddle && activeTransactionId && activePlan && (
                 <PaddleInlineModal
                     paddle={paddle}
                     transactionId={activeTransactionId}
                     userEmail={userEmail}
+                    planName={activePlan.name}
+                    priceLabel={activePlan.price}
+                    imagesLabel={activePlan.images}
                     onClose={onCloseInlineModal}
                 />
             )}

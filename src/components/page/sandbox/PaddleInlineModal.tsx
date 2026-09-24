@@ -8,6 +8,9 @@ interface PaddleInlineModalProps {
     paddle: Paddle;
     transactionId: string;
     userEmail?: string | null;
+    planName: string;
+    priceLabel: string;
+    imagesLabel: string;
     onClose: () => void;
 }
 
@@ -18,7 +21,7 @@ const FRAME_TARGET = "paddle-inline-frame";
  * 오버레이 경로와 병존 (복구 시 호출부 1줄 교체). frameTarget div가 마운트된 뒤 open.
  * MoR 푸터 가시성 규정에 따라 프레임 하단을 자르지 않는다 (스크롤 허용).
  */
-function PaddleInlineModal({ paddle, transactionId, userEmail, onClose }: PaddleInlineModalProps) {
+function PaddleInlineModal({ paddle, transactionId, userEmail, planName, priceLabel, imagesLabel, onClose }: PaddleInlineModalProps) {
     useEffect(() => {
         paddle.Checkout.open({
             transactionId,
@@ -58,6 +61,13 @@ function PaddleInlineModal({ paddle, transactionId, userEmail, onClose }: Paddle
                     </button>
                 </div>
                 <div className="overflow-y-auto px-6 py-4">
+                    <div className="mb-4 rounded-xl border border-hairline bg-canvas p-4">
+                        <div className="flex items-baseline justify-between">
+                            <p className="text-[15px] font-bold text-text1">{planName}</p>
+                            <p className="text-[15px] font-bold text-text1">{priceLabel}</p>
+                        </div>
+                        <p className="mt-1 text-[12px] text-text2">{imagesLabel} · renews monthly</p>
+                    </div>
                     <div className={FRAME_TARGET} />
                 </div>
             </div>
