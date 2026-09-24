@@ -27,7 +27,7 @@ function PaddleInlineModal({ paddle, transactionId, userEmail, onClose }: Paddle
                 displayMode: 'inline',
                 variant: 'one-page',
                 frameTarget: FRAME_TARGET,
-                frameInitialHeight: '650',
+                frameInitialHeight: 650,
                 frameStyle: 'width: 100%; min-width: 286px; background-color: transparent; border: none;',
             },
         });
