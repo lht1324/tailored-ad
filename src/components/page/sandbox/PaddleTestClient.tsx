@@ -147,6 +147,8 @@ function PaddleTestClient() {
                     planName={activePlan.name}
                     priceLabel={activePlan.price}
                     imagesLabel={activePlan.images}
+                    discountHeadline={activePlan.plan === SubscriptionPlan.PLAN_1 ? 'First month $9.50 · then $19/mo' : null}
+                    discountNote={activePlan.plan === SubscriptionPlan.PLAN_1 ? 'Paddle shows the $19 plan price below. Your first charge is $9.50.' : null}
                     onClose={onCloseInlineModal}
                 />
             )}

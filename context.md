@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-09-25 00:35)
+# TailoredAd — 작업 기록 (Last Updated: 2026-09-25 03:26)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -356,8 +356,7 @@
   UI: 업로드 주석+맥락 메모 (CreateForm·CreatePageClient·UploadZone 위치 기록),
   Virtual Model 토글+brief (AI Model 명칭 기각 — LLM 혼동).
   원가 배치당 LLM 1콜 + $0.04, 유저 차감 없음. ratios 테스트 불필요 (BRIA 무관).
-- **Paddle 샌드박스 이식** (09-24/25, develop — E2E 결제·적립 통과, 할인 미해결):
-  Polar·Creem 전멸 후 Paddle로 선회 (개인 자격 가능 확인, AI 카테고리 심사는 진행 중).
+- **Paddle 샌드박스 이식** (09-24/25, develop — E2E 결제·적립 통과, 할인 미해결):  Polar·Creem 전멸 후 Paddle로 선회 (개인 자격 가능 확인, AI 카테고리 심사는 진행 중).
   상품 3종 샌드박스 생성 (Starter $19 `pri_...326k` — 전사 오타 1건 수정済み,
   Growth $49, Pro $99) + `lib/paddle.ts` 매핑 (환경 분리, PLAN_IMAGE_LIMIT 내장).
   하이브리드 체크아웃: 서버 트랜잭션 생성(custom_data userId·plan) + Paddle.js 표시.
@@ -369,6 +368,21 @@
   스킬 10종 전역 설치 + SKILLS.md 반영. MCP sandbox 연결됨 (oauth:false, 서비스 env).
   대시보드 메모: 기본 결제 링크 localhost, Google Pay 추가, statement TAILOREDAD,
   마케팅·저장·할인필드 OFF, 회수 ON.
+- **Paddle 첫주문 할인 표시** (09-25, develop — 미커밋→커밋 예정):
+  오버레이 상단 $19는 Paddle 고정 동작 (변경 불가). 할인은 하단 청구 문구에 반영됨
+  ("지금은 US$9.50..." 실측 — 적용 정상 확인).
+  이탈 방지용으로 인라인 모달 주문 요약에 첫달 표시 추가 (`discountHeadline`·`discountNote` prop,
+  Starter "First month $9.50 · then $19/mo" + "Paddle shows the $19 plan price below...").
+  실경로(Pricing) 이식 시 자격 판정 붙일 것.
+- **랜딩 페르소나 문구** (09-25, develop — 미커밋→커밋 예정):
+  Step 03에 명시 ("If a scene needs a person, one is generated for it. Real faces are never composited.").
+  Step 01은 "Drop in a product photo and your logo..." (단수·virtual model 언급 삭제 — 혼란 방지).
+  FAQ는 제품·로고 원복. FAQ 독립 문항안·Step 01 캐스팅안 기각됨.
+- **얼굴 정책 확정** (09-25): 실사 얼굴 OUT. 예외는 Enterprise + Stripe 체급의 기업 한정만 가능.
+  Paddle은 AI 페르소나 노선. Create Person 셀 주석 보존 (부활용).
+- **Paddle 전환 공수** (09-25 산정): Pricing 체크아웃 반나절 + Profile 5종 Paddle판 1~2일 +
+  prod 연결·E2E 반나절 + Polar 정리 반나절 = 2~4일 (심사 통과·prod 상품 전제).
+  실경로(Pricing·Profile)는 전부 Polar 호출 (사망 상태), Paddle은 샌드박스만.
 - **플랜명 표시** (09-22, 배포됨): `lib/polar.ts`에 `PLAN_DISPLAY_NAME` 추가
   (plan-1→Starter, plan-2→Growth, plan-3→Pro, none→Free plan, plan-4 원값 폴백).
   `AppHeader planLabel()`이 사용. 바깥 노출이라 영어 유지.
@@ -430,7 +444,8 @@
 - [ ] LS 심사 대응 (09-24 접수됨, 결과 대기): 스토어 접수됨. 상품 3종 Subscription ($19/49/99) draft→publish.
   첫주문 할인은 Discount Codes에서 별도 생성.
 - [ ] Paddle 심사 대응 (09-24/25 진행 중): 개인 트랙, 상품 3종 샌드박스 생성됨.
-  하이브리드 체크아웃 E2E 통과 (결제→적립). 첫주문 할인 미적용 — 수정 계속해야 함.
+  하이브리드 체크아웃 E2E 통과 (결제→적립). 첫주문 할인은 적용 정상 확인
+  (오버레이 하단 $9.50 실측) + 인라인 모달 첫달 표시 추가. 남은 건 실경로 이식 시 자격 판정.
 - [ ] Creem 심사 대응 (09-24 기각, 어필 불가): 개인 트랙. compliance 최종 거절.
   Polar와 동일 패턴 (AI 이미지 MoR 리스크, 카테고리 단위). 재생성·우회 금지.
   Moderation·AUP 숙제는 LS/Stripe 서사에 재사용.
@@ -463,6 +478,10 @@
 - [x] 표시용 변환 폐지 (09-24 — 원본 중계 회귀, develop)
 - [x] Pricing 新 가격 (09-24 — $19/49/99 + 장당가, develop. 대시보드 상품 금액 동기화 대기)
 - [x] Paddle 샌드박스 이식 1차 (09-24/25 — 카탈로그·하이브리드·웹훅·인라인·E2E 통과, develop)
+- [x] 랜딩 페르소나 문구 (09-25 — Step 03 명시 + Step 01·FAQ 정리, develop)
+- [ ] **Paddle 실경로 이식** (09-25 산정 2~4일): Pricing 체크아웃 교체 (반나절) +
+  Profile 5종 Paddle판 (1~2일) + prod 연결·E2E (반나절) + Polar 정리 (반나절, 코드는 보존).
+  전제: AI 심사 통과 + prod 상품 생성.
 - [ ] **Paddle 첫주문 할인 미적용 수정** (09-25 진행 중 — 신규계정·env 재시작 후에도 $19 표시.
   다음 수순: 트랜잭션 discountId 반영 여부 서버 로그 확인 → Paddle 대시보드 트랜잭션明細 대조)
 - [ ] **결제사 확정 후 코드 이식**: Polar 구조 복사 (체크아웃·웹훅·grant 3점, 수일 규모).

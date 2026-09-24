@@ -27,14 +27,14 @@ interface WallImageItem {
 // ];
 
 const WALL_IMAGES: WallImageItem[] = [
-    { src: '/preview/hero-perfume-dusk.webp', pos: 'left-[0%] top-[0%] w-[17rem] xl:w-[18.5rem]', rot: 'rotate-[2.6deg]' },
-    { src: '/preview/hero-gym-sneaker.webp', pos: 'left-[15%] top-[7%] w-[17rem] xl:w-[18.25rem]', rot: 'rotate-[1.8deg]' },
-    { src: '/preview/hero-tumbler-locker.webp', pos: 'left-[0.5%] top-[52%] w-[17rem] xl:w-[18.25rem]', rot: 'rotate-[2deg]' },
-    { src: '/preview/hero-perfume-midnight.webp', pos: 'left-[16%] top-[61%] w-[17.5rem] xl:w-[18.75rem]', rot: '-rotate-[2.2deg]' },
-    { src: '/preview/hero-suit-reading.webp', pos: 'right-[15%] top-[7%] w-[17rem] xl:w-[18.25rem]', rot: '-rotate-[2.6deg]' },
-    { src: '/preview/hero-perfume-bottled.webp', pos: 'right-[0%] top-[0%] w-[17rem] xl:w-[18.5rem]', rot: 'rotate-[2.8deg]' },
-    { src: '/preview/hero-perfume-gown.webp', pos: 'right-[15.5%] top-[57%] w-[17rem] xl:w-[18.25rem]', rot: '-rotate-[1.6deg]' },
-    { src: '/preview/hero-coast-sunset.webp', pos: 'right-[0.2%] top-[54%] w-[17.5rem] xl:w-[18.75rem]', rot: '-rotate-2' },
+    { src: '/preview/hero-perfume-dusk.webp', pos: 'left-[1.5%] top-[0%] w-[16rem] xl:w-[17.5rem]', rot: 'rotate-[2.6deg]' },
+    { src: '/preview/hero-gym-sneaker.webp', pos: 'left-[15%] top-[7%] w-[16rem] xl:w-[17.25rem]', rot: 'rotate-[1.8deg]' },
+    { src: '/preview/hero-tumbler-locker.webp', pos: 'left-[0.7%] top-[52%] w-[16rem] xl:w-[17.25rem]', rot: 'rotate-[2deg]' },
+    { src: '/preview/hero-perfume-midnight.webp', pos: 'left-[14.5%] top-[57.9%] w-[16.5rem] xl:w-[17.75rem]', rot: '-rotate-[2.2deg]' },
+    { src: '/preview/hero-suit-reading.webp', pos: 'right-[15%] top-[7%] w-[16rem] xl:w-[17.25rem]', rot: '-rotate-[2.6deg]' },
+    { src: '/preview/hero-perfume-bottled.webp', pos: 'right-[1%] top-[0%] w-[16rem] xl:w-[17.5rem]', rot: 'rotate-[2.8deg]' },
+    { src: '/preview/hero-perfume-gown.webp', pos: 'right-[15.5%] top-[57%] w-[16rem] xl:w-[17.25rem]', rot: '-rotate-[1.6deg]' },
+    { src: '/preview/hero-coast-sunset.webp', pos: 'right-[1.2%] top-[54%] w-[16.5rem] xl:w-[17.75rem]', rot: '-rotate-2' },
 ];
 
 function WallFrame({

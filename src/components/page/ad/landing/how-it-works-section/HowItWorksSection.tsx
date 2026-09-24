@@ -44,7 +44,7 @@ const STEPS: Step[] = [
         number: '01',
         label: 'Assets',
         title: 'Upload your assets',
-        description: 'Drop in product photos, your logo, or a portrait. A background alone is enough to start. Bring more to match your brand.',
+        description: 'Drop in a product photo and your logo. A background alone is enough to start. Bring more to match your brand.',
         className: 'md:col-span-7 rotate-[0.4deg]',
         sticker: (
             <span className="rotate-[3deg] rounded-[6px] border border-dashed border-hairline px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-text2">
@@ -68,7 +68,7 @@ const STEPS: Step[] = [
         number: '03',
         label: 'Composite',
         title: 'Composite your product',
-        description: 'Your product is painted into the scene with matching light and shadow. You pay per finished image. Failures cost you nothing.',
+        description: 'Your product is painted into the scene with matching light and shadow. If a scene needs a person, one is generated for it. Real faces are never composited. You pay per finished image. Failures cost you nothing.',
         className: 'md:col-span-6 rotate-[0.5deg]',
         sticker: (
             <span className="rotate-[2deg] rounded-full border border-hairline px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-text2">

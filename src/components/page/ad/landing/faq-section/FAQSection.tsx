@@ -21,8 +21,7 @@ const FAQ_ITEMS: { question: string; answer: string[] }[] = [
     {
         question: 'Can I use my own product photos and logo?',
         answer: [
-            'Yes. Upload product photos, your logo, and even a portrait.',
-            'Your assets are composited into the generated scene with consistent lighting and shadows. Your logo stays pixel-exact.',
+            'Yes. Upload a product photo and your logo. Both are composited into the generated scene with consistent lighting and shadows. Your logo stays pixel-exact.',
         ],
     },
     {
