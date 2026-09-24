@@ -418,8 +418,9 @@
   - [ ] E2E 테스트 (기각으로 보류 — 재신청 시점에 Wiederaufnahme)
 - [ ] LS 심사 대응 (09-24 진행 중): 스토어 접수됨. 상품 3종 Subscription ($19/49/99) draft→publish.
   첫주문 할인은 Discount Codes에서 별도 생성.
-- [ ] Creem 심사 대응 (09-24 진행 중): 개인 트랙. 사전 문의 초안 있음 (얼굴 처리 단락).
-  승인 후 숙제: Moderation API 연동 (note 심사) + AUP 페이지 + ToS NSFW 문구.
+- [ ] Creem 심사 대응 (09-24 기각, 어필 불가): 개인 트랙. compliance 최종 거절.
+  Polar와 동일 패턴 (AI 이미지 MoR 리스크, 카테고리 단위). 재생성·우회 금지.
+  Moderation·AUP 숙제는 LS/Stripe 서사에 재사용.
 - [ ] Supabase SQL (사장님): `subscription_grants` reason 제약에 `OR reason LIKE 'upgrade:%'` 추가
   (제약명 조회 후 교체 실행).
 - [ ] OAT 정리 (사장님): dev 샌드박스 토큰 폐기·재생성 (로그 노출) + 스코프 확대.
