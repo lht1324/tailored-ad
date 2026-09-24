@@ -1,102 +1,160 @@
 export const TERMS_OF_SERVICE = `
-## 1. Eligibility & Prohibition of Use (CRITICAL)
-**BY USING THIS SERVICE, YOU REPRESENT THAT YOU ARE NOT A RESIDENT OF THE REPUBLIC OF KOREA.**
-Access to TailoredAd is strictly prohibited for users located in or strictly subject to the laws of the Republic of Korea. If you access the Service from Korea via VPN or other means, you do so in violation of these Terms, and we assume no liability for compliance with Korean local laws.
+## 1. Eligibility & Accounts
+You must be at least 18 years old (or the age of majority in your jurisdiction) to use TailoredAd.
+You are responsible for activity under your account and for keeping your credentials confidential.
 
-## 2. Use of Services
-You agree to use our services only for lawful purposes. You represent and warrant that you will not use the service to:
-- Generate deepfakes, sexually explicit content, or hate speech.
-- Infringe upon the intellectual property or privacy rights of others.
-- Reverse engineer, scrape, or exploit our API and resources.
+## 2. Acceptable Use
+You agree to use the Service only for lawful purposes. You will not:
+- Generate or attempt to generate sexually explicit content, hate speech, or violent extremist material.
+- Create face swaps, deepfakes, or any likeness of a real person other than yourself.
+- Upload photos you do not own or do not have the rights to use for AI generation.
+- Infringe intellectual property, privacy, or publicity rights of others.
+- Reverse engineer, scrape, resell, or abuse our APIs, or circumvent usage limits.
 
-## 3. User Representations & Data Restrictions
-**Prohibition on Sensitive Data:** You agree NOT to input, upload, or process any sensitive personal information (including but not limited to financial data, health records, social security numbers, or private contact details) into the AI generation prompts or script fields.
-**Unsolicited Data Disclaimer:** The "Generate Script with AI" feature is designed solely for creative content generation. If you voluntarily input any personally identifiable information (PII) into these fields, **you acknowledge that such data is processed at your own risk**, and TailoredAd disclaims any liability for the privacy or security of such unsolicited PII.
+We may suspend or terminate accounts that violate these rules, without prior notice.
 
-## 4. Intellectual Property
-**Your Content:** You retain ownership of the videos you create. You represent that you have the necessary rights to the input media you provide.
-**Our Rights:** You grant us a non-exclusive, worldwide license to use your generated content solely for the purpose of operating, improving, and debugging our services.
+## 3. Your Content & Generated Images
+**Your inputs:** You retain ownership of the photos and notes you upload. You represent that you
+own them or hold the rights to use them for AI ad generation, and that no other person's likeness,
+trademark, or copyrighted work is included without permission.
+**Generated images:** You own the finished ad images generated for your account and may use them
+commercially, including in paid advertising.
+**Our license:** You grant us a non-exclusive, worldwide license to store and process your content
+solely to operate, improve, debug, and protect the Service (including abuse and NSFW filtering).
 
-## 5. Payment, Fees & No Refunds (EU Waiver)
-**Immediate Performance:** By clicking "Subscribe" or "Generate", you expressly request that the Service begins immediately.
-**Waiver of Withdrawal Right:** IF YOU ARE A CONSUMER IN THE EU/UK, YOU ACKNOWLEDGE THAT YOU LOSE YOUR RIGHT OF WITHDRAWAL (14-DAY COOLING-OFF PERIOD) ONCE THE SERVICE HAS STARTED (I.E., THE GENERATION PROCESS BEGINS).
-**No Refunds:** Due to the resource-intensive nature of AI video generation (GPU costs incurred immediately via API key usage initiated via your own credentials for Fal.ai), **we strictly do not offer refunds** once credits have been used or a subscription period has started.
-**BYOK (Bring Your Own Key) Responsibility:** If you configure and use your own Fal.ai API key (BYOK), all charges, usage limits, and billing disputes related to that API key are solely your responsibility. TailoredAd disclaims any liability for financial damages, unexpected costs, or service disruptions arising from the use of your own API key.
+## 4. Credits, Subscriptions & Billing
+- **Image credits:** You pay for finished images, not downloads. Failed or retried generations are free.
+  Unused images never expire and remain usable after cancellation.
+- **Free trial:** 10 images, once per user, no card required. Trial images carry no cash value.
+- **Subscriptions:** Plans renew monthly. You may cancel anytime; cancellation takes effect at the end
+  of the current billing cycle and your remaining images stay usable.
+- **Prices:** Shown at checkout in USD. Payments are processed by our merchant of record, named at checkout.
+- **Refunds:** See our [Refund Policy](/legal/refunds). Refunded images are revoked from your balance.
 
-## 6. Disclaimer of Warranties
-The service is provided "AS IS" without warranties of any kind. We do not guarantee that AI-generated content will be accurate, unique, or suitable for your specific needs.
-**Free AI Features:** The "Generate Script with AI" feature is provided as a free, beta-test functionality. We reserve the right to modify, limit, or discontinue this feature at any time without liability. **We explicitly disclaim any responsibility for the confidentiality of data entered into this free feature.**
+## 5. Disclaimer of Warranties
+The Service is provided "AS IS" without warranties of any kind. We do not guarantee that AI-generated
+content will be accurate, unique, or suitable for any particular purpose. We may modify, limit, or
+discontinue features at any time.
 
-## 7. Limitation of Liability & Indemnification
-**Limitation:** To the maximum extent permitted by law, TailoredAd shall not be liable for any indirect, incidental, or consequential damages (including loss of data or profits).
-**Indemnification:** You agree to indemnify and hold harmless TailoredAd and its operators from any claims, damages, or legal fees arising from **your use of the generated content** or your violation of these Terms.
+## 6. Limitation of Liability & Indemnification
+**Limitation:** To the maximum extent permitted by law, TailoredAd shall not be liable for any indirect,
+incidental, or consequential damages (including loss of data or profits).
+**Indemnification:** You agree to indemnify and hold harmless TailoredAd and its operators from claims,
+damages, or legal fees arising from your uploaded content, your use of generated images, or your
+violation of these Terms.
 
-## 8. Termination
-We reserve the right to **suspend or terminate your account and access** to the service immediately, without prior notice or liability, **for breach of these Terms, fraud, or legal requirement**.
-Upon termination, your right to use the service will immediately cease.
+## 7. Termination
+We may suspend or terminate your account and access immediately, without prior notice or liability,
+for breach of these Terms, fraud, abuse, or legal requirement. Upon termination, your right to use
+the Service ceases. Unused image rights for paid cycles are handled under the Refund Policy.
 
-## 9. Modifications to Service
-We reserve the right to modify, suspend, or discontinue the service (or any part thereof) at any time with or without notice.
+## 8. Modifications to Service
+We may modify, suspend, or discontinue the Service (or any part thereof) at any time, with or without notice.
 
-## 10. Force Majeure
-We shall not be held responsible for any delay or failure in performance caused by events beyond our reasonable control, including but not limited to acts of God, war, strikes, or **infrastructure and upstream API outages (for example, [Cloudflare](https://www.cloudflare.com/) downtime)**.
+## 9. Force Majeure
+We are not responsible for delays or failures caused by events beyond our reasonable control, including
+natural disasters, war, strikes, or infrastructure and upstream API outages.
 
-## 11. Governing Law & Jurisdiction
-**Governing Law:** These Terms shall be governed by and construed in accordance with the laws of the **State of Delaware, United States**, without regard to its conflict of law principles.
-**Jurisdiction:** Any legal suit, action, or proceeding arising out of, or related to, these Terms or the Service shall be instituted exclusively in the federal or state courts located in the **State of Delaware**. You waive any and all objections to the exercise of jurisdiction over you by such courts and to venue in such courts.
-**Arbitration:** At our sole discretion, we may require you to submit any disputes arising from the use of these Terms or the Service, including disputes arising from or concerning their interpretation, violation, invalidity, non-performance, or termination, to final and binding arbitration under the Rules of Arbitration of the American Arbitration Association applying Delaware law.
+## 10. Governing Law & Jurisdiction
+These Terms are governed by the laws of the **State of Delaware, United States**, without regard to
+conflict of law principles. Suits arising from these Terms or the Service shall be brought exclusively
+in the federal or state courts of **Delaware**. At our sole discretion, we may require binding
+arbitration under the Rules of Arbitration of the American Arbitration Association applying Delaware law.
 `;
 
 export const PRIVACY_POLICY = `
 ## 1. Introduction
-TailoredAd ("we", "us", or "our") respects your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you visit our website.
+TailoredAd ("we", "us", or "our") respects your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our website and AI ad-generation service.
 
 ## 2. Information We Collect
 - **Account Data:** Email address, name, and profile picture (via OAuth providers).
-- **Usage Data:** User-provided prompts (text entered directly by you into script or generation fields, not derived from your OAuth account data), generated video metadata, and interaction logs. Technical data such as IP address and browser type is automatically collected by our infrastructure providers for security and analytics purposes.
-- **User-Provided API Keys (BYOK):** If you opt to use your own Fal.ai API key, we securely store your encrypted API key for the sole purpose of proxying and authenticating your generation requests to Fal.ai.
-- **Payment Data:** We do not store credit card details. All financial transactions are processed by our secure payment provider, Polar (or Stripe).
+- **Uploaded Photos & Notes:** Product and portrait photos you upload, plus the text notes you attach to them.
+  These are processed to generate your ad images. Do not upload photos of other people, and avoid entering
+  sensitive personal information (financial data, health records, ID numbers) into note fields.
+- **Usage Data:** Generation history, interaction logs, and image counts. Technical data such as IP address
+  and browser type is collected automatically by our infrastructure for security purposes.
+- **Payment Data:** We do not store credit card details. All payments are processed by our merchant of record,
+  named at checkout.
 
 ## 3. How We Use Your Information
-- To provide, operate, and maintain our AI video generation services.
-- To improve, personalize, and expand our website.
-- To detect and prevent fraud or abuse (e.g., NSFW content filtering).
+- To provide and operate the Service (including generating your ad images).
+- To detect and prevent fraud or abuse (including NSFW and prohibited-content filtering).
+- To manage credits, subscriptions, and billing status.
 - To communicate with you regarding updates, support, and invoices.
 
 ## 4. Data Sharing & Third-Party Sub-processors
-We utilize industry-leading AI infrastructure providers to generate content. Your input data is processed by the following entities:
-- **AI Infrastructure (Platform-provided)**
-  - **Text** (for script generation & LLM routing)
-    - [OpenRouter LLC](https://openrouter.ai/) (USA) — Only user-provided script content entered directly into generation fields is transmitted. Account data obtained via OAuth (such as email address, name, or profile picture) is never sent to OpenRouter or any other AI infrastructure provider.
-- **AI Infrastructure (User-directed / BYOK)**
-  - **Video/Image** (for media generation)
-    - [fal.ai](https://fal.ai) (USA) — Processed using user-provided API keys (BYOK). When utilizing Fal.ai models, you are executing generations using your own API credentials, and TailoredAd acts as a proxy for these requests.
-- **Infrastructure** (for hosting and database)
-  - [Vercel](https://vercel.com/home)
-  - [Cloudflare](https://www.cloudflare.com/)
-  - [Supabase](https://supabase.com/)
-- **Payments** (for processing payments)
-  - [Polar](https://polar.sh/)
-  - [Stripe](https://stripe.com/)
+- **Image generation:** [Replicate](https://replicate.com/) (USA) — your uploaded photos and generation prompts
+  are sent to Replicate-hosted models. OAuth account data (email, name, profile picture) is never sent there.
+- **Text AI:** [OpenRouter LLC](https://openrouter.ai/) (USA) — creative copy and prompt text only. No photos,
+  no account data.
+- **Hosting & database:** [Cloudflare](https://www.cloudflare.com/), [Supabase](https://supabase.com/).
+- **Payments:** our merchant of record, named at checkout. Card data never touches our servers.
 
-**International Transfers:** By using the Service, you acknowledge that your data may be transferred to and processed in the **United States**. We rely on standard contractual clauses (SCCs) or adequacy decisions where applicable to ensure data protection.
+**International Transfers:** By using the Service, you acknowledge that your data may be transferred to and
+processed in the **United States**. We rely on standard contractual clauses (SCCs) or adequacy decisions
+where applicable.
 
 ## 5. Cookies and Tracking Technologies
-We use cookies and similar tracking technologies to track the activity on our service and hold certain information. You can instruct your browser to refuse all cookies.
+We use cookies and similar technologies to keep you signed in and to understand aggregate usage.
+You can instruct your browser to refuse cookies, but parts of the Service may stop working.
 
 ## 6. Data Security
-We implement industry-standard security measures (SSL encryption, secure databases) to protect your personal information. However, no method of transmission over the Internet is 100% secure.
+We use industry-standard measures (TLS encryption, access-controlled databases) to protect your information.
+No method of Internet transmission is 100% secure.
 
-## 7. User Rights (GDPR & CCPA)
-Depending on your location, you may have rights to Access, Rectification, or Deletion of your personal data. To exercise these rights, please contact us at [support@tailoredad.com]. We will respond to your request within 30 days.
+## 7. Data Retention & Deletion
+We retain your account data, uploads, and generated images while your account is active. You may request
+deletion of your personal data at any time (see §8); we delete it within 30 days unless retention is
+required by law (e.g., tax records) or needed to resolve disputes.
 
-## 8. Children's Privacy
-Our service is not intended for use by children under the age of **16 (or 13 where applicable)**. We do not knowingly collect personal information from children.
+## 8. User Rights (GDPR & CCPA)
+Depending on your location, you may have rights to access, rectify, or delete your personal data.
+To exercise them, contact [support@tailoredad.com](mailto:support@tailoredad.com). We respond within 30 days.
 
-## 9. Changes to This Privacy Policy
-We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page.
+## 9. Children's Privacy
+Our Service is not intended for children under 16 (or 13 where applicable). We do not knowingly collect
+their personal information. Accounts found to belong to children will be removed.
 
-## 10. Contact Us
-If you have any questions about this Privacy Policy, please contact us at:
-- **Email:** [support@tailoredad.com](mailto:support@tailoredad.com)
+## 10. Changes to This Privacy Policy
+We may update this policy from time to time by posting the new version on this page. Material changes
+will be announced in advance where required by law.
+
+## 11. Contact Us
+Questions about this policy: [support@tailoredad.com](mailto:support@tailoredad.com)
+`;
+
+export const REFUND_POLICY = `
+## 1. Cancel Anytime
+You may cancel your subscription at any time from your Profile page. Cancellation takes effect at the end
+of the current billing cycle. Your remaining images stay usable after cancellation — they never expire.
+
+## 2. Pro-Rata Refunds (7 Days, Unused Images Only)
+Within 7 days of a cycle charge, you may request a refund for the unused portion of that cycle:
+- **Refund amount** = (unused images, capped at the cycle grant) / (cycle grant) x cycle price.
+  Example: Pro ($99 / 1,000 images), 500 used → 500 unused → $49.50 refunded.
+- **Used images are non-refundable.** Only images you have not generated count.
+- **Oldest images count as used first.** If you carry rolled-over balance, usage is attributed to the
+  oldest grants first; the current cycle is refunded last.
+- **Free trial images carry no cash value** and are never refundable.
+- After 7 days from the charge, that cycle is non-refundable.
+
+## 3. Effect of a Refund
+Refunded images are revoked from your balance immediately when the refund is issued. If revocation would
+drive your balance below zero (images already spent), no additional charge applies — the refund is simply
+limited to the unused portion above.
+
+## 4. Method & Timing
+Refunds go to the original payment method via our payment provider and can take up to 10 business days
+to appear on your statement. Partial refunds are supported: you receive exactly the computed amount.
+
+## 5. How to Request
+Email [support@tailoredad.com](mailto:support@tailoredad.com) from your account email with the subject
+"Refund request". Include the charge date if you have it. We process valid requests within 5 business days.
+
+## 6. Chargebacks & Abuse
+Contact us first — most billing issues are resolved faster that way. Chargebacks filed while a valid refund
+request is pending, or repeated refund-then-repurchase patterns, may lead to account suspension.
+
+## 7. Statutory Rights
+Nothing in this policy limits consumer rights granted by applicable law.
 `;

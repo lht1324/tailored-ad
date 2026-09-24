@@ -2,7 +2,7 @@
 
 import ReactMarkdown from 'react-markdown';
 import {memo, useMemo} from "react";
-import { PRIVACY_POLICY, TERMS_OF_SERVICE } from "@/components/page/legal/LegalPageMarkdownData";
+import { PRIVACY_POLICY, REFUND_POLICY, TERMS_OF_SERVICE } from "@/components/page/legal/LegalPageMarkdownData";
 import AdFooter from "@/components/page/ad/public/AdFooter";
 import { LegalDataType } from "@/components/page/legal/LegalDataType";
 
@@ -21,10 +21,14 @@ function LegalPageClient({ legalDataType }: LegalPageClientProps) {
                 title: 'Terms of Service',
                 content: TERMS_OF_SERVICE
             }
+            case LegalDataType.REFUNDS: return {
+                title: 'Refund Policy',
+                content: REFUND_POLICY
+            }
         }
     }, [legalDataType]);
 
-    const lastUpdated = 'February 6, 2026';
+    const lastUpdated = 'September 24, 2026';
 
     // 1. 강제 줄바꿈 처리: 마크다운 표준에 맞게 엔터 두 번으로 변환 (데이터 수정 없이 해결)
     // 기존 데이터가 "\n" 하나로만 되어 있다면 이걸 "\n\n"으로 바꿔주면 확실하게 문단이 나뉩니다.

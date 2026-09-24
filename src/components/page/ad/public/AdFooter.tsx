@@ -51,6 +51,9 @@ function AdFooter() {
                     <a href="/legal/privacy" className="font-mono text-[11px] uppercase tracking-[0.18em] text-text2 transition-colors duration-200 hover:text-text1">
                         Privacy
                     </a>
+                    <a href="/legal/refunds" className="font-mono text-[11px] uppercase tracking-[0.18em] text-text2 transition-colors duration-200 hover:text-text1">
+                        Refunds
+                    </a>
                 </div>
             </div>
         </footer>
