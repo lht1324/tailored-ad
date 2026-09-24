@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { initializePaddle, type Paddle } from "@paddle/paddle-js";
 import AppHeader from "@/components/page/ad/app-header/AppHeader";
@@ -19,6 +19,7 @@ function PaddleTestClient() {
     const router = useRouter();
     const { user, supabaseUser, isInitializingAuthContext } = useAuth();
     const [paddle, setPaddle] = useState<Paddle | null>(null);
+    const paddleRef = useRef<Paddle | null>(null);
     const [envError, setEnvError] = useState<string | null>(null);
     const [busyPlan, setBusyPlan] = useState<PaidPlan | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -41,6 +42,12 @@ function PaddleTestClient() {
             environment: env,
             eventCallback: (event) => {
                 if (event?.name === 'checkout.completed') {
+                    // 오버레이가 완료 화면을 계속 덮고 있어 명시적으로 닫아야 underlying 페이지가 보인다
+                    try {
+                        paddleRef.current?.Checkout.close();
+                    } catch {
+                        /* 이미 닫힘 — 무시 */
+                    }
                     router.push('/checkout/success');
                 }
             },
@@ -51,7 +58,10 @@ function PaddleTestClient() {
                 },
             },
         }).then((p) => {
-            if (live && p) setPaddle(p);
+            if (live && p) {
+                paddleRef.current = p;
+                setPaddle(p);
+            }
         }).catch((e) => {
             if (live) setEnvError(e instanceof Error ? e.message : 'Failed to initialize Paddle.js');
         });
