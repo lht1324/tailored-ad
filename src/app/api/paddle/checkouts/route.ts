@@ -1,7 +1,9 @@
 import { NextRequest } from "next/server";
+import { getServerEnv } from "@/lib/serverEnv";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { usersServerAPI } from "@/lib/api/server/usersServerAPI";
+import { usageServerAPI } from "@/lib/api/server/usageServerAPI";
 import { getPaddleClient, getPaddleEnvironment } from "@/lib/paddleClient";
 import { getPaddlePriceId, type PaidPlan } from "@/lib/paddle";
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
@@ -78,6 +80,18 @@ export async function POST(request: NextRequest) {
 
     try {
         const paddle = await getPaddleClient();
+        // 첫 유료 한정 자동 할인 — Starter 플랜만, 유료 이력 있으면 정가. ID는 env (없으면 정가로 진행)
+        const firstOrderDiscountId = await getServerEnv('PADDLE_FIRST_ORDER_DISCOUNT_ID');
+        let discountId: string | undefined;
+        if (firstOrderDiscountId && plan === SubscriptionPlan.PLAN_1) {
+            try {
+                if (!(await usageServerAPI.hasPaidGrant(userId))) {
+                    discountId = firstOrderDiscountId;
+                }
+            } catch (discountError) {
+                console.error(`[paddle/checkouts] discount eligibility failed (user=${userId}) — full price:`, discountError);
+            }
+        }
         // 이메일→고객 확정 (없으면 생성) — 트랜잭션은 customerId 지정 (customer 객체 직접 지정 불가)
         let customerId: string | null = null;
         const existing = await paddle.customers.list({ search: user.email, perPage: 1 });
@@ -95,6 +109,7 @@ export async function POST(request: NextRequest) {
             customerId,
             items: [{ priceId, quantity: 1 }],
             customData: { userId, plan },
+            ...(discountId ? { discountId } : {}),
             // successUrl 미지원 (SDK에 없음) — 풀페이지 복귀는 대시보드 기본 결제 링크로.
             // 오버레이 정상 동작 시 eventCallback이 /checkout/success로 보낸다.
         });
