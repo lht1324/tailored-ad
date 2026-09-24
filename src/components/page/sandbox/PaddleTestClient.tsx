@@ -39,6 +39,7 @@ function PaddleTestClient() {
         initializePaddle({
             token,
             environment: env,
+            debug: true,
             eventCallback: (event) => {
                 if (event?.name === 'checkout.completed') {
                     router.push('/checkout/success');
