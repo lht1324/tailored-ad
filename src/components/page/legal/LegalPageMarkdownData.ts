@@ -128,15 +128,15 @@ export const REFUND_POLICY = `
 You may cancel your subscription at any time from your Profile page. Cancellation takes effect at the end
 of the current billing cycle. Your remaining images stay usable after cancellation — they never expire.
 
-## 2. Pro-Rata Refunds (7 Days, Unused Images Only)
-Within 7 days of a cycle charge, you may request a refund for the unused portion of that cycle:
+## 2. Pro-Rata Refunds (14 Days, Unused Images Only)
+Within 14 days of a cycle charge, you may request a refund for the unused portion of that cycle:
 - **Refund amount** = (unused images, capped at the cycle grant) / (cycle grant) x cycle price.
   Example: Pro ($99 / 1,000 images), 500 used → 500 unused → $49.50 refunded.
 - **Used images are non-refundable.** Only images you have not generated count.
 - **Oldest images count as used first.** If you carry rolled-over balance, usage is attributed to the
   oldest grants first; the current cycle is refunded last.
 - **Free trial images carry no cash value** and are never refundable.
-- After 7 days from the charge, that cycle is non-refundable.
+- After 14 days from the charge, that cycle is non-refundable.
 
 ## 3. Effect of a Refund
 Refunded images are revoked from your balance immediately when the refund is issued. If revocation would
