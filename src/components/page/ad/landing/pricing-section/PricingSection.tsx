@@ -15,7 +15,7 @@ interface Plan {
     name: string;
     price: number;
     images: string;
-    perImage: string;
+    perImage: number;
     className?: string;
     features: string[];
 }
@@ -26,7 +26,7 @@ const PLANS: Plan[] = [
         name: 'Starter',
         price: 19,
         images: '100 images / month',
-        perImage: '$0.190 / image',
+        perImage: 0.190,
         className: 'md:translate-y-6',
         features: [
             'Quality-gated batches',
@@ -42,7 +42,7 @@ const PLANS: Plan[] = [
         name: 'Growth',
         price: 49,
         images: '500 images / month',
-        perImage: '$0.098 / image',
+        perImage: 0.098,
         className: '-rotate-[0.5deg] md:translate-y-10',
         features: [
             'Everything in Starter',
@@ -54,7 +54,7 @@ const PLANS: Plan[] = [
         name: 'Pro',
         price: 99,
         images: '1,000 images / month',
-        perImage: '$0.099 / image',
+        perImage: 0.099,
         className: 'rotate-[0.5deg] md:translate-y-8',
         features: [
             'Everything in Growth',
@@ -104,7 +104,16 @@ function PricingCard({ plan, busy, showDiscountNote, onClickCheckout }: {
                 {plan.images}
             </p>
             <p className="mt-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-accent">
-                {plan.perImage}
+                {showDiscountNote ? (
+                    <>
+                        <span className="text-text2/60 line-through">
+                            ${plan.perImage.toFixed(3)}
+                        </span>{' '}
+                        ${(plan.perImage / 2).toFixed(3)} / image
+                    </>
+                ) : (
+                    <>${plan.perImage.toFixed(3)} / image</>
+                )}
             </p>
             {showDiscountNote && (
                 <p className="mt-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-text2">
