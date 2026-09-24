@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { getServerEnv } from "@/lib/serverEnv";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { usersServerAPI } from "@/lib/api/server/usersServerAPI";
@@ -11,6 +12,14 @@ const VALID_PLANS: PaidPlan[] = [
     SubscriptionPlan.PLAN_2,
     SubscriptionPlan.PLAN_3,
 ];
+
+// dev(ngrok 경유 결제) → 결제한 브라우저 세션이 있는 로컬 클라로 복귀.
+// prod → 실도메인. origin이 갈리면 세션이 안 보여서 분기 필수.
+const isProd = process.env.NODE_ENV === "production";
+async function getSuccessUrl(): Promise<string> {
+    if (!isProd) return "http://localhost:3000/checkout/success";
+    return `${await getServerEnv('BASE_URL')}/checkout/success`;
+}
 
 /**
  * Paddle 트랜잭션 생성 — POST /api/paddle/checkouts
@@ -82,6 +91,8 @@ export async function POST(request: NextRequest) {
             items: [{ priceId, quantity: 1 }],
             customer: { email: user.email },
             customData: { userId, plan },
+            // 풀페이지 복귀용 — 오버레이 eventCallback과 이중화 (어느 쪽으로 끝나도 success로)
+            successUrl: await getSuccessUrl(),
         });
         return getNextBaseResponse({
             success: true,
