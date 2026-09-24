@@ -1,5 +1,4 @@
 import { NextRequest } from "next/server";
-import { getServerEnv } from "@/lib/serverEnv";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { usersServerAPI } from "@/lib/api/server/usersServerAPI";
@@ -12,14 +11,6 @@ const VALID_PLANS: PaidPlan[] = [
     SubscriptionPlan.PLAN_2,
     SubscriptionPlan.PLAN_3,
 ];
-
-// dev(ngrok 경유 결제) → 결제한 브라우저 세션이 있는 로컬 클라로 복귀.
-// prod → 실도메인. origin이 갈리면 세션이 안 보여서 분기 필수.
-const isProd = process.env.NODE_ENV === "production";
-async function getSuccessUrl(): Promise<string> {
-    if (!isProd) return "http://localhost:3000/checkout/success";
-    return `${await getServerEnv('BASE_URL')}/checkout/success`;
-}
 
 /**
  * Paddle 트랜잭션 생성 — POST /api/paddle/checkouts
@@ -87,12 +78,25 @@ export async function POST(request: NextRequest) {
 
     try {
         const paddle = await getPaddleClient();
+        // 이메일→고객 확정 (없으면 생성) — 트랜잭션은 customerId 지정 (customer 객체 직접 지정 불가)
+        let customerId: string | null = null;
+        const existing = await paddle.customers.list({ search: user.email, perPage: 1 });
+        for await (const c of existing) {
+            if (c.email.toLowerCase() === user.email.toLowerCase()) {
+                customerId = c.id;
+                break;
+            }
+        }
+        if (!customerId) {
+            const created = await paddle.customers.create({ email: user.email, name: user.name });
+            customerId = created.id;
+        }
         const transaction = await paddle.transactions.create({
+            customerId,
             items: [{ priceId, quantity: 1 }],
-            customer: { email: user.email },
             customData: { userId, plan },
-            // 풀페이지 복귀용 — 오버레이 eventCallback과 이중화 (어느 쪽으로 끝나도 success로)
-            successUrl: await getSuccessUrl(),
+            // successUrl 미지원 (SDK에 없음) — 풀페이지 복귀는 대시보드 기본 결제 링크로.
+            // 오버레이 정상 동작 시 eventCallback이 /checkout/success로 보낸다.
         });
         return getNextBaseResponse({
             success: true,
