@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-09-24 01:19)
+# TailoredAd — 작업 기록 (Last Updated: 2026-09-25 00:35)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -356,14 +356,25 @@
   UI: 업로드 주석+맥락 메모 (CreateForm·CreatePageClient·UploadZone 위치 기록),
   Virtual Model 토글+brief (AI Model 명칭 기각 — LLM 혼동).
   원가 배치당 LLM 1콜 + $0.04, 유저 차감 없음. ratios 테스트 불필요 (BRIA 무관).
+- **Paddle 샌드박스 이식** (09-24/25, develop — E2E 결제·적립 통과, 할인 미해결):
+  Polar·Creem 전멸 후 Paddle로 선회 (개인 자격 가능 확인, AI 카테고리 심사는 진행 중).
+  상품 3종 샌드박스 생성 (Starter $19 `pri_...326k` — 전사 오타 1건 수정済み,
+  Growth $49, Pro $99) + `lib/paddle.ts` 매핑 (환경 분리, PLAN_IMAGE_LIMIT 내장).
+  하이브리드 체크아웃: 서버 트랜잭션 생성(custom_data userId·plan) + Paddle.js 표시.
+  오버레이가 풀블리드로 뜨는 건 정상 렌더 (URL 불변으로 확인, close() 미체결이 진짜 버그였음 — 수정됨).
+  인라인 모달 추가 (껍데기 자사 디자인 + 주문 요약, 오버레이 코드 병존 — 복구 1줄).
+  웹훅 (서명검증→전달 + process grant·차액·해지, 금액-플랜 교차검증) — Starter 실결제→100장 적립 실측됨.
+  첫주문 할인 (50%·단발·Starter 한정 `dsc_...fjv` API 확인) 코드 완료이나 미적용 — 원인 조사 중
+  (신규계정·env 재시작 후에도 $19 표시. 다음 후보: 트랜잭션 discountId 반영 여부 서버 로그 확인).
+  스킬 10종 전역 설치 + SKILLS.md 반영. MCP sandbox 연결됨 (oauth:false, 서비스 env).
+  대시보드 메모: 기본 결제 링크 localhost, Google Pay 추가, statement TAILOREDAD,
+  마케팅·저장·할인필드 OFF, 회수 ON.
 - **플랜명 표시** (09-22, 배포됨): `lib/polar.ts`에 `PLAN_DISPLAY_NAME` 추가
   (plan-1→Starter, plan-2→Growth, plan-3→Pro, none→Free plan, plan-4 원값 폴백).
   `AppHeader planLabel()`이 사용. 바깥 노출이라 영어 유지.
 - **표시용 변환 폐지** (09-24, develop): Supabase transformation 쿼터 고갈 (106/100).
   전 변형 원본 중계 + CSS 사이징 (`image/route.ts` 변환 null). Workers CPU 10ms라
   서버 가공 불가. 대시보드 Storage > Settings 변환 토글 OFF 권장.
-  (plan-1→Starter, plan-2→Growth, plan-3→Pro, none→Free plan, plan-4 원값 폴백).
-  `AppHeader planLabel()`이 사용. 바깥 노출이라 영어 유지.
 - **예쁜 이미지 경로** (09-22, 배포됨): `GET /projects/[projectId]/image?c=&r=&v=`
   (쿠키 세션 + 본인소유 확인 후 중계. v=list 800w / thumb 600h / full 원본).
   목록 썸네일·Detail 타일·모달·에디터 4면이 토큰 없는 동일 출처 URL 사용.
@@ -416,8 +427,10 @@
   - [x] 구독 관리 서버 (조회 3종·change·cancel·revert) + Profile UI — develop, 샌드박스 403 확인
     (OAT 스코프 부족. `orders:read`·`subscriptions:write` 추가 후 E2E 가능)
   - [ ] E2E 테스트 (기각으로 보류 — 재신청 시점에 Wiederaufnahme)
-- [ ] LS 심사 대응 (09-24 진행 중): 스토어 접수됨. 상품 3종 Subscription ($19/49/99) draft→publish.
+- [ ] LS 심사 대응 (09-24 접수됨, 결과 대기): 스토어 접수됨. 상품 3종 Subscription ($19/49/99) draft→publish.
   첫주문 할인은 Discount Codes에서 별도 생성.
+- [ ] Paddle 심사 대응 (09-24/25 진행 중): 개인 트랙, 상품 3종 샌드박스 생성됨.
+  하이브리드 체크아웃 E2E 통과 (결제→적립). 첫주문 할인 미적용 — 수정 계속해야 함.
 - [ ] Creem 심사 대응 (09-24 기각, 어필 불가): 개인 트랙. compliance 최종 거절.
   Polar와 동일 패턴 (AI 이미지 MoR 리스크, 카테고리 단위). 재생성·우회 금지.
   Moderation·AUP 숙제는 LS/Stripe 서사에 재사용.
@@ -449,8 +462,11 @@
 - [x] AI 페르소나 파이프라인 (09-24 — 프롬프트·3 route·UI·PoC `c4d14a` 통과, develop)
 - [x] 표시용 변환 폐지 (09-24 — 원본 중계 회귀, develop)
 - [x] Pricing 新 가격 (09-24 — $19/49/99 + 장당가, develop. 대시보드 상품 금액 동기화 대기)
+- [x] Paddle 샌드박스 이식 1차 (09-24/25 — 카탈로그·하이브리드·웹훅·인라인·E2E 통과, develop)
+- [ ] **Paddle 첫주문 할인 미적용 수정** (09-25 진행 중 — 신규계정·env 재시작 후에도 $19 표시.
+  다음 수순: 트랜잭션 discountId 반영 여부 서버 로그 확인 → Paddle 대시보드 트랜잭션明細 대조)
 - [ ] **결제사 확정 후 코드 이식**: Polar 구조 복사 (체크아웃·웹훅·grant 3점, 수일 규모).
-  LS vs Creem 결과 보고 결정. 지금이 제일 쌀 때 (고객 생기면 마이그레이션 지옥).
+  Paddle 심사 결과 보고 결정 (LS 대기·Creem 탈락). 지금이 제일 쌀 때 (고객 생기면 마이그레이션 지옥).
 - [x] 프롬프트 컴포지션 1순위 (구조만 — 바이트 동일 검증, 푸시됨)
 - [x] 태그 정의·치환 + 스키마 분리 + reframe RPC (코드·SQL 완료)
 - [x] ratios route 재설계 1차 (고정 문구·폴백 삭제·base-only·매퍼 분리 — 완료)
