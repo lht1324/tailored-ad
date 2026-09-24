@@ -29,6 +29,14 @@ export function getPaddleEnvironment(): 'production' | 'sandbox' {
     return process.env.NODE_ENV === 'production' ? 'production' : 'sandbox';
 }
 
+/** 플랜 → 월 부여 장수 (Paddle custom_data imageLimit과 동일) */
+export const PLAN_IMAGE_LIMIT: Record<PaidPlan, number> = {
+    [SubscriptionPlan.PLAN_1]: 100,
+    [SubscriptionPlan.PLAN_2]: 500,
+    [SubscriptionPlan.PLAN_3]: 1000,
+    [SubscriptionPlan.PLAN_4]: 0,
+};
+
 function activePriceMap(): Record<PaidPlan, string> {
     return getPaddleEnvironment() === 'production' ? PADDLE_PRICE_BY_PLAN : PADDLE_SANDBOX_PRICE_BY_PLAN;
 }
