@@ -4,6 +4,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { initializePaddle, type Paddle } from "@paddle/paddle-js";
 import AppHeader from "@/components/page/ad/app-header/AppHeader";
+import PaddleInlineModal from "@/components/page/sandbox/PaddleInlineModal";
 import { useAuth } from "@/context/AuthContext";
 import { paddleClientAPI } from "@/lib/api/client/paddleClientAPI";
 import { PLAN_IMAGE_LIMIT, type PaidPlan } from "@/lib/paddle";
@@ -22,6 +23,7 @@ function PaddleTestClient() {
     const paddleRef = useRef<Paddle | null>(null);
     const [envError, setEnvError] = useState<string | null>(null);
     const [busyPlan, setBusyPlan] = useState<PaidPlan | null>(null);
+    const [activeTransactionId, setActiveTransactionId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -72,7 +74,8 @@ function PaddleTestClient() {
 
     const userEmail = useMemo(() => user?.email ?? supabaseUser?.email ?? null, [user?.email, supabaseUser?.email]);
 
-    const onClickSubscribe = useCallback(async (plan: PaidPlan) => {        if (!paddle) return;
+    const onClickSubscribe = useCallback(async (plan: PaidPlan) => {
+        if (!paddle) return;
         setError(null);
         setBusyPlan(plan);
         try {
@@ -80,20 +83,18 @@ function PaddleTestClient() {
             if (!transactionId) {
                 throw new Error('Could not create transaction.');
             }
-            paddle.Checkout.open({
-                transactionId,
-                ...(userEmail ? { customer: { email: userEmail } } : {}),
-                settings: {
-                    displayMode: 'overlay',
-                    variant: 'one-page',
-                },
-            });
+            // 인라인 모달로 표시 (오버레이 복구 시 아래 1줄을 paddle.Checkout.open 오버레이 호출로 교체)
+            setActiveTransactionId(transactionId);
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Checkout failed.');
         } finally {
             setBusyPlan(null);
         }
-    }, [paddle, userEmail]);
+    }, [paddle]);
+
+    const onCloseInlineModal = useCallback(() => {
+        setActiveTransactionId(null);
+    }, []);
 
     return (
         <div className="min-h-screen bg-canvas text-text1">
@@ -135,6 +136,14 @@ function PaddleTestClient() {
                     <p className="mt-6 text-center text-sm text-red-500">{error}</p>
                 )}
             </main>
+            {paddle && activeTransactionId && (
+                <PaddleInlineModal
+                    paddle={paddle}
+                    transactionId={activeTransactionId}
+                    userEmail={userEmail}
+                    onClose={onCloseInlineModal}
+                />
+            )}
         </div>
     );
 }
