@@ -41,6 +41,20 @@
 | ponytail-audit / review / gain / debt / help | dietrichgebert/ponytail | ponytail 부가 도구 (코드 감사·리뷰·이득/부채 분석) |
 | find-skills | (글로벌) | 스킬 탐색/설치 안내 |
 
+### Paddle (결제 연동)
+| 스킬 | 출처 | 용도 |
+|---|---|---|
+| paddle-catalog-setup | developer.paddle.com | 상품·가격 카탈로그 생성 (MCP 우선, SDK 스크립트, 대시보드 순) |
+| paddle-checkout-web | developer.paddle.com | Next.js 체크아웃 (오버레이/인라인, 프리필) |
+| paddle-pricing-pages | developer.paddle.com | 국가별 가격 표시 (PricePreview) |
+| paddle-subscription-update | developer.paddle.com | 플랜 변경 (proration, preview-then-commit) |
+| paddle-subscription-cancel | developer.paddle.com | 해지 (effectiveFrom, scheduledChange 구분) |
+| paddle-subscription-sync | developer.paddle.com | 웹훅→DB 동기화 (상태·예약변경·게이팅) |
+| paddle-customer-portal | developer.paddle.com | 고객 포털 세션 URL 발급 |
+| paddle-billing-history | developer.paddle.com | 거래내역 표시 (통화 포맷 포함) |
+| paddle-webhooks | developer.paddle.com | 웹훅 수신·서명검증·멱등 |
+| paddle-sandbox-testing | developer.paddle.com | 샌드박스 E2E (테스트카드·시뮬레이터·터널) |
+
 ### SEO / 마케팅 / 애널리틱스
 | 스킬 | 출처 | 용도 |
 |---|---|---|
