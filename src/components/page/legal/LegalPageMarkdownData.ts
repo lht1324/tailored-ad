@@ -56,10 +56,10 @@ We are not responsible for delays or failures caused by events beyond our reason
 natural disasters, war, strikes, or infrastructure and upstream API outages.
 
 ## 10. Governing Law & Jurisdiction
-These Terms are governed by the laws of the **State of Delaware, United States**, without regard to
+These Terms are governed by the laws of the **Republic of Korea**, without regard to
 conflict of law principles. Suits arising from these Terms or the Service shall be brought exclusively
-in the federal or state courts of **Delaware**. At our sole discretion, we may require binding
-arbitration under the Rules of Arbitration of the American Arbitration Association applying Delaware law.
+in the **Seoul Central District Court**. Mandatory consumer protections of your country of residence,
+where applicable, remain unaffected.
 `;
 
 export const PRIVACY_POLICY = `
