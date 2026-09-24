@@ -1,32 +1,61 @@
 'use client';
 
 import ReactMarkdown from 'react-markdown';
-import {memo, useMemo} from "react";
+import { memo, useMemo } from "react";
 import { PRIVACY_POLICY, REFUND_POLICY, TERMS_OF_SERVICE } from "@/components/page/legal/LegalPageMarkdownData";
 import AdFooter from "@/components/page/ad/public/AdFooter";
+import AppHeader from "@/components/page/ad/app-header/AppHeader";
 import { LegalDataType } from "@/components/page/legal/LegalDataType";
 
 interface LegalPageClientProps {
     legalDataType: LegalDataType;
 }
 
+interface TocEntry {
+    id: string;
+    title: string;
+}
+
+function slugifyHeading(title: string): string {
+    return title
+        .toLowerCase()
+        .replace(/^\d+\.\s*/, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+}
+
 function LegalPageClient({ legalDataType }: LegalPageClientProps) {
-    const { content, title } = useMemo(() => {
+    const { content, title, subtitle } = useMemo(() => {
         switch (legalDataType) {
             case LegalDataType.PRIVACY: return {
                 title: 'Privacy Policy',
+                subtitle: 'What we collect, why, and who processes it.',
                 content: PRIVACY_POLICY
             }
             case LegalDataType.TERMS: return {
                 title: 'Terms of Service',
+                subtitle: 'The rules for using TailoredAd.',
                 content: TERMS_OF_SERVICE
             }
             case LegalDataType.REFUNDS: return {
                 title: 'Refund Policy',
+                subtitle: 'Cancel anytime. Unused images refunded pro-rata.',
                 content: REFUND_POLICY
             }
         }
     }, [legalDataType]);
+
+    const toc: TocEntry[] = useMemo(() => {
+        const entries: TocEntry[] = [];
+        for (const line of content.split('\n')) {
+            const match = /^##\s+(.+)$/.exec(line.trim());
+            if (match) {
+                const title = match[1].trim();
+                entries.push({ id: slugifyHeading(title), title });
+            }
+        }
+        return entries;
+    }, [content]);
 
     const lastUpdated = 'September 24, 2026';
 
@@ -35,48 +64,72 @@ function LegalPageClient({ legalDataType }: LegalPageClientProps) {
     const formattedContent = content.replace(/\n/g, '\n\n');
 
     return (
-        <div className="min-h-screen bg-[#050505] text-gray-300 font-sans selection:bg-purple-500/30">
-            {/* 상단 그라데이션 (은은하게) */}
-            <div className="fixed top-0 left-0 w-full h-[300px] bg-gradient-to-b from-purple-900/10 to-transparent pointer-events-none z-0" />
+        <div className="min-h-screen bg-canvas text-text1">
+            <AppHeader />
 
-            <main className="relative z-10 pt-24 pb-24 px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto">
-                {/* 헤더 섹션: 진중한 스타일 */}
-                <header className="mb-16 border-b border-white/10 pb-8">
-                    <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight">
+            <main className="mx-auto max-w-6xl px-8 pt-32 pb-24">
+                <header className="mb-12 max-w-2xl">
+                    <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
                         {title}
                     </h1>
-                    <p className="text-gray-500 text-sm">
-                        Last updated: {lastUpdated}
+                    <p className="mt-3 text-base leading-relaxed text-text2">
+                        {subtitle}
                     </p>
-                    <p className="text-gray-500 text-sm">
-                        Effective Date: {lastUpdated}
+                    <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.18em] text-text2">
+                        Last updated: {lastUpdated}
                     </p>
                 </header>
 
-                {/* 문서 본문: Typography 플러그인 활용 + 수동 스타일링 */}
-                <article className="prose prose-invert prose-lg max-w-none
-                    prose-headings:text-white prose-headings:font-bold prose-headings:mb-4 prose-headings:mt-12
-                    prose-h2:text-xl prose-h2:border-l-4 prose-h2:border-purple-500 prose-h2:pl-4 prose-h2:leading-tight
-                    prose-p:text-gray-300 prose-p:leading-7 prose-p:mb-6 prose-p:text-base
-                    prose-strong:text-white prose-strong:font-semibold
-                    prose-ul:list-disc prose-ul:pl-5 prose-ul:my-4
-                    prose-li:text-gray-300 prose-li:my-1 prose-li:text-base
-                    prose-a:text-purple-400 prose-a:no-underline hover:prose-a:text-purple-300
-                ">
-                    <ReactMarkdown
-                        components={{
-                            a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline" />
-                        }}
-                    >
-                        {formattedContent}
-                    </ReactMarkdown>
-                </article>
+                <div className="grid gap-12 lg:grid-cols-[1fr_220px]">
+                    <article className="prose max-w-none
+                        prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-text1
+                        prose-h2:scroll-mt-32 prose-h2:border-t prose-h2:border-hairline prose-h2:pt-8 prose-h2:text-xl prose-h2:first:border-t-0 prose-h2:first:pt-0
+                        prose-p:text-[15px] prose-p:leading-relaxed prose-p:text-text2
+                        prose-strong:font-semibold prose-strong:text-text1
+                        prose-ul:my-4 prose-ul:list-disc prose-ul:pl-5
+                        prose-li:my-1 prose-li:text-[15px] prose-li:text-text2
+                        prose-a:font-medium prose-a:text-text1 prose-a:underline prose-a:underline-offset-4
+                    ">
+                        <ReactMarkdown
+                            components={{
+                                h2: ({ node, children, ...props }) => {
+                                    const text = String(children);
+                                    return <h2 id={slugifyHeading(text)} {...props}>{children}</h2>;
+                                },
+                                a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+                            }}
+                        >
+                            {formattedContent}
+                        </ReactMarkdown>
+                    </article>
 
-                {/* 하단 문의 */}
-                <div className="mt-20 pt-8 border-t border-white/10 text-center sm:text-left">
-                    <p className="text-gray-500 text-sm">
+                    {toc.length > 1 && (
+                        <aside className="hidden lg:block">
+                            <nav aria-label="On this page" className="sticky top-32 border-l border-hairline pl-5">
+                                <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.18em] text-text2">
+                                    On this page
+                                </p>
+                                <ul className="space-y-2.5">
+                                    {toc.map((entry) => (
+                                        <li key={entry.id}>
+                                            <a
+                                                href={`#${entry.id}`}
+                                                className="block text-[13px] leading-snug text-text2 transition-colors hover:text-text1"
+                                            >
+                                                {entry.title}
+                                            </a>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </nav>
+                        </aside>
+                    )}
+                </div>
+
+                <div className="mt-16 border-t border-hairline pt-8">
+                    <p className="text-sm text-text2">
                         Questions about these terms?{' '}
-                        <a href="mailto:support@tailoredad.com" className="text-white hover:text-purple-400 transition-colors font-medium">
+                        <a href="mailto:support@tailoredad.com" className="font-medium text-text1 underline underline-offset-4">
                             support@tailoredad.com
                         </a>
                     </p>
