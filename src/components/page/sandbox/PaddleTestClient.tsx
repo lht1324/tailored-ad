@@ -39,7 +39,6 @@ function PaddleTestClient() {
         initializePaddle({
             token,
             environment: env,
-            debug: true,
             eventCallback: (event) => {
                 if (event?.name === 'checkout.completed') {
                     router.push('/checkout/success');
@@ -62,15 +61,6 @@ function PaddleTestClient() {
     }, [isInitializingAuthContext, supabaseUser, router]);
 
     const userEmail = useMemo(() => user?.email ?? supabaseUser?.email ?? null, [user?.email, supabaseUser?.email]);
-
-    // 진단용 프로브 — transactionId 경로와 items 경로의 오버레이 동작 분리.
-    // items 직접 오픈에서 모달이 뜨면 transactionId 쪽 문제로 확정. 테스트 전용.
-    const onClickProbeItems = useCallback(() => {
-        if (!paddle) return;
-        paddle.Checkout.open({
-            items: [{ priceId: 'pri_01m398qxs8085ht083q6ns326k', quantity: 1 }],
-        });
-    }, [paddle]);
 
     const onClickSubscribe = useCallback(async (plan: PaidPlan) => {        if (!paddle) return;
         setError(null);
@@ -134,15 +124,6 @@ function PaddleTestClient() {
                 {error && (
                     <p className="mt-6 text-center text-sm text-red-500">{error}</p>
                 )}
-                <div className="mt-6 text-center">
-                    <button
-                        onClick={onClickProbeItems}
-                        disabled={!paddle}
-                        className="font-mono text-[11px] uppercase tracking-[0.18em] text-text2 underline underline-offset-4 disabled:opacity-50"
-                    >
-                        Probe: open with items (diagnostic)
-                    </button>
-                </div>
             </main>
         </div>
     );
