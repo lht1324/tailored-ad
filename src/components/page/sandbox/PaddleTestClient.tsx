@@ -44,6 +44,12 @@ function PaddleTestClient() {
                     router.push('/checkout/success');
                 }
             },
+            checkout: {
+                settings: {
+                    displayMode: 'overlay',
+                    variant: 'one-page',
+                },
+            },
         }).then((p) => {
             if (live && p) setPaddle(p);
         }).catch((e) => {
