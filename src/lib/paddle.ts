@@ -18,7 +18,7 @@ export const PADDLE_PRICE_BY_PLAN: Record<PaidPlan, string> = {
 
 /** 샌드박스 price ID (dev 테스트용, 2026-09-24 생성) */
 export const PADDLE_SANDBOX_PRICE_BY_PLAN: Record<PaidPlan, string> = {
-    [SubscriptionPlan.PLAN_1]: "pri_01m398qxs808sht083q6ns326k", // Starter $19
+    [SubscriptionPlan.PLAN_1]: "pri_01m398qxs8085ht083q6ns326k", // Starter $19
     [SubscriptionPlan.PLAN_2]: "pri_01m398qy9z318dw92xdc7xx1ke", // Growth $49
     [SubscriptionPlan.PLAN_3]: "pri_01m398qytz14gev4d3j48yxgv3", // Pro $99
     [SubscriptionPlan.PLAN_4]: "",
