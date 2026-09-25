@@ -1,10 +1,11 @@
 'use client'
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { initializePaddle, type Paddle } from "@paddle/paddle-js";
+import type { Paddle } from "@paddle/paddle-js";
 import AppHeader from "@/components/page/ad/app-header/AppHeader";
-import PaddleInlineModal from "@/components/page/sandbox/PaddleInlineModal";
+import PaddleInlineModal from "@/components/page/ad/paddle/PaddleInlineModal";
+import { usePaddle } from "@/components/page/ad/paddle/usePaddle";
 import { useAuth } from "@/context/AuthContext";
 import { paddleClientAPI } from "@/lib/api/client/paddleClientAPI";
 import { PLAN_IMAGE_LIMIT, PLAN_PRICE_USD, type PaidPlan } from "@/lib/paddle";
@@ -19,9 +20,7 @@ const TEST_PLANS: { plan: PaidPlan; name: string; price: string; images: string 
 function PaddleTestClient() {
     const router = useRouter();
     const { user, supabaseUser, isInitializingAuthContext } = useAuth();
-    const [paddle, setPaddle] = useState<Paddle | null>(null);
-    const paddleRef = useRef<Paddle | null>(null);
-    const [envError, setEnvError] = useState<string | null>(null);
+    const { paddle, envError } = usePaddle();
     const [busyPlan, setBusyPlan] = useState<PaidPlan | null>(null);
     const [activeTransactionId, setActiveTransactionId] = useState<string | null>(null);
     const [activePlan, setActivePlan] = useState<(typeof TEST_PLANS)[number] | null>(null);
@@ -32,46 +31,7 @@ function PaddleTestClient() {
         if (isInitializingAuthContext) return;
         if (!supabaseUser) {
             router.push('/sign-in?redirectTo=/sandbox/paddle-test');
-            return;
         }
-        const token = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN;
-        const env = process.env.NEXT_PUBLIC_PADDLE_ENV;
-        if (!token || (env !== 'sandbox' && env !== 'production')) {
-            setEnvError("Paddle client is not configured (NEXT_PUBLIC_PADDLE_CLIENT_TOKEN / NEXT_PUBLIC_PADDLE_ENV). Refusing to run against an unknown environment.");
-            return;
-        }
-        let live = true;
-        initializePaddle({
-            token,
-            environment: env,
-            eventCallback: (event) => {
-                if (event?.name === 'checkout.completed') {
-                    // 오버레이가 완료 화면을 계속 덮고 있어 명시적으로 닫아야 underlying 페이지가 보인다
-                    try {
-                        paddleRef.current?.Checkout.close();
-                    } catch {
-                        /* 이미 닫힘 — 무시 */
-                    }
-                    router.push('/checkout/success');
-                }
-            },
-            checkout: {
-                settings: {
-                    displayMode: 'overlay',
-                    variant: 'one-page',
-                },
-            },
-        }).then((p) => {
-            if (live && p) {
-                paddleRef.current = p;
-                setPaddle(p);
-            }
-        }).catch((e) => {
-            if (live) setEnvError(e instanceof Error ? e.message : 'Failed to initialize Paddle.js');
-        });
-        return () => {
-            live = false;
-        };
     }, [isInitializingAuthContext, supabaseUser, router]);
 
     const userEmail = useMemo(() => user?.email ?? supabaseUser?.email ?? null, [user?.email, supabaseUser?.email]);

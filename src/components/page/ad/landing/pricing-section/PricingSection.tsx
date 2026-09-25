@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation';
 import { Check } from 'lucide-react';
 import Reveal from "@/components/page/ad/Reveal";
 import { useAuth } from "@/context/AuthContext";
-import { polarClientAPI } from "@/lib/api/client/polarClientAPI";
+import { paddleClientAPI } from "@/lib/api/client/paddleClientAPI";
 import { usersClientAPI } from "@/lib/api/client/usersClientAPI";
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
-import type { PaidPlan } from "@/lib/polar";
+import { PLAN_PRICE_USD, type PaidPlan } from "@/lib/paddle";
+import PaddleInlineModal from "@/components/page/ad/paddle/PaddleInlineModal";
+import { usePaddle } from "@/components/page/ad/paddle/usePaddle";
 
 interface Plan {
     planId: PaidPlan;
@@ -67,7 +69,7 @@ function PricingCard({ plan, busy, showDiscountNote, onClickCheckout }: {
     plan: Plan;
     busy: boolean;
     showDiscountNote: boolean;
-    onClickCheckout: (planId: PaidPlan) => void;
+    onClickCheckout: (plan: Plan) => void;
 }) {
     return (
         <div
@@ -136,7 +138,7 @@ function PricingCard({ plan, busy, showDiscountNote, onClickCheckout }: {
             </ul>
             <button
                 type="button"
-                onClick={() => onClickCheckout(plan.planId)}
+                onClick={() => onClickCheckout(plan)}
                 disabled={busy}
                 className="mt-10 inline-flex w-full items-center justify-center rounded-full bg-text1 py-3.5 text-[14px] font-semibold text-canvas transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 disabled:hover:scale-100"
             >
@@ -147,11 +149,13 @@ function PricingCard({ plan, busy, showDiscountNote, onClickCheckout }: {
 }
 
 export default function PricingSection() {
-    const { supabaseUser } = useAuth();
+    const { user, supabaseUser } = useAuth();
     const router = useRouter();
+    const { paddle, envError } = usePaddle();
     const [busyPlan, setBusyPlan] = useState<PaidPlan | null>(null);
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
     const [discountEligible, setDiscountEligible] = useState(false);
+    const [activeTx, setActiveTx] = useState<{ transactionId: string; plan: Plan; firstCharge: number | null } | null>(null);
 
     // 첫주문 할인 표시 — 로그아웃·무료는 표시, 유료 이력만 숨김 (서버는 유료 이력 기준 부과)
     useEffect(() => {
@@ -172,7 +176,7 @@ export default function PricingSection() {
         };
     }, [supabaseUser?.id]);
 
-    const onClickCheckout = useCallback(async (planId: PaidPlan) => {
+    const onClickCheckout = useCallback(async (plan: Plan) => {
         if (!supabaseUser) {
             router.push('/sign-in?redirectTo=/#pricing');
             return;
@@ -189,15 +193,22 @@ export default function PricingSection() {
             // 조회 실패 시 체크아웃 계속 (막지 않음)
         }
         setCheckoutError(null);
-        setBusyPlan(planId);
-        const url = await polarClientAPI.createCheckout(planId);
+        setBusyPlan(plan.planId);
+        const created = await paddleClientAPI.createTransaction(plan.planId);
         setBusyPlan(null);
-        if (!url) {
+        if (!created) {
             setCheckoutError('Could not start checkout. Please try again.');
             return;
         }
-        window.location.href = url;
+        // 인라인 모달로 표시 — 트랜잭션은 서버 생성 (metadata 확정), firstCharge도 서버 판정값
+        setActiveTx({ transactionId: created.transactionId, plan, firstCharge: created.discountApplied ? created.firstCharge : null });
     }, [supabaseUser, router]);
+
+    const onCloseInlineModal = useCallback(() => {
+        setActiveTx(null);
+    }, []);
+
+    const userEmail = user?.email ?? supabaseUser?.email ?? null;
 
     return (
         <section id="pricing" className="scroll-mt-24 border-t border-hairline bg-surface/40 px-4 py-24 md:py-32">
@@ -229,6 +240,11 @@ export default function PricingSection() {
                         {checkoutError}
                     </p>
                 )}
+                {envError && (
+                    <p className="mx-auto mt-6 max-w-2xl text-center text-[13px] font-medium text-red-500">
+                        {envError}
+                    </p>
+                )}
                 <Reveal delay={0.1}>
                     <ul className="mx-auto mt-16 max-w-2xl space-y-1.5 text-center text-[13px] leading-relaxed text-text2">
                         <li>Start with 10 free images.</li>
@@ -237,6 +253,18 @@ export default function PricingSection() {
                     </ul>
                 </Reveal>
             </div>
+            {paddle && activeTx && (
+                <PaddleInlineModal
+                    paddle={paddle}
+                    transactionId={activeTx.transactionId}
+                    userEmail={userEmail}
+                    planName={activeTx.plan.name}
+                    basePrice={PLAN_PRICE_USD[activeTx.plan.planId]}
+                    imagesLabel={activeTx.plan.images}
+                    firstCharge={activeTx.firstCharge}
+                    onClose={onCloseInlineModal}
+                />
+            )}
         </section>
     );
 }
