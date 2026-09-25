@@ -150,7 +150,7 @@ function PaddleTestClient() {
                     planName={activePlan.name}
                     priceLabel={activePlan.price}
                     imagesLabel={activePlan.images}
-                    firstChargeLabel={activeFirstCharge !== null ? `$${activeFirstCharge.toFixed(2)} / first month` : null}
+                    firstChargeLabel={activeFirstCharge !== null ? `$${activeFirstCharge.toFixed(2)}` : null}
                     onClose={onCloseInlineModal}
                 />
             )}

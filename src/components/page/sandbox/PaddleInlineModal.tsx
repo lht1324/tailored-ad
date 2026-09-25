@@ -64,15 +64,15 @@ function PaddleInlineModal({ paddle, transactionId, userEmail, planName, priceLa
                 </div>
                 <div className="overflow-y-auto px-6 py-4">
                     <div className="mb-4 rounded-xl border border-hairline bg-canvas p-4">
-                        <div className="flex items-baseline justify-between">
-                            <p className="text-[15px] font-bold text-text1">{planName}</p>
+                        <p className="text-[15px] font-bold text-text1">{planName}</p>
+                        <div className="mt-1.5 flex flex-wrap items-baseline gap-x-2">
                             {firstChargeLabel ? (
-                                <p className="text-[15px] font-bold text-text1">
-                                    <span className="mr-2 font-medium text-text2/60 line-through">{priceLabel}</span>
-                                    {firstChargeLabel}
-                                </p>
+                                <>
+                                    <span className="text-[13px] font-medium text-text2/60 line-through">{priceLabel}</span>
+                                    <span className="text-[17px] font-bold text-accent">{firstChargeLabel}</span>
+                                </>
                             ) : (
-                                <p className="text-[15px] font-bold text-text1">{priceLabel}</p>
+                                <span className="text-[17px] font-bold text-text1">{priceLabel}</span>
                             )}
                         </div>
                         <p className="mt-1 text-[12px] text-text2">
