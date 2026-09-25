@@ -7,7 +7,7 @@ import AppHeader from "@/components/page/ad/app-header/AppHeader";
 import PaddleInlineModal from "@/components/page/sandbox/PaddleInlineModal";
 import { useAuth } from "@/context/AuthContext";
 import { paddleClientAPI } from "@/lib/api/client/paddleClientAPI";
-import { PLAN_IMAGE_LIMIT, type PaidPlan } from "@/lib/paddle";
+import { PLAN_IMAGE_LIMIT, PLAN_PRICE_USD, type PaidPlan } from "@/lib/paddle";
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
 
 const TEST_PLANS: { plan: PaidPlan; name: string; price: string; images: string }[] = [
@@ -148,9 +148,9 @@ function PaddleTestClient() {
                     transactionId={activeTransactionId}
                     userEmail={userEmail}
                     planName={activePlan.name}
-                    priceLabel={activePlan.price}
+                    basePrice={PLAN_PRICE_USD[activePlan.plan]}
                     imagesLabel={activePlan.images}
-                    firstChargeLabel={activeFirstCharge !== null ? `$${activeFirstCharge.toFixed(2)}` : null}
+                    firstCharge={activeFirstCharge}
                     onClose={onCloseInlineModal}
                 />
             )}

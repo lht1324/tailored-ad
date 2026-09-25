@@ -9,10 +9,11 @@ interface PaddleInlineModalProps {
     transactionId: string;
     userEmail?: string | null;
     planName: string;
-    priceLabel: string;
+    /** 정가 (USD 숫자) — 취소선 + THEN 라인용 */
+    basePrice: number;
     imagesLabel: string;
-    /** 서버 판정 첫달가 — 있을 때만 취소선 표시 (Pricing 카드와 동일 문법) */
-    firstChargeLabel?: string | null;
+    /** 서버 판정 첫달가 — 있을 때만 할인 표시 (Pricing 카드와 동일 문법) */
+    firstCharge?: number | null;
     onClose: () => void;
 }
 
@@ -23,7 +24,7 @@ const FRAME_TARGET = "paddle-inline-frame";
  * 오버레이 경로와 병존 (복구 시 호출부 1줄 교체). frameTarget div가 마운트된 뒤 open.
  * MoR 푸터 가시성 규정에 따라 프레임 하단을 자르지 않는다 (스크롤 허용).
  */
-function PaddleInlineModal({ paddle, transactionId, userEmail, planName, priceLabel, imagesLabel, firstChargeLabel, onClose }: PaddleInlineModalProps) {
+function PaddleInlineModal({ paddle, transactionId, userEmail, planName, basePrice, imagesLabel, firstCharge, onClose }: PaddleInlineModalProps) {
     useEffect(() => {
         paddle.Checkout.open({
             transactionId,
@@ -64,20 +65,39 @@ function PaddleInlineModal({ paddle, transactionId, userEmail, planName, priceLa
                 </div>
                 <div className="overflow-y-auto px-6 py-4">
                     <div className="mb-4 rounded-xl border border-hairline bg-canvas p-4">
-                        <p className="text-[15px] font-bold text-text1">{planName}</p>
-                        <div className="mt-1.5 flex flex-wrap items-baseline gap-x-2">
-                            {firstChargeLabel ? (
-                                <>
-                                    <span className="text-[13px] font-medium text-text2/60 line-through">{priceLabel}</span>
-                                    <span className="text-[17px] font-bold text-accent">{firstChargeLabel}</span>
-                                </>
-                            ) : (
-                                <span className="text-[17px] font-bold text-text1">{priceLabel}</span>
+                        <div className="flex items-center justify-between gap-3">
+                            <p className="text-[15px] font-bold text-text1">{planName}</p>
+                            {firstChargeLabel && (
+                                <span className="whitespace-nowrap rounded-full border border-accent px-2.5 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-accent">
+                                    −50% first month
+                                </span>
                             )}
                         </div>
-                        <p className="mt-1 text-[12px] text-text2">
-                            {imagesLabel} · {firstChargeLabel ? 'first month, then renews monthly' : 'renews monthly'}
+                        <div className="mt-3 flex items-baseline gap-1.5">
+                            {firstCharge != null ? (
+                                <>
+                                    <span className="text-xl font-medium text-text2/60 line-through">
+                                        ${basePrice.toFixed(2)}
+                                    </span>
+                                    <span className="text-3xl font-bold tracking-tight text-text1">
+                                        ${firstCharge.toFixed(2)}
+                                    </span>
+                                </>
+                            ) : (
+                                <span className="text-3xl font-bold tracking-tight text-text1">
+                                    ${basePrice.toFixed(2)}
+                                </span>
+                            )}
+                            <span className="text-[13px] font-medium text-text2">/ mo</span>
+                        </div>
+                        <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.18em] text-text2">
+                            {imagesLabel}
                         </p>
+                        {firstCharge != null && (
+                            <p className="mt-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-text2">
+                                then ${basePrice.toFixed(2)}/mo
+                            </p>
+                        )}
                     </div>
                     <div className={FRAME_TARGET} />
                 </div>
