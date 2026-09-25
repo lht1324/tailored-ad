@@ -60,12 +60,21 @@ export async function GET(request: NextRequest) {
         const transactions = await paddle.transactions.list({ customerId: [customerId], status: ['completed', 'paid'], perPage: 50 });
         const orderList: OrderData[] = [];
         for await (const txn of transactions) {
-            const firstItem = txn.items?.[0];
-            const priceId = (firstItem as unknown as { priceId?: string } | undefined)?.priceId
-                ?? (firstItem as unknown as { price?: { id?: string } } | undefined)?.price?.id
+            const totals = txn.details?.totals as unknown as { total?: string | number; currencyCode?: string } | null;
+            // 라인 항목은 details.line_items 우선 (proration·음수 라인 포함), 없으면 items 폴백
+            const detailLines = (txn.details as unknown as {
+                line_items?: Array<{ price_id?: string; quantity?: number; totals?: { total?: string | number } | null; proration?: unknown }>;
+            } | null)?.line_items ?? [];
+            const topItems = (txn.items ?? []) as Array<{ priceId?: string; price?: { id?: string } }>;
+            // 차액 표시: 마이너스 라인이나 proration이 있으면 업그레이드 top-up.
+            // 플랜명은 양수 라인(목표 플랜) 기준.
+            const isUpgrade = detailLines.some((i) => (i.quantity ?? 1) < 0 || i.proration != null);
+            const namedDetail = detailLines.find((i) => Number(i.totals?.total ?? 0) > 0);
+            const priceId = namedDetail?.price_id
+                ?? topItems[0]?.priceId
+                ?? topItems[0]?.price?.id
                 ?? '';
             const plan = priceId ? getPlanByPaddlePrice(priceId) : null;
-            const totals = txn.details?.totals as unknown as { total?: string | number; currencyCode?: string } | null;
             const rawStatus = String(txn.status ?? '').toLowerCase();
             const status = ['completed', 'billed', 'paid'].includes(rawStatus)
                 ? 'paid'
@@ -76,6 +85,7 @@ export async function GET(request: NextRequest) {
                 currency: totals?.currencyCode ?? 'USD',
                 status,
                 createdAt: txn.createdAt,
+                kind: isUpgrade ? 'upgrade' : 'purchase',
             });
         }
         orderList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());

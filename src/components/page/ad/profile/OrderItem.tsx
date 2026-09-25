@@ -44,6 +44,9 @@ function OrderItem({
         <div className="grid grid-cols-4 items-center gap-4 rounded-xl border border-hairline bg-surface/60 p-4">
             <div className="min-w-0">
                 <p className="truncate font-medium text-text1">{orderData.productName}</p>
+                {orderData.kind === 'upgrade' && (
+                    <p className="mt-0.5 text-[11px] font-medium text-text2">Upgrade top-up</p>
+                )}
             </div>
             <div className="text-end">
                 <p className="font-semibold text-text1">{formattedAmount}</p>
