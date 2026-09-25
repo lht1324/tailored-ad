@@ -67,7 +67,7 @@ function PaddleInlineModal({ paddle, transactionId, userEmail, planName, basePri
                     <div className="mb-4 rounded-xl border border-hairline bg-canvas p-4">
                         <div className="flex items-center justify-between gap-3">
                             <p className="text-[15px] font-bold text-text1">{planName}</p>
-                            {firstChargeLabel && (
+                            {firstCharge != null && (
                                 <span className="whitespace-nowrap rounded-full border border-accent px-2.5 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-accent">
                                     −50% first month
                                 </span>
