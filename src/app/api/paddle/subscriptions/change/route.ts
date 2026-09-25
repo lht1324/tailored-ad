@@ -107,9 +107,6 @@ export async function POST(request: NextRequest) {
             && user.plan !== SubscriptionPlan.NONE
             ? (user.plan as PaidPlan)
             : null;
-        const currentPriceId = subscription.items?.find((i) => i.recurring !== false)?.price?.id
-            ?? subscription.items?.[0]?.price?.id
-            ?? '';
         const baselinePlan = dbPlan ?? (currentPriceId ? getPlanByPaddlePrice(currentPriceId) : null);
         if (!baselinePlan) {
             return getNextBaseResponse({
