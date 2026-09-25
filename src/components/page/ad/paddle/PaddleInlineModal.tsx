@@ -77,7 +77,7 @@ function PaddleInlineModal({ paddle, transactionId, userEmail, planName, basePri
                             {firstCharge != null ? (
                                 <>
                                     <span className="text-xl font-medium text-text2/60 line-through">
-                                        ${basePrice.toFixed(2)}
+                                        ${basePrice}
                                     </span>
                                     <span className="text-3xl font-bold tracking-tight text-text1">
                                         ${firstCharge.toFixed(2)}
@@ -85,7 +85,7 @@ function PaddleInlineModal({ paddle, transactionId, userEmail, planName, basePri
                                 </>
                             ) : (
                                 <span className="text-3xl font-bold tracking-tight text-text1">
-                                    ${basePrice.toFixed(2)}
+                                    ${basePrice}
                                 </span>
                             )}
                             <span className="text-[13px] font-medium text-text2">/ mo</span>
