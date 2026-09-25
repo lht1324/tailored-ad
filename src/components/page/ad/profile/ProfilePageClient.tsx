@@ -371,7 +371,6 @@ function ProfilePageClient() {
 
             {showChangePlanModal && (
                 <ChangePlanModal
-                    currentProductId={subscriptionData?.productId ?? null}
                     currentPlan={currentPaidPlan}
                     onConfirmChangePlan={onConfirmChangePlan}
                     onClickClose={() => setShowChangePlanModal(false)}

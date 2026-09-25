@@ -8,7 +8,6 @@ import { PLAN_DISPLAY_NAME, PLAN_IMAGE_LIMIT, type PaidPlan } from "@/lib/paddle
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
 
 interface ChangePlanModalProps {
-    currentProductId: string | null;
     currentPlan: PaidPlan | null;
     onConfirmChangePlan: (newPlan: PaidPlan) => Promise<boolean>;
     onClickClose: () => void;
@@ -27,7 +26,6 @@ function formatPrice(price: number, currency: string): string {
 }
 
 function ChangePlanModal({
-    currentProductId,
     currentPlan,
     onConfirmChangePlan,
     onClickClose,
@@ -158,7 +156,8 @@ function ChangePlanModal({
                             {MANAGED_PLANS.map((plan) => {
                                 const product = productOf(plan);
                                 if (!product) return null;
-                                const isCurrent = plan === currentPlan || product.id === currentProductId;
+                                // 현재 플랜 판정은 DB 단일 소스 (Paddle items는 예약 시 미래값이라 이중 뱃지 원인)
+                                const isCurrent = plan === currentPlan;
                                 const isSelected = selectedPlan === plan;
                                 return (
                                     <button
