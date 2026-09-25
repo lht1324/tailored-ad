@@ -9,6 +9,9 @@ import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
 
 interface ChangePlanModalProps {
     currentPlan: PaidPlan | null;
+    /** 예약 목표 (DB downgrade_target). 있으면 해당 카드 SCHEDULED 뱃지 + 선택 불가 */
+    scheduledPlan?: string | null;
+    scheduledAppliesAt?: string | null;
     onConfirmChangePlan: (newPlan: PaidPlan) => Promise<boolean>;
     onClickClose: () => void;
 }
@@ -27,6 +30,8 @@ function formatPrice(price: number, currency: string): string {
 
 function ChangePlanModal({
     currentPlan,
+    scheduledPlan,
+    scheduledAppliesAt,
     onConfirmChangePlan,
     onClickClose,
 }: ChangePlanModalProps) {
@@ -128,6 +133,12 @@ function ChangePlanModal({
                             <p className="mt-1 text-sm text-text2">
                                 Current Plan: <span className="font-semibold text-text1">{currentPlan ? PLAN_DISPLAY_NAME[currentPlan] : '-'}</span>
                             </p>
+                            {scheduledPlan && (
+                                <p className="mt-1 text-sm text-text2">
+                                    Scheduled: <span className="font-semibold text-text1">{PLAN_DISPLAY_NAME[scheduledPlan] ?? scheduledPlan}{scheduledAppliesAt ? ` on ${new Date(scheduledAppliesAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}` : ''}</span>
+                                    <span className="text-text2"> — picking another plan replaces it.</span>
+                                </p>
+                            )}
                         </div>
                         <button
                             onClick={onClickClose}
@@ -158,16 +169,18 @@ function ChangePlanModal({
                                 if (!product) return null;
                                 // 현재 플랜 판정은 DB 단일 소스 (Paddle items는 예약 시 미래값이라 이중 뱃지 원인)
                                 const isCurrent = plan === currentPlan;
+                                const isScheduled = !!scheduledPlan && plan === scheduledPlan;
+                                const isDisabled = isCurrent || isScheduled;
                                 const isSelected = selectedPlan === plan;
                                 return (
                                     <button
                                         key={plan}
-                                        onClick={() => !isCurrent && onSelectPlan(plan)}
-                                        disabled={isCurrent}
+                                        onClick={() => !isDisabled && onSelectPlan(plan)}
+                                        disabled={isDisabled}
                                         className={`relative rounded-2xl border p-6 text-left transition-all ${
                                             isSelected
                                                 ? 'border-text1 bg-canvas shadow-lg'
-                                                : isCurrent
+                                                : isDisabled
                                                   ? 'cursor-default border-hairline bg-canvas opacity-60'
                                                   : 'border-hairline bg-surface hover:border-text2'
                                         }`}
@@ -189,6 +202,11 @@ function ChangePlanModal({
                                         {isCurrent && (
                                             <p className="mt-3 text-[11px] font-bold tracking-wider text-text2 uppercase">
                                                 Current plan
+                                            </p>
+                                        )}
+                                        {isScheduled && !isCurrent && (
+                                            <p className="mt-3 text-[11px] font-bold tracking-wider text-accent uppercase">
+                                                Scheduled
                                             </p>
                                         )}
                                     </button>

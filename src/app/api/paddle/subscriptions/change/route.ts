@@ -102,18 +102,40 @@ export async function POST(request: NextRequest) {
         const currentPriceId = subscription.items?.find((i) => i.recurring !== false)?.price?.id
             ?? subscription.items?.[0]?.price?.id
             ?? '';
-        if (currentPriceId === newPriceId) {
+        // 판정 잣대는 DB(현재 과금 진실). Paddle items는 예약 시 미래값이라 현재로 오판한다.
+        const dbPlan = (Object.values(SubscriptionPlan) as string[]).includes(user.plan ?? '')
+            && user.plan !== SubscriptionPlan.NONE
+            ? (user.plan as PaidPlan)
+            : null;
+        const currentPriceId = subscription.items?.find((i) => i.recurring !== false)?.price?.id
+            ?? subscription.items?.[0]?.price?.id
+            ?? '';
+        const baselinePlan = dbPlan ?? (currentPriceId ? getPlanByPaddlePrice(currentPriceId) : null);
+        if (!baselinePlan) {
+            return getNextBaseResponse({
+                success: false,
+                status: 400,
+                error: "Current plan unknown. Refresh and try again.",
+            });
+        }
+        if (newPlan === baselinePlan) {
             return getNextBaseResponse({
                 success: false,
                 status: 400,
                 error: "Already on this plan.",
             });
         }
+        // items가 이미 목표가면 예약 중복 (모달에서 막히나 직접 호출 대비)
+        if (currentPriceId === newPriceId) {
+            return getNextBaseResponse({
+                success: false,
+                status: 400,
+                error: "Already scheduled to this plan.",
+            });
+        }
 
-        // 업/다운 판정은 월 부여 장수 순서 (PLAN_1 < PLAN_2 < PLAN_3)
-        const currentPlan = currentPriceId ? getPlanByPaddlePrice(currentPriceId) : null;
-        const currentLimit = currentPlan ? PLAN_IMAGE_LIMIT[currentPlan] : PLAN_IMAGE_LIMIT[SubscriptionPlan.PLAN_1];
-        const isUpgrade = PLAN_IMAGE_LIMIT[newPlan as PaidPlan] > currentLimit;
+        // 업/다운 판정은 월 부여 장수 순서 (PLAN_1 < PLAN_2 < PLAN_3), DB 기준
+        const isUpgrade = PLAN_IMAGE_LIMIT[newPlan as PaidPlan] > PLAN_IMAGE_LIMIT[baselinePlan];
 
         if (isUpgrade) {
             await paddle.subscriptions.update(user.subscription_id, {

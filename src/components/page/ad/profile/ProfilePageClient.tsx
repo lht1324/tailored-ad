@@ -372,6 +372,8 @@ function ProfilePageClient() {
             {showChangePlanModal && (
                 <ChangePlanModal
                     currentPlan={currentPaidPlan}
+                    scheduledPlan={subscriptionData?.scheduledPlan ?? null}
+                    scheduledAppliesAt={subscriptionData?.scheduledAppliesAt ?? null}
                     onConfirmChangePlan={onConfirmChangePlan}
                     onClickClose={() => setShowChangePlanModal(false)}
                 />
