@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-09-25 03:26)
+# TailoredAd — 작업 기록 (Last Updated: 2026-09-26 01:37)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -356,7 +356,8 @@
   UI: 업로드 주석+맥락 메모 (CreateForm·CreatePageClient·UploadZone 위치 기록),
   Virtual Model 토글+brief (AI Model 명칭 기각 — LLM 혼동).
   원가 배치당 LLM 1콜 + $0.04, 유저 차감 없음. ratios 테스트 불필요 (BRIA 무관).
-- **Paddle 샌드박스 이식** (09-24/25, develop — E2E 결제·적립 통과, 할인 미해결):  Polar·Creem 전멸 후 Paddle로 선회 (개인 자격 가능 확인, AI 카테고리 심사는 진행 중).
+- **Paddle 샌드박스 이식** (09-24/25, develop — E2E 결제·적립 통과):
+  Polar·Creem 전멸 후 Paddle로 선회 (개인 자격 가능 확인, AI 카테고리 심사는 진행 중).
   상품 3종 샌드박스 생성 (Starter $19 `pri_...326k` — 전사 오타 1건 수정済み,
   Growth $49, Pro $99) + `lib/paddle.ts` 매핑 (환경 분리, PLAN_IMAGE_LIMIT 내장).
   하이브리드 체크아웃: 서버 트랜잭션 생성(custom_data userId·plan) + Paddle.js 표시.
@@ -368,6 +369,16 @@
   스킬 10종 전역 설치 + SKILLS.md 반영. MCP sandbox 연결됨 (oauth:false, 서비스 env).
   대시보드 메모: 기본 결제 링크 localhost, Google Pay 추가, statement TAILOREDAD,
   마케팅·저장·할인필드 OFF, 회수 ON.
+- **Paddle 구독 상태 모델 확정** (09-26, develop):
+  Paddle items는 예약 즉시 미래값으로 바뀌고 현재 표시가 없음 (실측).
+  그래서 판정 잣대는 DB 단일 소스: DB=현재 과금 진실(적용 이벤트만 기록),
+  DB downgrade_target=Next, Paddle=집행+감사(읽기 대조·치유용).
+  웹훅 규칙: pending(scheduled_change) 스킵, updated+하향=예약 순간 스킵,
+  updated+상향=cycled=동기화+차액, canceled=플랜 해제·잔액 유지.
+  해지·다운그레이드 예약은 공존 (해지가 목표를 지우지 않음, 철회 시 복귀).
+  표시: 해지 중 Scheduled 박스 숨김 (기록 유지), 모달 CURRENT 뱃지 DB 기준,
+  예약 목표 SCHEDULED 뱃지+선택 불가, 결제내역 차액 `Upgrade top-up` 구분.
+  미해결 잔량: 웹훅 순서 역전 가드 (`occurred_at` 비교 없음 — 연타 시 last-writer-wins 가능).
 - **Paddle 첫주문 할인 표시** (09-25, develop — 미커밋→커밋 예정):
   오버레이 상단 $19는 Paddle 고정 동작 (변경 불가). 할인은 하단 청구 문구에 반영됨
   ("지금은 US$9.50..." 실측 — 적용 정상 확인).
@@ -444,13 +455,13 @@
 - [ ] LS 심사 대응 (09-24 접수됨, 결과 대기): 스토어 접수됨. 상품 3종 Subscription ($19/49/99) draft→publish.
   첫주문 할인은 Discount Codes에서 별도 생성.
 - [ ] Paddle 심사 대응 (09-24/25 진행 중): 개인 트랙, 상품 3종 샌드박스 생성됨.
-  하이브리드 체크아웃 E2E 통과 (결제→적립). 첫주문 할인은 적용 정상 확인
-  (오버레이 하단 $9.50 실측) + 인라인 모달 첫달 표시 추가. 남은 건 실경로 이식 시 자격 판정.
+  하이브리드 체크아웃 E2E 통과 (결제→적립). 첫주문 할인 적용 정상 확인
+  (트랜잭션 $9.50 실측) + 인라인 모달 첫달 표시 추가. 남은 건 live 연결.
 - [ ] Creem 심사 대응 (09-24 기각, 어필 불가): 개인 트랙. compliance 최종 거절.
   Polar와 동일 패턴 (AI 이미지 MoR 리스크, 카테고리 단위). 재생성·우회 금지.
   Moderation·AUP 숙제는 LS/Stripe 서사에 재사용.
-- [ ] Supabase SQL (사장님): `subscription_grants` reason 제약에 `OR reason LIKE 'upgrade:%'` 추가
-  (제약명 조회 후 교체 실행).
+- [ ] Supabase SQL (사장님, 급함 — 차액 적립이 이 제약에 걸리면 top-up 유실):
+  `subscription_grants` reason 제약에 `OR reason LIKE 'upgrade:%'` 추가 (제약명 조회 후 교체 실행).
 - [ ] OAT 정리 (사장님): dev 샌드박스 토큰 폐기·재생성 (로그 노출) + 스코프 확대.
 - [ ] 약관 실체 검토 (한국 조항 유지 여부 포함)
 - [ ] `tailorad.com` 구매 + 리다이렉트
@@ -479,11 +490,12 @@
 - [x] Pricing 新 가격 (09-24 — $19/49/99 + 장당가, develop. 대시보드 상품 금액 동기화 대기)
 - [x] Paddle 샌드박스 이식 1차 (09-24/25 — 카탈로그·하이브리드·웹훅·인라인·E2E 통과, develop)
 - [x] 랜딩 페르소나 문구 (09-25 — Step 03 명시 + Step 01·FAQ 정리, develop)
-- [ ] **Paddle 실경로 이식** (09-25 산정 2~4일): Pricing 체크아웃 교체 (반나절) +
-  Profile 5종 Paddle판 (1~2일) + prod 연결·E2E (반나절) + Polar 정리 (반나절, 코드는 보존).
-  전제: AI 심사 통과 + prod 상품 생성.
-- [ ] **Paddle 첫주문 할인 미적용 수정** (09-25 진행 중 — 신규계정·env 재시작 후에도 $19 표시.
-  다음 수순: 트랜잭션 discountId 반영 여부 서버 로그 확인 → Paddle 대시보드 트랜잭션明細 대조)
+- [x] Paddle 실경로 이식 — 샌드박스분 (09-25/26, develop):
+  Pricing 체크아웃 교체 (서버 트랜잭션 + 인라인 모달, `usePaddle` 공용 훅, 첫달가 서버 판정 표시) +
+  Profile 5종 Paddle판 (products·orders·subscriptions·change·cancel·revert + 타입·게이트웨이·배선).
+- [ ] Paddle live 연결 (전제: AI 심사 통과 + prod 상품·할인·키·destination 생성):
+  `lib/paddle.ts` prod ID 기입 + Cloudflare Secrets + live E2E 1건 + Polar 코드 삭제.
+- [x] Paddle 첫주문 할인 (09-25/26 — 트랜잭션 단 $9.50 정상 확인, 인라인 첫달 표시 추가).
 - [ ] **결제사 확정 후 코드 이식**: Polar 구조 복사 (체크아웃·웹훅·grant 3점, 수일 규모).
   Paddle 심사 결과 보고 결정 (LS 대기·Creem 탈락). 지금이 제일 쌀 때 (고객 생기면 마이그레이션 지옥).
 - [x] 프롬프트 컴포지션 1순위 (구조만 — 바이트 동일 검증, 푸시됨)
