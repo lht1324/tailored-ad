@@ -58,11 +58,8 @@ export async function DELETE(request: NextRequest) {
         await paddle.subscriptions.cancel(subscriptionId, {
             effectiveFrom: 'next_billing_period',
         });
-        // 구독이 끝나면 예약 다운그레이드는 소멸 — DB 흔적 정리 (배너 중복 방지)
-        await usersServerAPI.patchUserByUserId(userId, {
-            downgrade_target_plan_id: null,
-            scheduled_downgrade_at: null,
-        }).catch(() => {});
+        // 예약 다운그레이드는 유지 — 해지 철회 시 pending 상태로 복귀한다.
+        // (DB 흔적 삭제 + items 방치는 침묵 소멸이라 금지)
         return getNextBaseResponse({
             success: true,
             status: 200,

@@ -121,26 +121,8 @@ export async function POST(request: NextRequest) {
         await paddle.subscriptions.update(user.subscription_id, {
             scheduledChange: null,
         });
-        // 해지 전 예약 흔적(items 교체)이 남아 있으면 DB 플랜으로 원복 — 방치 시 침묵 다운그레이드
-        const dbPlan = (Object.values(SubscriptionPlan) as string[]).includes(user.plan ?? '')
-            && user.plan !== SubscriptionPlan.NONE
-            ? (user.plan as PaidPlan)
-            : null;
-        if (dbPlan) {
-            try {
-                await paddle.subscriptions.update(user.subscription_id, {
-                    items: [{ priceId: getPaddlePriceId(dbPlan), quantity: 1 }],
-                    prorationBillingMode: 'prorated_next_billing_period',
-                    customData: { userId, plan: dbPlan },
-                });
-            } catch (restoreError) {
-                console.error(`[paddle/revert] items restore failed (user=${userId}) — uncancel kept:`, restoreError);
-            }
-        }
-        await usersServerAPI.patchUserByUserId(userId, {
-            downgrade_target_plan_id: null,
-            scheduled_downgrade_at: null,
-        }).catch(() => {});
+        // items·DB 목표는 손대지 않는다 — 해지 전 예약 상태로 그대로 복귀한다.
+        // (items 원복은 예약을 죽이는 것이라 금지)
         return getNextBaseResponse({
             success: true,
             status: 200,
