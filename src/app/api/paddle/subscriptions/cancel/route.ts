@@ -58,6 +58,11 @@ export async function DELETE(request: NextRequest) {
         await paddle.subscriptions.cancel(subscriptionId, {
             effectiveFrom: 'next_billing_period',
         });
+        // 구독이 끝나면 예약 다운그레이드는 소멸 — DB 흔적 정리 (배너 중복 방지)
+        await usersServerAPI.patchUserByUserId(userId, {
+            downgrade_target_plan_id: null,
+            scheduled_downgrade_at: null,
+        }).catch(() => {});
         return getNextBaseResponse({
             success: true,
             status: 200,

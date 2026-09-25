@@ -3,6 +3,8 @@ import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { usersServerAPI } from "@/lib/api/server/usersServerAPI";
 import { getPaddleClient } from "@/lib/paddleClient";
+import { getPaddlePriceId, PLAN_IMAGE_LIMIT, type PaidPlan } from "@/lib/paddle";
+import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
 
 /**
  * Paddle 예약 되돌리기 — POST /api/paddle/subscriptions/revert
@@ -72,15 +74,30 @@ export async function POST(request: NextRequest) {
         const scheduled = subscription.scheduledChange as unknown as { action?: string } | null;
 
         if ((what as RevertTarget) === 'plan-change') {
-            if (!scheduled) {
+            // 다운그레이드 예약은 scheduled_change를 만들지 않고 items만 교체한다 (실측).
+            // 되돌리기 = 현재 DB 플랜 가격으로 items를 되돌려 다음 사이클 과금을 원복.
+            const dbPlan = user.plan as PaidPlan | null;
+            if (!dbPlan || !(Object.values(SubscriptionPlan) as string[]).includes(dbPlan)
+                || !(PLAN_IMAGE_LIMIT[dbPlan] > 0)) {
                 return getNextBaseResponse({
                     success: false,
                     status: 400,
-                    error: "No scheduled change to revert.",
+                    error: "No scheduled plan change to revert.",
+                });
+            }
+            let restorePriceId: string;
+            try {
+                restorePriceId = getPaddlePriceId(dbPlan);
+            } catch {
+                return getNextBaseResponse({
+                    success: false,
+                    status: 400,
+                    error: "No scheduled plan change to revert.",
                 });
             }
             await paddle.subscriptions.update(user.subscription_id, {
-                scheduledChange: null,
+                items: [{ priceId: restorePriceId, quantity: 1 }],
+                prorationBillingMode: 'prorated_next_billing_period',
             });
             await usersServerAPI.patchUserByUserId(userId, {
                 downgrade_target_plan_id: null,

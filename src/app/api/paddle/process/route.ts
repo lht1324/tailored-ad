@@ -62,8 +62,14 @@ async function handleSubscriptionEvent(type: string, data: PaddleSubscriptionDat
     const periodStart = data.currentBillingPeriod?.startsAt;
     const periodEnd = data.currentBillingPeriod?.endsAt;
 
-    // 예약 pending 이벤트 — 플랜 동기화 금지 (적용 전이라 product가 새 값으로 올 수 있음).
-    // 실제 적용 사이클에 scheduledChange 없는 이벤트가 오면 그때 동기화된다.
+    // Paddle 모델 (실측): 다운그레이드 예약(prorated_next_billing_period)은 items를 즉시 교체하고
+    // 과금만 다음 사이클로 미룬다. scheduled_change는 생기지 않는다 (cancel/pause만 생성).
+    // 그래서 updated 이벤트만으로 예약 vs 적용을 구분한다:
+    // - updated + scheduledChange 있음 → pending (건드리지 않음)
+    // - updated + target > DB 플랜 → 즉시 업그레이드 적용 → 동기화+차액
+    // - updated + target <= DB 플랜 → 예약 순간 → 스킵 (적용은 다음 cycled에서)
+    // - cycled/created → 새 사이클 진실 → 항상 동기화
+    // - canceled → 기존 해지 처리
     const scheduled = (data as unknown as { scheduledChange?: { action?: string } | null }).scheduledChange;
     if (scheduled && data.status === 'active') {
         console.log(`[paddle/process] ${type}: pending scheduled change (${scheduled.action}), skipping sync (subscription=${data.id})`);
@@ -81,9 +87,22 @@ async function handleSubscriptionEvent(type: string, data: PaddleSubscriptionDat
         return;
     }
 
-    // active/updated — 사이클 부여 (차액 top-up 포함, Polar와 동일 규칙)
+    // DB 현재 플랜 조회 — updated 이벤트의 예약/적용 판정용
+    const currentUser = await usersServerAPI.getUserByUserId(userId);
+    const currentPlan = currentUser?.plan ?? null;
+    const currentLimit = currentPlan && (Object.values(SubscriptionPlan) as string[]).includes(currentPlan)
+        ? (IMAGE_LIMIT[currentPlan as keyof typeof IMAGE_LIMIT] ?? 0)
+        : 0;
+    const target = IMAGE_LIMIT[plan];
+
+    // updated + target <= DB 플랜 → 다운그레이드 예약 순간 (items는 이미 교체됨, 과금·적용은 다음 사이클)
+    if (type === 'subscription.updated' && target <= currentLimit && currentLimit > 0) {
+        console.log(`[paddle/process] ${type}: scheduled downgrade moment, skipping sync (subscription=${data.id})`);
+        return;
+    }
+
+    // active/created/cycled/updated(업그레이드) — 사이클 부여 (차액 top-up 포함)
     if (periodStart && periodEnd) {
-        const target = IMAGE_LIMIT[plan];
         const already = await usageServerAPI.sumGrantedForSubscriptionCycle(data.id, periodStart);
         if (already === 0) {
             await usageServerAPI.recordGrant({
