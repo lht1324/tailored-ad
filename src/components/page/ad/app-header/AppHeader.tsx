@@ -2,8 +2,8 @@
 
 import { memo, useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { Plus, User } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import ProfileMenu from "@/components/page/ad/app-header/ProfileMenu";
 import ThemeToggle from "@/components/page/ad/public/ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
 import { usersClientAPI, type UserUsageSummary } from "@/lib/api/client/usersClientAPI";
@@ -15,7 +15,7 @@ function planLabel(plan: string | null | undefined): string {
 }
 
 function AppHeader({ onUsageLoaded }: { onUsageLoaded?: () => void }) {
-    const { supabaseUser, user } = useAuth();
+    const { supabaseUser } = useAuth();
     const [usage, setUsage] = useState<UserUsageSummary | null>(null);
 
     useEffect(() => {
@@ -67,26 +67,7 @@ function AppHeader({ onUsageLoaded }: { onUsageLoaded?: () => void }) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <Link
-                        href="/profile"
-                        aria-label="Profile"
-                        className="flex items-center justify-center overflow-hidden rounded-full border border-hairline text-text2 transition-colors hover:bg-canvas hover:text-text1"
-                    >
-                        {user?.avatar_url ? (
-                            <Image
-                                src={user.avatar_url}
-                                alt="Profile"
-                                width={36}
-                                height={36}
-                                unoptimized
-                                className="h-9 w-9 rounded-full object-cover"
-                            />
-                        ) : (
-                            <span className="flex items-center justify-center p-2.5">
-                                <User className="h-4 w-4" strokeWidth={2.2} />
-                            </span>
-                        )}
-                    </Link>
+                    <ProfileMenu />
                     <Link
                         href="/create"
                         className="flex items-center gap-2 rounded-full bg-text1 px-5 py-2.5 text-[13px] font-semibold text-canvas transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.02] active:scale-[0.98]"

@@ -4,6 +4,7 @@ import { memo } from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { useAuth } from "@/context/AuthContext";
+import ProfileMenu from "@/components/page/ad/app-header/ProfileMenu";
 
 const NAV_ITEMS = [
     { label: 'Portfolio', href: '#portfolio' },
@@ -37,13 +38,16 @@ function AdHeader() {
                     {isInitializingAuthContext ? (
                         <span className="h-9 w-28 animate-pulse rounded-full bg-canvas" aria-hidden="true" />
                     ) : isSignedIn ? (
-                        <Link
-                            href="/projects"
-                            className="inline-flex items-center gap-1.5 rounded-full bg-text1 px-5 py-2.5 text-[13px] font-semibold text-canvas transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
-                        >
-                            Open studio
-                            <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.2} />
-                        </Link>
+                        <>
+                            <ProfileMenu />
+                            <Link
+                                href="/projects"
+                                className="inline-flex items-center gap-1.5 rounded-full bg-text1 px-5 py-2.5 text-[13px] font-semibold text-canvas transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                            >
+                                Open studio
+                                <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.2} />
+                            </Link>
+                        </>
                     ) : (
                         <>
                             <Link
