@@ -5,7 +5,7 @@ import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { usersServerAPI } from "@/lib/api/server/usersServerAPI";
 import { usageServerAPI } from "@/lib/api/server/usageServerAPI";
 import { getPaddleClient, getPaddleEnvironment } from "@/lib/paddleClient";
-import { getPaddlePriceId, type PaidPlan } from "@/lib/paddle";
+import { getPaddlePriceId, PLAN_PRICE_USD, type PaidPlan } from "@/lib/paddle";
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
 
 const VALID_PLANS: PaidPlan[] = [
@@ -113,11 +113,16 @@ export async function POST(request: NextRequest) {
             // successUrl 미지원 (SDK에 없음) — 풀페이지 복귀는 대시보드 기본 결제 링크로.
             // 오버레이 정상 동작 시 eventCallback이 /checkout/success로 보낸다.
         });
+        // 모달 표시용 첫달가 — 서버 판정 그대로 (클라 추측 금지)
+        const basePrice = PLAN_PRICE_USD[plan as PaidPlan];
+        const firstCharge = discountId ? basePrice / 2 : basePrice;
         return getNextBaseResponse({
             success: true,
             status: 200,
             data: {
                 transactionId: transaction.id,
+                discountApplied: Boolean(discountId),
+                firstCharge,
             },
             message: "Paddle transaction created.",
         });

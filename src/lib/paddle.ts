@@ -29,6 +29,14 @@ export function getPaddleEnvironment(): 'production' | 'sandbox' {
     return process.env.NODE_ENV === 'production' ? 'production' : 'sandbox';
 }
 
+/** 플랜 → 월 요금 USD (표시·할인 계산용. 실제 청구는 Paddle price 기준) */
+export const PLAN_PRICE_USD: Record<PaidPlan, number> = {
+    [SubscriptionPlan.PLAN_1]: 19,
+    [SubscriptionPlan.PLAN_2]: 49,
+    [SubscriptionPlan.PLAN_3]: 99,
+    [SubscriptionPlan.PLAN_4]: 0,
+};
+
 /** 플랜 → 월 부여 장수 (Paddle custom_data imageLimit과 동일) */
 export const PLAN_IMAGE_LIMIT: Record<PaidPlan, number> = {
     [SubscriptionPlan.PLAN_1]: 100,

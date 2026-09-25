@@ -25,6 +25,7 @@ function PaddleTestClient() {
     const [busyPlan, setBusyPlan] = useState<PaidPlan | null>(null);
     const [activeTransactionId, setActiveTransactionId] = useState<string | null>(null);
     const [activePlan, setActivePlan] = useState<(typeof TEST_PLANS)[number] | null>(null);
+    const [activeFirstCharge, setActiveFirstCharge] = useState<number | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -80,13 +81,14 @@ function PaddleTestClient() {
         setError(null);
         setBusyPlan(t.plan);
         try {
-            const transactionId = await paddleClientAPI.createTransaction(t.plan);
-            if (!transactionId) {
+            const created = await paddleClientAPI.createTransaction(t.plan);
+            if (!created) {
                 throw new Error('Could not create transaction.');
             }
             // 인라인 모달로 표시 (오버레이 복구 시 아래 2줄을 paddle.Checkout.open 오버레이 호출로 교체)
             setActivePlan(t);
-            setActiveTransactionId(transactionId);
+            setActiveFirstCharge(created.discountApplied ? created.firstCharge : null);
+            setActiveTransactionId(created.transactionId);
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Checkout failed.');
         } finally {
@@ -97,6 +99,7 @@ function PaddleTestClient() {
     const onCloseInlineModal = useCallback(() => {
         setActiveTransactionId(null);
         setActivePlan(null);
+        setActiveFirstCharge(null);
     }, []);
 
     return (
@@ -147,8 +150,7 @@ function PaddleTestClient() {
                     planName={activePlan.name}
                     priceLabel={activePlan.price}
                     imagesLabel={activePlan.images}
-                    discountHeadline={activePlan.plan === SubscriptionPlan.PLAN_1 ? 'First month $9.50 · then $19/mo' : null}
-                    discountNote={activePlan.plan === SubscriptionPlan.PLAN_1 ? 'Paddle shows the $19 plan price below. Your first charge is $9.50.' : null}
+                    firstChargeLabel={activeFirstCharge !== null ? `$${activeFirstCharge.toFixed(2)} / first month` : null}
                     onClose={onCloseInlineModal}
                 />
             )}

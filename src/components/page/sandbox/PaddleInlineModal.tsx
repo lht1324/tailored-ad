@@ -11,8 +11,8 @@ interface PaddleInlineModalProps {
     planName: string;
     priceLabel: string;
     imagesLabel: string;
-    discountHeadline?: string | null;
-    discountNote?: string | null;
+    /** 서버 판정 첫달가 — 있을 때만 취소선 표시 (Pricing 카드와 동일 문법) */
+    firstChargeLabel?: string | null;
     onClose: () => void;
 }
 
@@ -23,7 +23,7 @@ const FRAME_TARGET = "paddle-inline-frame";
  * 오버레이 경로와 병존 (복구 시 호출부 1줄 교체). frameTarget div가 마운트된 뒤 open.
  * MoR 푸터 가시성 규정에 따라 프레임 하단을 자르지 않는다 (스크롤 허용).
  */
-function PaddleInlineModal({ paddle, transactionId, userEmail, planName, priceLabel, imagesLabel, discountHeadline, discountNote, onClose }: PaddleInlineModalProps) {
+function PaddleInlineModal({ paddle, transactionId, userEmail, planName, priceLabel, imagesLabel, firstChargeLabel, onClose }: PaddleInlineModalProps) {
     useEffect(() => {
         paddle.Checkout.open({
             transactionId,
@@ -66,15 +66,18 @@ function PaddleInlineModal({ paddle, transactionId, userEmail, planName, priceLa
                     <div className="mb-4 rounded-xl border border-hairline bg-canvas p-4">
                         <div className="flex items-baseline justify-between">
                             <p className="text-[15px] font-bold text-text1">{planName}</p>
-                            <p className="text-[15px] font-bold text-text1">{priceLabel}</p>
+                            {firstChargeLabel ? (
+                                <p className="text-[15px] font-bold text-text1">
+                                    <span className="mr-2 font-medium text-text2/60 line-through">{priceLabel}</span>
+                                    {firstChargeLabel}
+                                </p>
+                            ) : (
+                                <p className="text-[15px] font-bold text-text1">{priceLabel}</p>
+                            )}
                         </div>
-                        <p className="mt-1 text-[12px] text-text2">{imagesLabel} · renews monthly</p>
-                        {discountHeadline && (
-                            <p className="mt-2 text-[13px] font-bold text-accent">{discountHeadline}</p>
-                        )}
-                        {discountNote && (
-                            <p className="mt-1 text-[12px] leading-relaxed text-text2">{discountNote}</p>
-                        )}
+                        <p className="mt-1 text-[12px] text-text2">
+                            {imagesLabel} · {firstChargeLabel ? 'first month, then renews monthly' : 'renews monthly'}
+                        </p>
                     </div>
                     <div className={FRAME_TARGET} />
                 </div>
