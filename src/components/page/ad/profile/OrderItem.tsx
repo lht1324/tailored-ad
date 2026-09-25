@@ -1,6 +1,6 @@
 import { memo, useMemo } from "react";
 import { CheckCircle2, Clock, RotateCcw } from "lucide-react";
-import type { OrderData } from "@/lib/api/types/api/polar/orders/OrderData";
+import type { OrderData } from "@/lib/api/types/api/paddle/orders/OrderData";
 
 interface OrderItemProps {
     orderData: OrderData;

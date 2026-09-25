@@ -2,9 +2,9 @@
 
 import { memo, useCallback, useEffect, useMemo, useState, MouseEvent } from "react";
 import { AlertCircle, ArrowUp, Check, Clock, Loader2, X } from "lucide-react";
-import { polarClientAPI } from "@/lib/api/client/polarClientAPI";
-import type { ProductData } from "@/lib/api/types/api/polar/products/ProductData";
-import { PLAN_DISPLAY_NAME, PLAN_IMAGE_LIMIT, type PaidPlan } from "@/lib/polar";
+import { paddleClientAPI } from "@/lib/api/client/paddleClientAPI";
+import type { ProductData } from "@/lib/api/types/api/paddle/products/ProductData";
+import { PLAN_DISPLAY_NAME, PLAN_IMAGE_LIMIT, type PaidPlan } from "@/lib/paddle";
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
 
 interface ChangePlanModalProps {
@@ -41,7 +41,7 @@ function ChangePlanModal({
 
     useEffect(() => {
         let live = true;
-        polarClientAPI.getProducts().then((list) => {
+        paddleClientAPI.getProducts().then((list) => {
             if (!live) return;
             const managed = (list ?? [])
                 .filter((p) => (MANAGED_PLANS as string[]).includes(p.planId))
