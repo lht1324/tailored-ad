@@ -287,7 +287,7 @@ function ProfilePageClient() {
                             <div className="mb-6 rounded-xl border border-hairline bg-canvas p-5">
                                 <h4 className="mb-1 text-sm font-semibold">Scheduled Change</h4>
                                 <p className="text-xs leading-relaxed text-text2">
-                                    {subscriptionData.productName} → {PLAN_DISPLAY_NAME[subscriptionData.scheduledPlan] ?? subscriptionData.scheduledPlan} on {formatDate(subscriptionData.scheduledAppliesAt)}. Your current plan stays active until then.
+                                    {currentPaidPlan ? (PLAN_DISPLAY_NAME[currentPaidPlan] ?? currentPaidPlan) : subscriptionData.productName} → {PLAN_DISPLAY_NAME[subscriptionData.scheduledPlan] ?? subscriptionData.scheduledPlan} on {formatDate(subscriptionData.scheduledAppliesAt)}. Your current plan stays active until then.
                                 </p>
                                 <button
                                     onClick={() => setRevertTarget('plan-change')}
