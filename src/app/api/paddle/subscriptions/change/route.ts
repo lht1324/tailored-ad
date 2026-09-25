@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
             prorationBillingMode: 'prorated_next_billing_period',
         });
         await usersServerAPI.patchUserByUserId(userId, {
-            downgrade_target_plan_id: newPriceId,
+            downgrade_target_plan_id: newPlan as PaidPlan,
             scheduled_downgrade_at: subscription.currentBillingPeriod?.endsAt ?? subscription.nextBilledAt ?? undefined,
         });
         return getNextBaseResponse({

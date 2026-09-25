@@ -62,6 +62,14 @@ async function handleSubscriptionEvent(type: string, data: PaddleSubscriptionDat
     const periodStart = data.currentBillingPeriod?.startsAt;
     const periodEnd = data.currentBillingPeriod?.endsAt;
 
+    // 예약 pending 이벤트 — 플랜 동기화 금지 (적용 전이라 product가 새 값으로 올 수 있음).
+    // 실제 적용 사이클에 scheduledChange 없는 이벤트가 오면 그때 동기화된다.
+    const scheduled = (data as unknown as { scheduledChange?: { action?: string } | null }).scheduledChange;
+    if (scheduled && data.status === 'active') {
+        console.log(`[paddle/process] ${type}: pending scheduled change (${scheduled.action}), skipping sync (subscription=${data.id})`);
+        return;
+    }
+
     // 해지계 — 잔액은 유지(돈 낸 권리), 플랜 표시만 해제 (Polar와 동일 정책)
     if (type === 'subscription.canceled' || data.status === 'canceled') {
         await usersServerAPI.patchUserByUserId(userId, {

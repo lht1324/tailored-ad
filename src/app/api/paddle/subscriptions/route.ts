@@ -91,6 +91,11 @@ export async function GET(request: NextRequest) {
         const amount = Number(item?.price?.unitPrice?.amount ?? 0) || 0;
         const currency = item?.price?.unitPrice?.currencyCode ?? 'USD';
         const user = await usersServerAPI.getUserByUserId(userId);
+        // 예약 목표: plan id 그대로 두되, 구버전 price id 저장분은 역매핑 (둘 다 표시명 해석됨)
+        const rawScheduled = user?.downgrade_target_plan_id ?? null;
+        const scheduledPlan = rawScheduled
+            ? (PLAN_DISPLAY_NAME[rawScheduled] ? rawScheduled : (getPlanByPaddlePrice(rawScheduled) ?? rawScheduled))
+            : null;
 
         const subscriptionData: SubscriptionData = {
             id: latest.id,
@@ -107,8 +112,8 @@ export async function GET(request: NextRequest) {
             cancelAtPeriodEnd: latest.scheduledChange?.action === 'cancel',
             canceledAt: latest.canceledAt ?? undefined,
             createdAt: latest.createdAt,
-            scheduledPlan: user?.downgrade_target_plan_id ?? null,
-            scheduledAppliesAt: user?.downgrade_target_plan_id
+            scheduledPlan,
+            scheduledAppliesAt: scheduledPlan
                 ? (latest.currentBillingPeriod?.endsAt ?? latest.nextBilledAt ?? null)
                 : null,
         };
