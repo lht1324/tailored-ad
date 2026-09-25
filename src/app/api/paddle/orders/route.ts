@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        const transactions = await paddle.transactions.list({ customerId: [customerId], perPage: 50 });
+        const transactions = await paddle.transactions.list({ customerId: [customerId], status: ['completed', 'paid'], perPage: 50 });
         const orderList: OrderData[] = [];
         for await (const txn of transactions) {
             const firstItem = txn.items?.[0];
