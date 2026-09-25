@@ -283,7 +283,7 @@ function ProfilePageClient() {
                                 </button>
                             </div>
                         )}
-                        {subscriptionData.scheduledPlan && (
+                        {subscriptionData.scheduledPlan && !subscriptionData.cancelAtPeriodEnd && (
                             <div className="mb-6 rounded-xl border border-hairline bg-canvas p-5">
                                 <h4 className="mb-1 text-sm font-semibold">Scheduled Change</h4>
                                 <p className="text-xs leading-relaxed text-text2">
