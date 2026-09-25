@@ -98,6 +98,7 @@ export async function POST(request: NextRequest) {
             await paddle.subscriptions.update(user.subscription_id, {
                 items: [{ priceId: restorePriceId, quantity: 1 }],
                 prorationBillingMode: 'prorated_next_billing_period',
+                customData: { userId, plan: dbPlan },
             });
             await usersServerAPI.patchUserByUserId(userId, {
                 downgrade_target_plan_id: null,

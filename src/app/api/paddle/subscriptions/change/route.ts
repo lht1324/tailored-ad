@@ -119,6 +119,8 @@ export async function POST(request: NextRequest) {
             await paddle.subscriptions.update(user.subscription_id, {
                 items: [{ priceId: newPriceId, quantity: 1 }],
                 prorationBillingMode: 'prorated_immediately',
+                // customData도 함께 갱신 — 원 transaction 값이 영구 잔류하므로 (대시보드·웹훅 교차검증용)
+                customData: { userId, plan: newPlan },
             });
             // 예약 흔적 정리 (이전 다운그레이드 예약이 있었다면 무효)
             await usersServerAPI.patchUserByUserId(userId, {
@@ -135,6 +137,7 @@ export async function POST(request: NextRequest) {
         await paddle.subscriptions.update(user.subscription_id, {
             items: [{ priceId: newPriceId, quantity: 1 }],
             prorationBillingMode: 'prorated_next_billing_period',
+            customData: { userId, plan: newPlan },
         });
         await usersServerAPI.patchUserByUserId(userId, {
             downgrade_target_plan_id: newPlan as PaidPlan,
