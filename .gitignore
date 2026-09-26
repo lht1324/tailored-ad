@@ -51,3 +51,6 @@ next-env.d.ts
 # Agents
 .agents/*
 skills-lock.json
+
+# one-off seed scripts (may reference live env files)
+scripts/
