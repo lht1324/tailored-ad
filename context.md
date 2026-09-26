@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-09-26 01:37)
+# TailoredAd — 작업 기록 (Last Updated: 2026-09-27 01:17)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -494,8 +494,45 @@
   Pricing 체크아웃 교체 (서버 트랜잭션 + 인라인 모달, `usePaddle` 공용 훅, 첫달가 서버 판정 표시) +
   Profile 5종 Paddle판 (products·orders·subscriptions·change·cancel·revert + 타입·게이트웨이·배선).
 - [ ] Paddle live 연결 (전제: AI 심사 통과 + prod 상품·할인·키·destination 생성):
-  `lib/paddle.ts` prod ID 기입 + Cloudflare Secrets + live E2E 1건 + Polar 코드 삭제.
+  상품·할인·키는 생성됨 (위 매핑 참조). 남은 건 `lib/paddle.ts` prod ID 기입 +
+  Cloudflare Secrets + live E2E 1건 + Polar 코드 삭제.
+  live 토큰(`live_` prefix)·notification destination·도메인 승인·payout은 대시보드 작업으로 잔류.
+- [ ] **Fungies 테스트** (activation 후 — Paddle 샌드박스 E2E 동등 검증):
+  상품 3종 + 웹훅 grant·차액·해지 + 잔액제 정합. 통과하면 Paddle/Fungies 양택 체제.
+- [ ] 릴리즈 머지 (대기 — 사장님 판단 시: 로컬 master에 develop `--no-ff` 머지 후 푸시.
+  현 릴리즈분은 gitignore+AGENTS.md라 사이트 무영향, 배포 생략可).
 - [x] Paddle 첫주문 할인 (09-25/26 — 트랜잭션 단 $9.50 정상 확인, 인라인 첫달 표시 추가).
+- **Paddle prod 배포 2건** (09-26, master — `15850835`→`4073823b`, 소스 `47b9e16`→`89f9210`):
+  1차에서 develop 전량(Paddle 연동·페르소나 문구·약관 3종) prod 반영 + 샌드박스 결제 완주.
+  2차는 환경 판정 일원화 수정 (`paddle.ts` NODE_ENV 판정 삭제 → `paddleClient` PADDLE_ENV 단일 소스;
+  prod 빌드가 빈 live 맵을 읽고 400 뱉던 버그). 직전 배포도 약관·합성 문구 깨끗했음 확인済み.
+- **Paddle 어필 제출** (09-26 — Typeform 제출됨):
+  Typeform은 단방향이라 추적 불가. 확인처는 대시보드 Checkout > Website approval 상태 +
+  거절 메일 회신 (Paddle 공식 어필 경로). 수동 리뷰 5~7영업일. 이번 주는 대기.
+- **Paddle live 카탈로그 생성됨** (09-26/27 — live 상품·가격·할인 active, 코드는 미반영):
+  샌드박스 동등품 (Starter $19 / Growth $49 / Pro $99, tax saas, custom_data plan/imageLimit,
+  첫주문 50% 단발·Starter 한정·코드 없음). ID 매핑 (진실원천 — 시드 스크립트는 스태시 정리로 소실):
+  plan-1 `pro_01m3egjwk56ednk99kxcdwx1w9` / `pri_01m3egjwve0ca25fraprnw6fgr`,
+  plan-2 `pro_01m3egjx46p56k5f6r9j1ggsws` / `pri_01m3egjxbbsc4tc3cmmehxv09j`,
+  plan-3 `pro_01m3egjxkskh6e14hjs54310jh` / `pri_01m3egjxtmbxvb41q77pv5c6sa`,
+  할인 `dsc_01m3egjy1mc4p00r3nb0ax7pwm`.
+  live API 키는 `.env.local` PADDLE_API_KEY에 (샌드박스 키 덮어씀 — dev 샌드박스 결제는 고장 상태,
+  Cloudflare Secrets 값으로 복원 필요). `scripts/`는 gitignore 추가됨.
+- **Git Flow 운용 확정** (09-27 — AGENTS.md 반영, develop 커밋済み):
+  작업은 develop(큰 건 sub-branch), master 직접 커밋 금지, 릴리즈 머지만(`--no-ff`),
+  push 평소 develop만, 머지·푸시≠배포. 개념 정리: 커밋은 브랜치 소속이 없음
+  (양쪽이 같은 커밋을 가리키면 양쪽 이력 — reflog로 입증済み).
+  현재 브랜치 상태: develop `264c106`(푸시됨), 로컬 master `b9df153`(미푸시 Merge),
+  origin/master `89f9210`(prod 배포 상태). 스태시 정리됨 (2건 삭제).
+- **결제사 추가 조사** (09-27): Fungies 유력 (MoR, 5%+50¢, 일 정산, AI SaaS 승인 사례
+  RenderAI·TextToVideo 등, API·웹훅·구독 갖춤, 약관 AI 금지 없음) /
+  InflowPay 보류 (극초기 pre-seed, 스테이블코인 레일, 구독 API 실체 미확인, 신청제).
+  방침: Paddle 어필 대기 중 Fungies 병렬 트랙 (무료 가입, 구조가 같아 이중 작업 아님).
+- **Fungies activation 제출** (09-27 — Store Activation Request 제출됨):
+  de-AI 문구 확정 (엠대시 제거·짧은 문장, 변명 톤 제거. 인물 전원 AI 생성은 1문장으로 자연 기술 —
+  사이트 Step 03과 일치 유지). 주소 영문: `302, A-dong, Yuwon-yeonrip, 41 Seongan-ro 3-gil,
+  Gangdong-gu, Seoul, South Korea`. 사이트는 Paddle 샌드박스 노출 중 — 심사 무관 판정
+  (심사 대상은 사이트 실체, 죽은 버튼보다 테스트 완주가 낫고 이전이 일상).
 - [ ] **결제사 확정 후 코드 이식**: Polar 구조 복사 (체크아웃·웹훅·grant 3점, 수일 규모).
   Paddle 심사 결과 보고 결정 (LS 대기·Creem 탈락). 지금이 제일 쌀 때 (고객 생기면 마이그레이션 지옥).
 - [x] 프롬프트 컴포지션 1순위 (구조만 — 바이트 동일 검증, 푸시됨)
