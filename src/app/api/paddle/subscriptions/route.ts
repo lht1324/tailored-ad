@@ -87,14 +87,14 @@ export async function GET(request: NextRequest) {
 
         const item = latest.items.find((i) => i.recurring !== false) ?? latest.items[0];
         const priceId = item?.price?.id ?? '';
-        const plan = priceId ? getPlanByPaddlePrice(priceId) : null;
+        const plan = priceId ? await getPlanByPaddlePrice(priceId) : null;
         const amount = Number(item?.price?.unitPrice?.amount ?? 0) || 0;
         const currency = item?.price?.unitPrice?.currencyCode ?? 'USD';
         const user = await usersServerAPI.getUserByUserId(userId);
         // 예약 목표: plan id 그대로 두되, 구버전 price id 저장분은 역매핑 (둘 다 표시명 해석됨)
         const rawScheduled = user?.downgrade_target_plan_id ?? null;
         const scheduledPlan = rawScheduled
-            ? (PLAN_DISPLAY_NAME[rawScheduled] ? rawScheduled : (getPlanByPaddlePrice(rawScheduled) ?? rawScheduled))
+            ? (PLAN_DISPLAY_NAME[rawScheduled] ? rawScheduled : (await getPlanByPaddlePrice(rawScheduled) ?? rawScheduled))
             : null;
 
         const subscriptionData: SubscriptionData = {

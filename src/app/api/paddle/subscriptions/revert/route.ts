@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
             }
             let restorePriceId: string;
             try {
-                restorePriceId = getPaddlePriceId(dbPlan);
+                restorePriceId = await getPaddlePriceId(dbPlan);
             } catch {
                 return getNextBaseResponse({
                     success: false,

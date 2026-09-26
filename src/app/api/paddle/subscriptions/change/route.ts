@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     let newPriceId: string;
     try {
-        newPriceId = getPaddlePriceId(newPlan as PaidPlan);
+        newPriceId = await getPaddlePriceId(newPlan as PaidPlan);
     } catch (err) {
         return getNextBaseResponse({
             success: false,
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
             && user.plan !== SubscriptionPlan.NONE
             ? (user.plan as PaidPlan)
             : null;
-        const baselinePlan = dbPlan ?? (currentPriceId ? getPlanByPaddlePrice(currentPriceId) : null);
+        const baselinePlan = dbPlan ?? (currentPriceId ? await getPlanByPaddlePrice(currentPriceId) : null);
         if (!baselinePlan) {
             return getNextBaseResponse({
                 success: false,

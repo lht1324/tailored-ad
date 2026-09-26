@@ -1,4 +1,5 @@
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
+import { getPaddleEnvironment } from "@/lib/paddleClient";
 
 /**
  * Paddle 상품 매핑 — 진실원천은 코드.
@@ -24,9 +25,27 @@ export const PADDLE_SANDBOX_PRICE_BY_PLAN: Record<PaidPlan, string> = {
     [SubscriptionPlan.PLAN_4]: "",
 };
 
-/** Paddle 환경 — Next가 자동 설정 (dev=sandbox, build/start=production) */
-export function getPaddleEnvironment(): 'production' | 'sandbox' {
-    return process.env.NODE_ENV === 'production' ? 'production' : 'sandbox';
+/** Paddle 환경 — paddleClient의 PADDLE_ENV 판정으로 일원화 (이전 NODE_ENV 판정 삭제됨) */
+
+async function activePriceMap(): Promise<Record<PaidPlan, string>> {
+    return (await getPaddleEnvironment()) === 'production' ? PADDLE_PRICE_BY_PLAN : PADDLE_SANDBOX_PRICE_BY_PLAN;
+}
+
+/** 환경에 맞는 price ID (미기입이면 throw — 400으로 변환) */
+export async function getPaddlePriceId(plan: PaidPlan): Promise<string> {
+    const id = (await activePriceMap())[plan];
+    if (!id) {
+        throw new Error(`Paddle price ID is not configured (plan=${plan}, env=${await getPaddleEnvironment()}).`);
+    }
+    return id;
+}
+
+/** 환경에 맞는 price ID → 플랜 (미등록이면 null) */
+export async function getPlanByPaddlePrice(priceId: string): Promise<PaidPlan | null> {
+    const found = (Object.entries(await activePriceMap()) as [PaidPlan, string][]).find(
+        ([, id]) => id !== "" && id === priceId,
+    );
+    return found?.[0] ?? null;
 }
 
 /** 플랜 → 월 요금 USD (표시·할인 계산용. 실제 청구는 Paddle price 기준) */
@@ -52,24 +71,3 @@ export const PLAN_DISPLAY_NAME: Record<string, string> = {
     [SubscriptionPlan.PLAN_2]: "Growth",
     [SubscriptionPlan.PLAN_3]: "Pro",
 };
-
-function activePriceMap(): Record<PaidPlan, string> {
-    return getPaddleEnvironment() === 'production' ? PADDLE_PRICE_BY_PLAN : PADDLE_SANDBOX_PRICE_BY_PLAN;
-}
-
-/** 환경에 맞는 price ID (미기입이면 throw — 400으로 변환) */
-export function getPaddlePriceId(plan: PaidPlan): string {
-    const id = activePriceMap()[plan];
-    if (!id) {
-        throw new Error(`Paddle price ID is not configured (plan=${plan}, env=${getPaddleEnvironment()}).`);
-    }
-    return id;
-}
-
-/** 환경에 맞는 price ID → 플랜 (미등록이면 null) */
-export function getPlanByPaddlePrice(priceId: string): PaidPlan | null {
-    const found = (Object.entries(activePriceMap()) as [PaidPlan, string][]).find(
-        ([, id]) => id !== "" && id === priceId,
-    );
-    return found?.[0] ?? null;
-}

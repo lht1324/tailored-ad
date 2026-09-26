@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
     let priceId: string;
     try {
-        priceId = getPaddlePriceId(plan as PaidPlan);
+        priceId = await getPaddlePriceId(plan as PaidPlan);
     } catch (err) {
         return getNextBaseResponse({
             success: false,

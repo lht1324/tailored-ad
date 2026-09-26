@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
                 ?? topItems[0]?.priceId
                 ?? topItems[0]?.price?.id
                 ?? '';
-            const plan = priceId ? getPlanByPaddlePrice(priceId) : null;
+            const plan = priceId ? await getPlanByPaddlePrice(priceId) : null;
             const rawStatus = String(txn.status ?? '').toLowerCase();
             const status = ['completed', 'billed', 'paid'].includes(rawStatus)
                 ? 'paid'

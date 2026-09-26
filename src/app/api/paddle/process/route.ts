@@ -47,7 +47,7 @@ async function handleSubscriptionEvent(type: string, data: PaddleSubscriptionDat
         return;
     }
     const priceId = resolvePriceId(data);
-    const plan = getPlanByPaddlePrice(priceId);
+    const plan = await getPlanByPaddlePrice(priceId);
     if (!plan) {
         console.warn(`[paddle/process] ${type}: unknown price (subscription=${data.id}, price=${priceId})`);
         return;
