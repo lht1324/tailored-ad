@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-09-27 01:17)
+# TailoredAd — 작업 기록 (Last Updated: 2026-09-30 00:14)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -497,8 +497,18 @@
   상품·할인·키는 생성됨 (위 매핑 참조). 남은 건 `lib/paddle.ts` prod ID 기입 +
   Cloudflare Secrets + live E2E 1건 + Polar 코드 삭제.
   live 토큰(`live_` prefix)·notification destination·도메인 승인·payout은 대시보드 작업으로 잔류.
-- [ ] **Fungies 테스트** (activation 후 — Paddle 샌드박스 E2E 동등 검증):
-  상품 3종 + 웹훅 grant·차액·해지 + 잔액제 정합. 통과하면 Paddle/Fungies 양택 체제.
+- [ ] **Fungies 테스트** (09-29/30 진행 중 — 코드 완성·E2E 대기):
+  아래 §4 Fungies 블록 참조. 당장 다음은 stage 웹훅 생성+secret → 테스트 결제 1건 → grant 확인.
+  - [ ] stage 웹훅 생성 (사장님, 대시보드 Developers > Webhooks):
+    URL = ngrok + `/api/webhook/fungies`, 이벤트 4종
+    (subscription_created/interval/updated/cancelled).
+    secret → `.env.local` FUNGIES_WEBHOOK_SECRET (1회 표시, 채팅 금지).
+  - [ ] 상품 3종 custom field `user_id` 정의 (웹훅 매칭용).
+  - [ ] E2E 1건: hosted element URL로 테스트 카드 결제 → grant 적립 확인.
+  - [ ] 첫주문 할인 (sale 50% Starter 한정 — 체크아웃 코드 전달 방식 확정 후).
+  - [ ] production 통화 USD 확인 메일 → production 카탈로그 USD seed.
+  - [ ] Fungies 실경로 이식 (Pricing 오버레이 + Profile 5종 — Paddle판 복사).
+    통과하면 Paddle/Fungies 양택 → Paddle 코드 삭제는 Fungies prod E2E 후.
 - [ ] 릴리즈 머지 (대기 — 사장님 판단 시: 로컬 master에 develop `--no-ff` 머지 후 푸시.
   현 릴리즈분은 gitignore+AGENTS.md라 사이트 무영향, 배포 생략可).
 - [x] Paddle 첫주문 할인 (09-25/26 — 트랜잭션 단 $9.50 정상 확인, 인라인 첫달 표시 추가).
@@ -533,6 +543,37 @@
   사이트 Step 03과 일치 유지). 주소 영문: `302, A-dong, Yuwon-yeonrip, 41 Seongan-ro 3-gil,
   Gangdong-gu, Seoul, South Korea`. 사이트는 Paddle 샌드박스 노출 중 — 심사 무관 판정
   (심사 대상은 사이트 실체, 죽은 버튼보다 테스트 완주가 낫고 이전이 일상).
+- **Fungies 승인됨** (09-29 — production store activation approved):
+  요금 Paddle과 동일 (양쪽 5% + 50¢, 공식 확인済み). Paddle 어필은 유지 (백업).
+  실정산에는 Payouts 계좌 등록 별도 필요 (activation ≠ 정산 개시).
+- **Fungies stage 개통** (09-29/30):
+  stage 대시보드는 승인 없이可, 체크아웃 테스트는 이메일 승인 필요 →
+  지원 메일 발송 → Malvin 승인됨 (API+체크아웃 테스트 가능).
+  stage 키(`pub_test_`·`sec_test_`)는 stage 호스트 전용
+  (`api.stage.fungies.net/v0`, `.env.local` FUNGIES_API_BASE_URL).
+  production 호스트에서는 invalid (실측). 테스트 카드는 Stripe 번호 그대로.
+- **Fungies SDK·MCP 실체** (09-29/30):
+  `@fungies/fungies-js 0.7.3` 존재 (체크아웃용, 사장님 설치, caret 유지 결정) +
+  공식 호스팅 MCP 존재 (`mcp.fungies.io/mcp`, 읽기 17종·쓰기 40종).
+  단 MCP는 production upstream 고정이라 stage 키 불가 → stage 작업은 REST로
+  (`opencode.json` 등록은 해둠, gitignore. production 단계에서 재사용).
+- **Fungies stage 카탈로그 완성** (09-30 — 3종 OPEN·무제한·월간):
+  Starter offer `da014edc` (₩19000) / Growth offer `bb1fd0bf` (₩69000, 사장님 생성분) /
+  Pro offer `1dd18ae2` (₩139000). element 3종 ACTIVE
+  (`524098e3`·`e3ffb74b`·`f8f8f1a3`, 오퍼 1개씩).
+  교훈 3개: (1) offer `limit: 0` = 재고 0 Sold out, 무제한은 `limit: null`.
+  (2) 워크스페이스 통화는 첫 오퍼가 seed — stage는 KRW 고정됨.
+  production USD 여부는 첫 오퍼 전 지원에 확인 메일 예정.
+  (3) offer `internalId`(SKU)는 생성 시 externalId로만 기입, 사후 변경 무시됨.
+  Growth SKU 비어있으나 코드 매핑으로 커버. 중복 Growth 정리됨 (archive).
+  시드: `scripts/seed-fungies-stage.mjs` (1회성, stage 가드 내장).
+- **Fungies 코드 1차 완성** (09-30, develop — tsc 통과, 미배포):
+  `lib/fungiesClient.ts` (fetch 래퍼, URL·헤더 격리, stage 오버라이드) +
+  `lib/fungies.ts` (offer·element 매핑, 금액 판정, 장수) +
+  `/api/webhook/fungies` (HMAC-SHA256 검증→전달) +
+  `/api/fungies/process` (grant·차액·해지, Paddle 동일 정책).
+  체크아웃 모델: element URL + fungies.js 오버레이 + customFields `user_id`
+  (Paddle보다 단순 — 서버 트랜잭션 생성 불필요). 적립은 웹훅만.
 - [ ] **결제사 확정 후 코드 이식**: Polar 구조 복사 (체크아웃·웹훅·grant 3점, 수일 규모).
   Paddle 심사 결과 보고 결정 (LS 대기·Creem 탈락). 지금이 제일 쌀 때 (고객 생기면 마이그레이션 지옥).
 - [x] 프롬프트 컴포지션 1순위 (구조만 — 바이트 동일 검증, 푸시됨)

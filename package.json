@@ -13,6 +13,7 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
+    "@fungies/fungies-js": "^0.7.3",
     "@neon/config": "^1.7.2",
     "@neon/env": "^1.4.3",
     "@paddle/paddle-js": "^1.6.5",

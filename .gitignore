@@ -54,3 +54,6 @@ skills-lock.json
 
 # one-off seed scripts (may reference live env files)
 scripts/
+
+# local-only opencode MCP config (holds real API keys — never commit)
+opencode.json
