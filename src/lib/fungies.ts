@@ -27,7 +27,7 @@ export const FUNGIES_ELEMENT_BY_PLAN: Record<FungiesPaidPlan, string> = {
 };
 
 /** 체크아웃 element 베이스 (stage — production 전환 시 교체) */
-export const FUNGIES_CHECKOUT_BASE_URL = "https://tailoredad.stage.fungies.net/checkout-element";
+export const FUNGIES_CHECKOUT_BASE_URL = "https://tailoredad-test.stage.fungies.net/checkout-element";
 
 /** 플랜 → 체크아웃 element URL */
 export function getFungiesCheckoutUrl(plan: FungiesPaidPlan): string {

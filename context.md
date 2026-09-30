@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-09-30 00:14)
+# TailoredAd — 작업 기록 (Last Updated: 2026-10-01 01:26)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -497,14 +497,11 @@
   상품·할인·키는 생성됨 (위 매핑 참조). 남은 건 `lib/paddle.ts` prod ID 기입 +
   Cloudflare Secrets + live E2E 1건 + Polar 코드 삭제.
   live 토큰(`live_` prefix)·notification destination·도메인 승인·payout은 대시보드 작업으로 잔류.
-- [ ] **Fungies 테스트** (09-29/30 진행 중 — 코드 완성·E2E 대기):
-  아래 §4 Fungies 블록 참조. 당장 다음은 stage 웹훅 생성+secret → 테스트 결제 1건 → grant 확인.
-  - [ ] stage 웹훅 생성 (사장님, 대시보드 Developers > Webhooks):
-    URL = ngrok + `/api/webhook/fungies`, 이벤트 4종
-    (subscription_created/interval/updated/cancelled).
-    secret → `.env.local` FUNGIES_WEBHOOK_SECRET (1회 표시, 채팅 금지).
-  - [ ] 상품 3종 custom field `user_id` 정의 (웹훅 매칭용).
-  - [ ] E2E 1건: hosted element URL로 테스트 카드 결제 → grant 적립 확인.
+- [ ] **Fungies 테스트** (09-29/30 진행 중 — E2E 블로킹, 지원 답변 대기):
+  아래 §4 Fungies 블록 참조.
+  - [x] stage 웹훅 생성 (ngrok + `/api/webhook/fungies`, 구독 4종) + secret 입력됨.
+  - [x] 상품 3종 custom field `user_id` 정의.
+  - [ ] E2E 1건: **블로킹 중** (10-01 — 체크아웃 tRPC 403, 거래 0건. Malvin 회신 후 재시도).
   - [ ] 첫주문 할인 (sale 50% Starter 한정 — 체크아웃 코드 전달 방식 확정 후).
   - [ ] production 통화 USD 확인 메일 → production 카탈로그 USD seed.
   - [ ] Fungies 실경로 이식 (Pricing 오버레이 + Profile 5종 — Paddle판 복사).
@@ -574,6 +571,14 @@
   `/api/fungies/process` (grant·차액·해지, Paddle 동일 정책).
   체크아웃 모델: element URL + fungies.js 오버레이 + customFields `user_id`
   (Paddle보다 단순 — 서버 트랜잭션 생성 불필요). 적립은 웹훅만.
+- **Fungies E2E 1차 시도 블로킹** (10-01 — 카드 탓 아님, 스토어 앞단 차단):
+  stage 웹훅 생성됨 (ngrok URL + `/api/webhook/fungies`, 구독 4종, secret=API 키 재사용 →
+  `.env.local` FUNGIES_WEBHOOK_SECRET 입력됨). 상품 3종 custom field `user_id` 정의됨.
+  hosted element 결제 시도 (4242) → "Something went wrong", 거래 0건 (API 실측).
+  콘솔: `offers.search`·`user.get` tRPC 전부 403. 비활성 배너 잔류와 같은 뿌리 추정 —
+  승인 메일은 왔으나 스토어 반영 미완. Malvin 회신 초안 전달됨 (403 증거 첨부 요청).
+  스토어 호스트 실측: `tailoredad-test.stage.fungies.net`
+  (`lib/fungies.ts` 베이스 URL 정정済み). 다음은 지원 답변 대기.
 - [ ] **결제사 확정 후 코드 이식**: Polar 구조 복사 (체크아웃·웹훅·grant 3점, 수일 규모).
   Paddle 심사 결과 보고 결정 (LS 대기·Creem 탈락). 지금이 제일 쌀 때 (고객 생기면 마이그레이션 지옥).
 - [x] 프롬프트 컴포지션 1순위 (구조만 — 바이트 동일 검증, 푸시됨)
