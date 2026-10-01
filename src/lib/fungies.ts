@@ -26,16 +26,37 @@ export const FUNGIES_ELEMENT_BY_PLAN: Record<FungiesPaidPlan, string> = {
     [SubscriptionPlan.PLAN_4]: "",
 };
 
+/** 플랜 → 체크아웃 element ID (production — 카탈로그 USD seed 후 기입) */
+export const FUNGIES_ELEMENT_BY_PLAN_PROD: Record<FungiesPaidPlan, string> = {
+    [SubscriptionPlan.PLAN_1]: "",
+    [SubscriptionPlan.PLAN_2]: "",
+    [SubscriptionPlan.PLAN_3]: "",
+    [SubscriptionPlan.PLAN_4]: "",
+};
+
+/** Fungies 환경 — prod 전환은 NEXT_PUBLIC_FUNGIES_ENV=production + 위 prod 값 기입 */
+export function getFungiesEnv(): 'sandbox' | 'production' {
+    return process.env.NEXT_PUBLIC_FUNGIES_ENV === 'production' ? 'production' : 'sandbox';
+}
+
 /** 체크아웃 element 베이스 (stage — production 전환 시 교체) */
 export const FUNGIES_CHECKOUT_BASE_URL = "https://tailoredad-test.stage.fungies.net/checkout-element";
 
-/** 플랜 → 체크아웃 element URL */
+/** 체크아웃 element 베이스 (production — 스토어 호스트 확정 후 기입) */
+export const FUNGIES_CHECKOUT_BASE_URL_PROD = "";
+
+/** 첫주문 할인 코드 (미확정 — sale vs discountCode 결정 후 기입, 비어 있으면 미전달) */
+export const FUNGIES_FIRST_ORDER_DISCOUNT_CODE: string | null = null;
+
+/** 플랜 → 체크아웃 element URL (환경별 맵, 미기입이면 throw — 400으로 변환) */
 export function getFungiesCheckoutUrl(plan: FungiesPaidPlan): string {
-    const id = FUNGIES_ELEMENT_BY_PLAN[plan];
-    if (!id) {
-        throw new Error(`Fungies element ID is not configured (plan=${plan}).`);
+    const isProd = getFungiesEnv() === 'production';
+    const id = (isProd ? FUNGIES_ELEMENT_BY_PLAN_PROD : FUNGIES_ELEMENT_BY_PLAN)[plan];
+    const base = isProd ? FUNGIES_CHECKOUT_BASE_URL_PROD : FUNGIES_CHECKOUT_BASE_URL;
+    if (!id || !base) {
+        throw new Error(`Fungies element is not configured (plan=${plan}, env=${getFungiesEnv()}).`);
     }
-    return `${FUNGIES_CHECKOUT_BASE_URL}/${id}`;
+    return `${base}/${id}`;
 }
 
 /** offer ID → 플랜 (미등록이면 null) */

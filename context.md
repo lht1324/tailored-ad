@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-10-01 01:26)
+# TailoredAd — 작업 기록 (Last Updated: 2026-10-02 05:40)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -501,10 +501,10 @@
   아래 §4 Fungies 블록 참조.
   - [x] stage 웹훅 생성 (ngrok + `/api/webhook/fungies`, 구독 4종) + secret 입력됨.
   - [x] 상품 3종 custom field `user_id` 정의.
-  - [ ] E2E 1건: **블로킹 중** (10-01 — 체크아웃 tRPC 403, 거래 0건. Malvin 회신 후 재시도).
+  - [ ] E2E 1건: **블로킹 중** (10-01 — 체크아웃 tRPC 403, 거래 0건. 지원 대기 없이 직접 재시도).
   - [ ] 첫주문 할인 (sale 50% Starter 한정 — 체크아웃 코드 전달 방식 확정 후).
   - [ ] production 통화 USD 확인 메일 → production 카탈로그 USD seed.
-  - [ ] Fungies 실경로 이식 (Pricing 오버레이 + Profile 5종 — Paddle판 복사).
+  - [ ] Fungies 실경로 이식 (Pricing 오버레이 완료 10-02 — Profile 5종 남음, Paddle판 복사).
     통과하면 Paddle/Fungies 양택 → Paddle 코드 삭제는 Fungies prod E2E 후.
 - [ ] 릴리즈 머지 (대기 — 사장님 판단 시: 로컬 master에 develop `--no-ff` 머지 후 푸시.
   현 릴리즈분은 gitignore+AGENTS.md라 사이트 무영향, 배포 생략可).
@@ -576,9 +576,19 @@
   `.env.local` FUNGIES_WEBHOOK_SECRET 입력됨). 상품 3종 custom field `user_id` 정의됨.
   hosted element 결제 시도 (4242) → "Something went wrong", 거래 0건 (API 실측).
   콘솔: `offers.search`·`user.get` tRPC 전부 403. 비활성 배너 잔류와 같은 뿌리 추정 —
-  승인 메일은 왔으나 스토어 반영 미완. Malvin 회신 초안 전달됨 (403 증거 첨부 요청).
+  승인 메일은 왔으나 스토어 반영 미완.
   스토어 호스트 실측: `tailoredad-test.stage.fungies.net`
-  (`lib/fungies.ts` 베이스 URL 정정済み). 다음은 지원 답변 대기.
+  (`lib/fungies.ts` 베이스 URL 정정済み). element 페이지 200 뜸 (10-02 실측) — 페이지는 존재,
+  결제만 안 되는 상태. 지원 답변 대기 없이 직접 재시도 방침.
+- **Pricing Fungies 교체** (10-02, develop — 미배포):
+  `useFungies` 신설 (CDN `@0.7.3` exact pin, env 모르면 에러, 완료 시 success) +
+  `FungiesInlineModal` 신설 (Paddle 모달 동일 껍데기, embed 모드, 첫달 표시 유지) +
+  PricingSection Paddle→Fungies 교체 (서버 트랜잭션 삭제 → element URL 직접 오픈 +
+  `customFields {user_id}`, 첫달가 클라 자격 판정).
+  gotcha: `window.Fungies`는 네임스페이스 (`{DOM_CHECKOUT_EVENTS, Fungies}`) —
+  실체는 `window.Fungies.Fungies.Checkout` (`resolveFungiesApi` 흡수).
+  `lib/fungies.ts` prod 여지 추가 (prod element 맵 빈칸 + `FUNGIES_FIRST_ORDER_DISCOUNT_CODE=null`,
+  `NEXT_PUBLIC_FUNGIES_ENV` 전환). tsc·lint 깨끗.
 - [ ] **결제사 확정 후 코드 이식**: Polar 구조 복사 (체크아웃·웹훅·grant 3점, 수일 규모).
   Paddle 심사 결과 보고 결정 (LS 대기·Creem 탈락). 지금이 제일 쌀 때 (고객 생기면 마이그레이션 지옥).
 - [x] 프롬프트 컴포지션 1순위 (구조만 — 바이트 동일 검증, 푸시됨)

@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import { Check } from 'lucide-react';
 import Reveal from "@/components/page/ad/Reveal";
 import { useAuth } from "@/context/AuthContext";
-import { paddleClientAPI } from "@/lib/api/client/paddleClientAPI";
 import { usersClientAPI } from "@/lib/api/client/usersClientAPI";
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
 import { PLAN_PRICE_USD, type PaidPlan } from "@/lib/paddle";
-import PaddleInlineModal from "@/components/page/ad/paddle/PaddleInlineModal";
-import { usePaddle } from "@/components/page/ad/paddle/usePaddle";
+import { getFungiesCheckoutUrl, FUNGIES_FIRST_ORDER_DISCOUNT_CODE } from "@/lib/fungies";
+import FungiesInlineModal from "@/components/page/ad/fungies/FungiesInlineModal";
+import { useFungies } from "@/components/page/ad/fungies/useFungies";
 
 interface Plan {
     planId: PaidPlan;
@@ -151,11 +151,11 @@ function PricingCard({ plan, busy, showDiscountNote, onClickCheckout }: {
 export default function PricingSection() {
     const { user, supabaseUser } = useAuth();
     const router = useRouter();
-    const { paddle, envError } = usePaddle();
+    const { fungies, envError } = useFungies();
     const [busyPlan, setBusyPlan] = useState<PaidPlan | null>(null);
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
     const [discountEligible, setDiscountEligible] = useState(false);
-    const [activeTx, setActiveTx] = useState<{ transactionId: string; plan: Plan; firstCharge: number | null } | null>(null);
+    const [activeTx, setActiveTx] = useState<{ checkoutUrl: string; plan: Plan; firstCharge: number | null; discountCode: string | null } | null>(null);
 
     // 첫주문 할인 표시 — 로그아웃·무료는 표시, 유료 이력만 숨김 (서버는 유료 이력 기준 부과)
     useEffect(() => {
@@ -194,15 +194,25 @@ export default function PricingSection() {
         }
         setCheckoutError(null);
         setBusyPlan(plan.planId);
-        const created = await paddleClientAPI.createTransaction(plan.planId);
-        setBusyPlan(null);
-        if (!created) {
+        // Fungies는 서버 트랜잭션 생성 없음 — element URL로 바로 열기.
+        // 첫달가는 클라 자격 판정 (서버는 웹훅 금액 교차검증). 할인 코드는 확정 후 기입.
+        try {
+            const checkoutUrl = getFungiesCheckoutUrl(plan.planId);
+            const firstCharge = discountEligible && plan.planId === SubscriptionPlan.PLAN_1
+                ? PLAN_PRICE_USD[plan.planId] / 2
+                : null;
+            setActiveTx({
+                checkoutUrl,
+                plan,
+                firstCharge,
+                discountCode: firstCharge != null ? FUNGIES_FIRST_ORDER_DISCOUNT_CODE : null,
+            });
+        } catch {
             setCheckoutError('Could not start checkout. Please try again.');
-            return;
+        } finally {
+            setBusyPlan(null);
         }
-        // 인라인 모달로 표시 — 트랜잭션은 서버 생성 (metadata 확정), firstCharge도 서버 판정값
-        setActiveTx({ transactionId: created.transactionId, plan, firstCharge: created.discountApplied ? created.firstCharge : null });
-    }, [supabaseUser, router]);
+    }, [supabaseUser, router, discountEligible]);
 
     const onCloseInlineModal = useCallback(() => {
         setActiveTx(null);
@@ -253,11 +263,13 @@ export default function PricingSection() {
                     </ul>
                 </Reveal>
             </div>
-            {paddle && activeTx && (
-                <PaddleInlineModal
-                    paddle={paddle}
-                    transactionId={activeTx.transactionId}
+            {fungies && activeTx && (
+                <FungiesInlineModal
+                    fungies={fungies}
+                    checkoutUrl={activeTx.checkoutUrl}
                     userEmail={userEmail}
+                    customUserId={supabaseUser?.id ?? null}
+                    discountCode={activeTx.discountCode}
                     planName={activeTx.plan.name}
                     basePrice={PLAN_PRICE_USD[activeTx.plan.planId]}
                     imagesLabel={activeTx.plan.images}
