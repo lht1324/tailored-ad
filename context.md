@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-10-02 05:40)
+# TailoredAd — 작업 기록 (Last Updated: 2026-10-03 01:21)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -506,6 +506,10 @@
   - [ ] production 통화 USD 확인 메일 → production 카탈로그 USD seed.
   - [ ] Fungies 실경로 이식 (Pricing 오버레이 완료 10-02 — Profile 5종 남음, Paddle판 복사).
     통과하면 Paddle/Fungies 양택 → Paddle 코드 삭제는 Fungies prod E2E 후.
+- [ ] **Dodo 이식 테스트** (10-03 예정 — 미착수):
+  기존 UI/서버 로직 그대로 Dodo 어댑터로 옮기는 테스트.
+  범위: SDK 클라이언트·매핑·웹훅·오버레이 4점 (원장·잔액제·UI 무수정).
+  선행: Dodo 가입 + test 키 (`DODO_PAYMENTS_API_KEY`). USD 카탈로그 → E2E → 승자 결정.
 - [ ] 릴리즈 머지 (대기 — 사장님 판단 시: 로컬 master에 develop `--no-ff` 머지 후 푸시.
   현 릴리즈분은 gitignore+AGENTS.md라 사이트 무영향, 배포 생략可).
 - [x] Paddle 첫주문 할인 (09-25/26 — 트랜잭션 단 $9.50 정상 확인, 인라인 첫달 표시 추가).
@@ -545,7 +549,7 @@
   실정산에는 Payouts 계좌 등록 별도 필요 (activation ≠ 정산 개시).
 - **Fungies stage 개통** (09-29/30):
   stage 대시보드는 승인 없이可, 체크아웃 테스트는 이메일 승인 필요 →
-  지원 메일 발송 → Malvin 승인됨 (API+체크아웃 테스트 가능).
+  지원 메일 발송 → stage 승인됨 (API+체크아웃 테스트 가능).
   stage 키(`pub_test_`·`sec_test_`)는 stage 호스트 전용
   (`api.stage.fungies.net/v0`, `.env.local` FUNGIES_API_BASE_URL).
   production 호스트에서는 invalid (실측). 테스트 카드는 Stripe 번호 그대로.
@@ -589,6 +593,13 @@
   실체는 `window.Fungies.Fungies.Checkout` (`resolveFungiesApi` 흡수).
   `lib/fungies.ts` prod 여지 추가 (prod element 맵 빈칸 + `FUNGIES_FIRST_ORDER_DISCOUNT_CODE=null`,
   `NEXT_PUBLIC_FUNGIES_ENV` 전환). tsc·lint 깨끗.
+- **Dodo 병렬 트랙 예정** (10-03 — 미착수, 기존 UI/서버 로직 이식 테스트):
+  한국 PIPA 가입 차단이 풀려 구 블로커 해소. Dodo 정책상 AI 이미지 생성은 환영 목록,
+  한국 merchant 허용, 개인 가능, 테스트 키 즉시 발급 (문서 확인済み).
+  방침: Fungies 유지 (승인은 자산) + Dodo 병렬. 어댑터 4점만 교체
+  (SDK 클라이언트·ID 매핑·웹훅 수신/처리·오버레이 배선), 원장·잔액제·UI는 그대로.
+  test 카탈로그 USD 3종 ($19/49/99) → E2E 후 양쪽 통과 시 승자 결정.
+  선행: 사장님 Dodo 가입 → test mode 키 → `.env.local` DODO_PAYMENTS_API_KEY.
 - [ ] **결제사 확정 후 코드 이식**: Polar 구조 복사 (체크아웃·웹훅·grant 3점, 수일 규모).
   Paddle 심사 결과 보고 결정 (LS 대기·Creem 탈락). 지금이 제일 쌀 때 (고객 생기면 마이그레이션 지옥).
 - [x] 프롬프트 컴포지션 1순위 (구조만 — 바이트 동일 검증, 푸시됨)
