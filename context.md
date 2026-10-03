@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-10-03 13:45)
+# TailoredAd — 작업 기록 (Last Updated: 2026-10-04 01:38)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -592,7 +592,15 @@
   실체는 `window.Fungies.Fungies.Checkout` (`resolveFungiesApi` 흡수).
   `lib/fungies.ts` prod 여지 추가 (prod element 맵 빈칸 + `FUNGIES_FIRST_ORDER_DISCOUNT_CODE=null`,
   `NEXT_PUBLIC_FUNGIES_ENV` 전환). tsc·lint 깨끗.
-- **Dodo 병렬 트랙 → Dodo 통일** (10-03, develop — 진행 중):
+- **FLUX 3 Image 조사** (10-04 — 10-02 출시, Replicate 입점済み):
+  `black-forest-labs/flux-3-image` (T2I+편집, 레퍼런스 10장, 비율 5종 전부 포함, 최대 4K,
+  grounding 기본 ON, safety 기본 2). 가격: 768sq $0.0205 / 1k $0.024 / 1.5k $0.035 /
+  2k $0.05 / 4k $0.3035. 현행은 `size: "2K"` 고정 (replicateInputMapper)이라 동급은 2k.
+  1.5k(2MP) vs 2k(4MP)는 화면 시청 무차별, 원본·확대에서만 갈림.
+  결정: Seedream 손질 없음 (5.0 통일은 4:5/Hero 파괴, 4.5 통일은 B1~B7 검증 무효화).
+  grounding ON 유지 (사장님 판단 — 프롬프트는 우리 산출물).
+  순서: base PoC 4장 (2k, 정체성·킬 0) → ratios PoC (BRIA와 나란히) → 통과 시 매퍼 교체 →
+  1.5k 블라인드 비교 → Seedream 삭제.
   한국 PIPA 가입 차단이 풀려 구 블로커 해소. Dodo 정책상 AI 이미지 생성은 환영 목록,
   한국 merchant 허용, 개인 가능, 테스트 키 즉시 발급 (문서 확인済み).
   상품 3종 생성됨 (Starter `pdt_0Nosm2WcXVkbgV28ndUWo` $19 / Growth `pdt_0Nosm2aXoSAV82rXZPcdo` $49 /
@@ -618,6 +626,9 @@
 - [x] ratios route 재설계 1차 (고정 문구·폴백 삭제·base-only·매퍼 분리 — 완료)
 - [x] 파이프라인 정합 1차 (prompt 항상 base · process 분기 · 함수改名 · RPC error 제거 — 완료)
 - [ ] **Bria 테스트 돌리기** (다음 1순위 — ratios 확장 실측, 가격 확인, Sync/webhook 정합)
+- [ ] **FLUX 3 PoC** (10-04 예정 — Seedream 교체 전제):
+  base 4장 (2k, grounding ON, safety 2) → ratios BRIA와 나란히 비교 →
+  통과 시 매퍼 교체 + 배치 eyeball → 1.5k 블라인드 → Seedream 삭제.
 - [ ] **HeroWall 잘림·저화질 체감** (09-22 신규 — 원인 1차 특정):
   `public/` hero 6종이 1:1 구버전이라 4:5 프레임에서 좌우 크롭 ("om Noise", "till Fighting").
   `landing-final/`에 4:5 WebP 준비됨 → `public/preview/` 덮어쓰기 대기 (사장님 작업).
