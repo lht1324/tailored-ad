@@ -138,7 +138,7 @@ export const replicateClient = {
         const resolvedPrompt = params.imageTags
             ? resolveImageInputTags(params.prompt, params.imageTags)
             : params.prompt;
-        const model = params.model ?? ReplicateModelId.SEEDREAM_5_LITE;
+        const model = params.model ?? ReplicateModelId.FLUX_3_IMAGE;
         const input = buildReplicateImageInput(model, {
             prompt: resolvedPrompt,
             imageUrls: params.imageUrls,
