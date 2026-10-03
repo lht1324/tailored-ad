@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-10-04 01:38)
+# TailoredAd — 작업 기록 (Last Updated: 2026-10-04 02:10)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -617,7 +617,9 @@
   테마는 세션 `customization.theme`에 (최상위 무시됨). single_page는 폼 합치기 아님 (원복).
   USD 고정 (`billing_currency`, Adaptive Currency 무관). return_url은 Origin 우선 (ngrok 귀환 방지).
   전화번호 자동 기입은 Dodo 몫 (우리 코드 무관).
-  첫주문 할인 코드 `FIRSTORDER50` 생성됨 (50%·Starter·신규, 1주기 제한) → 세션 `discount_codes` 배선됨.
+  첫주문 할인 코드 `FIRSTORDER50` 생성됨 (50%·Starter·신규, 1주기 제한 ON) → 세션 `discount_codes` 배선됨.
+  Pricing Settings 지시 (10-04): Adaptive 통화 OFF (코드 USD 고정과 중복이라 혼란 방지) ·
+  PPP OFF (145원 같은 이상 금액 원인, $19 균일가 정책) · 매력 가격 OFF · 3D Secure OFF (전환율).
   잔량: E2E 1건 (USD 확인) + Profile 5종 실측.
 - [ ] **결제사 확정 후 코드 이식**: Polar 구조 복사 (체크아웃·웹훅·grant 3점, 수일 규모).
   Paddle 심사 결과 보고 결정 (LS 대기·Creem 탈락). 지금이 제일 쌀 때 (고객 생기면 마이그레이션 지옥).
