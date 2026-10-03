@@ -2,9 +2,9 @@
 
 import { memo, useCallback, useEffect, useMemo, useState, MouseEvent } from "react";
 import { AlertCircle, ArrowUp, Check, Clock, Loader2, X } from "lucide-react";
-import { paddleClientAPI } from "@/lib/api/client/paddleClientAPI";
-import type { ProductData } from "@/lib/api/types/api/paddle/products/ProductData";
-import { PLAN_DISPLAY_NAME, PLAN_IMAGE_LIMIT, type PaidPlan } from "@/lib/paddle";
+import { dodoClientAPI } from "@/lib/api/client/dodoClientAPI";
+import type { ProductData } from "@/lib/api/types/api/dodo/products/ProductData";
+import { PLAN_DISPLAY_NAME, PLAN_IMAGE_LIMIT, type DodoPaidPlan as PaidPlan } from "@/lib/dodo";
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
 
 interface ChangePlanModalProps {
@@ -44,7 +44,7 @@ function ChangePlanModal({
 
     useEffect(() => {
         let live = true;
-        paddleClientAPI.getProducts().then((list) => {
+        dodoClientAPI.getProducts().then((list) => {
             if (!live) return;
             const managed = (list ?? [])
                 .filter((p) => (MANAGED_PLANS as string[]).includes(p.planId))

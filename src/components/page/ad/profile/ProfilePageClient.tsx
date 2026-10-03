@@ -10,10 +10,10 @@ import ChangePlanModal from "@/components/page/ad/profile/ChangePlanModal";
 import OrderItem from "@/components/page/ad/profile/OrderItem";
 import { useAuth } from "@/context/AuthContext";
 import { usersClientAPI, type UserUsageSummary } from "@/lib/api/client/usersClientAPI";
-import { paddleClientAPI } from "@/lib/api/client/paddleClientAPI";
-import type { OrderData } from "@/lib/api/types/api/paddle/orders/OrderData";
-import type { SubscriptionData } from "@/lib/api/types/api/paddle/subscriptions/SubscriptionData";
-import { PLAN_DISPLAY_NAME, type PaidPlan } from "@/lib/paddle";
+import { dodoClientAPI } from "@/lib/api/client/dodoClientAPI";
+import type { OrderData } from "@/lib/api/types/api/dodo/orders/OrderData";
+import type { SubscriptionData } from "@/lib/api/types/api/dodo/subscriptions/SubscriptionData";
+import { PLAN_DISPLAY_NAME, type DodoPaidPlan as PaidPlan } from "@/lib/dodo";
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
 
 function formatDate(iso: string | null | undefined): string {
@@ -54,8 +54,8 @@ function ProfilePageClient() {
 
     const loadBilling = useCallback(async (email: string) => {
         const [orders, subscription] = await Promise.all([
-            paddleClientAPI.getOrders(email),
-            paddleClientAPI.getSubscription(email),
+            dodoClientAPI.getOrders(email),
+            dodoClientAPI.getSubscription(email),
         ]);
         setOrderList((orders ?? []).sort((a, b) => {
             return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -128,7 +128,7 @@ function ProfilePageClient() {
     }, [signOut, router]);
 
     const onConfirmChangePlan = useCallback(async (newPlan: PaidPlan): Promise<boolean> => {
-        const ok = await paddleClientAPI.changePlan(newPlan);
+        const ok = await dodoClientAPI.changePlan(newPlan);
         if (!ok) return false;
         setShowChangePlanModal(false);
         if (userEmail) {
@@ -143,7 +143,7 @@ function ProfilePageClient() {
         if (!subscriptionData?.id) return;
         setIsCanceling(true);
         try {
-            const ok = await paddleClientAPI.cancelSubscription(subscriptionData.id);
+            const ok = await dodoClientAPI.cancelSubscription(subscriptionData.id);
             setShowCancelModal(false);
             if (ok && userEmail) {
                 await loadBilling(userEmail);
@@ -159,7 +159,7 @@ function ProfilePageClient() {
         if (!revertTarget) return;
         setIsReverting(true);
         try {
-            const ok = await paddleClientAPI.revertScheduled(revertTarget);
+            const ok = await dodoClientAPI.revertScheduled(revertTarget);
             setRevertTarget(null);
             if (ok && userEmail) {
                 await loadBilling(userEmail);

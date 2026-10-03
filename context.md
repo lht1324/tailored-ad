@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-10-03 01:21)
+# TailoredAd — 작업 기록 (Last Updated: 2026-10-03 13:45)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -506,10 +506,9 @@
   - [ ] production 통화 USD 확인 메일 → production 카탈로그 USD seed.
   - [ ] Fungies 실경로 이식 (Pricing 오버레이 완료 10-02 — Profile 5종 남음, Paddle판 복사).
     통과하면 Paddle/Fungies 양택 → Paddle 코드 삭제는 Fungies prod E2E 후.
-- [ ] **Dodo 이식 테스트** (10-03 예정 — 미착수):
-  기존 UI/서버 로직 그대로 Dodo 어댑터로 옮기는 테스트.
-  범위: SDK 클라이언트·매핑·웹훅·오버레이 4점 (원장·잔액제·UI 무수정).
-  선행: Dodo 가입 + test 키 (`DODO_PAYMENTS_API_KEY`). USD 카탈로그 → E2E → 승자 결정.
+- [x] **Dodo 이식** (10-03, develop — 코드 완료, E2E 대기):
+  SDK·매핑·웹훅·오버레이·Profile 5종·Paddle/Polar 삭제. USD 고정·테마·return_url 정리됨.
+  잔량: E2E 1건 (USD 확인) + Profile 5종 실측 + 첫주문 $9.50 실측.
 - [ ] 릴리즈 머지 (대기 — 사장님 판단 시: 로컬 master에 develop `--no-ff` 머지 후 푸시.
   현 릴리즈분은 gitignore+AGENTS.md라 사이트 무영향, 배포 생략可).
 - [x] Paddle 첫주문 할인 (09-25/26 — 트랜잭션 단 $9.50 정상 확인, 인라인 첫달 표시 추가).
@@ -593,13 +592,25 @@
   실체는 `window.Fungies.Fungies.Checkout` (`resolveFungiesApi` 흡수).
   `lib/fungies.ts` prod 여지 추가 (prod element 맵 빈칸 + `FUNGIES_FIRST_ORDER_DISCOUNT_CODE=null`,
   `NEXT_PUBLIC_FUNGIES_ENV` 전환). tsc·lint 깨끗.
-- **Dodo 병렬 트랙 예정** (10-03 — 미착수, 기존 UI/서버 로직 이식 테스트):
+- **Dodo 병렬 트랙 → Dodo 통일** (10-03, develop — 진행 중):
   한국 PIPA 가입 차단이 풀려 구 블로커 해소. Dodo 정책상 AI 이미지 생성은 환영 목록,
   한국 merchant 허용, 개인 가능, 테스트 키 즉시 발급 (문서 확인済み).
-  방침: Fungies 유지 (승인은 자산) + Dodo 병렬. 어댑터 4점만 교체
-  (SDK 클라이언트·ID 매핑·웹훅 수신/처리·오버레이 배선), 원장·잔액제·UI는 그대로.
-  test 카탈로그 USD 3종 ($19/49/99) → E2E 후 양쪽 통과 시 승자 결정.
-  선행: 사장님 Dodo 가입 → test mode 키 → `.env.local` DODO_PAYMENTS_API_KEY.
+  상품 3종 생성됨 (Starter `pdt_0Nosm2WcXVkbgV28ndUWo` $19 / Growth `pdt_0Nosm2aXoSAV82rXZPcdo` $49 /
+  Pro `pdt_0Nosm2d0QRwiOjT9Cp3mb` $99, test mode). gotcha: TimeInterval 대문자 (`Month`).
+  SDK 3종 설치 (`dodopayments` 2.52.0 + `@dodopayments/nextjs` 0.3.9 +
+  `dodopayments-checkout` 1.9.9) + 공식 MCP 연결됨 (OAuth, test 키).
+  웹훅 API 직접 생성 (`ep_3K9LeOAyUjWubC1FXxaBMRPSa7z`, 구독·결제 8종,
+  secret → `.env.local`).
+  `lib/dodo.ts` (매핑·가격·장수·플랜명 — paddle/polar 참조 0) + `lib/dodoClient.ts` +
+  `/api/dodo/*` 7종 (checkouts·products·orders·subscriptions·change·cancel·revert) +
+  `/api/webhook/dodo` (standardwebhooks 검증→전달) + `dodoClientAPI` 확장 +
+  Pricing 오버레이 교체 (`useDodo` + `DodoInlineModal`, embed) + Profile 5종 교체 +
+  gateway 등록. Paddle/Polar 코드 전량 삭제 (DB 컬럼명·Fungies 코드 유지).
+  테마는 세션 `customization.theme`에 (최상위 무시됨). single_page는 폼 합치기 아님 (원복).
+  USD 고정 (`billing_currency`, Adaptive Currency 무관). return_url은 Origin 우선 (ngrok 귀환 방지).
+  전화번호 자동 기입은 Dodo 몫 (우리 코드 무관).
+  첫주문 할인 코드 `FIRSTORDER50` 생성됨 (50%·Starter·신규, 1주기 제한) → 세션 `discount_codes` 배선됨.
+  잔량: E2E 1건 (USD 확인) + Profile 5종 실측.
 - [ ] **결제사 확정 후 코드 이식**: Polar 구조 복사 (체크아웃·웹훅·grant 3점, 수일 규모).
   Paddle 심사 결과 보고 결정 (LS 대기·Creem 탈락). 지금이 제일 쌀 때 (고객 생기면 마이그레이션 지옥).
 - [x] 프롬프트 컴포지션 1순위 (구조만 — 바이트 동일 검증, 푸시됨)

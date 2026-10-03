@@ -7,10 +7,10 @@ import Reveal from "@/components/page/ad/Reveal";
 import { useAuth } from "@/context/AuthContext";
 import { usersClientAPI } from "@/lib/api/client/usersClientAPI";
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
-import { PLAN_PRICE_USD, type PaidPlan } from "@/lib/paddle";
-import { getFungiesCheckoutUrl, FUNGIES_FIRST_ORDER_DISCOUNT_CODE } from "@/lib/fungies";
-import FungiesInlineModal from "@/components/page/ad/fungies/FungiesInlineModal";
-import { useFungies } from "@/components/page/ad/fungies/useFungies";
+import { PLAN_PRICE_USD, type DodoPaidPlan as PaidPlan } from "@/lib/dodo";
+import { dodoClientAPI } from "@/lib/api/client/dodoClientAPI";
+import DodoInlineModal from "@/components/page/ad/dodo/DodoInlineModal";
+import { useDodo } from "@/components/page/ad/dodo/useDodo";
 
 interface Plan {
     planId: PaidPlan;
@@ -149,13 +149,13 @@ function PricingCard({ plan, busy, showDiscountNote, onClickCheckout }: {
 }
 
 export default function PricingSection() {
-    const { user, supabaseUser } = useAuth();
+    const { supabaseUser } = useAuth();
     const router = useRouter();
-    const { fungies, envError } = useFungies();
+    const { ready: dodoReady, envError } = useDodo();
     const [busyPlan, setBusyPlan] = useState<PaidPlan | null>(null);
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
     const [discountEligible, setDiscountEligible] = useState(false);
-    const [activeTx, setActiveTx] = useState<{ checkoutUrl: string; plan: Plan; firstCharge: number | null; discountCode: string | null } | null>(null);
+    const [activeTx, setActiveTx] = useState<{ checkoutUrl: string; plan: Plan; firstCharge: number | null } | null>(null);
 
     // 첫주문 할인 표시 — 로그아웃·무료는 표시, 유료 이력만 숨김 (서버는 유료 이력 기준 부과)
     useEffect(() => {
@@ -194,31 +194,27 @@ export default function PricingSection() {
         }
         setCheckoutError(null);
         setBusyPlan(plan.planId);
-        // Fungies는 서버 트랜잭션 생성 없음 — element URL로 바로 열기.
-        // 첫달가는 클라 자격 판정 (서버는 웹훅 금액 교차검증). 할인 코드는 확정 후 기입.
+        // Dodo는 서버 체크아웃 세션 생성 → 세션 URL로 열기 (첫달 할인은 메커니즘 확정 후).
+        // 테마는 앱 토글(.theme-light 유무)과 맞춤 — 미지정 시 비즈니스 기본값.
         try {
-            const checkoutUrl = getFungiesCheckoutUrl(plan.planId);
-            const firstCharge = discountEligible && plan.planId === SubscriptionPlan.PLAN_1
-                ? PLAN_PRICE_USD[plan.planId] / 2
-                : null;
-            setActiveTx({
-                checkoutUrl,
-                plan,
-                firstCharge,
-                discountCode: firstCharge != null ? FUNGIES_FIRST_ORDER_DISCOUNT_CODE : null,
-            });
+            const theme = typeof document !== 'undefined' && document.documentElement.classList.contains('theme-light')
+                ? 'light'
+                : 'dark';
+            const created = await dodoClientAPI.createCheckoutSession(plan.planId, theme as 'light' | 'dark');
+            if (!created) {
+                throw new Error('Could not start checkout.');
+            }
+            setActiveTx({ checkoutUrl: created.checkoutUrl, plan, firstCharge: created.firstCharge });
         } catch {
             setCheckoutError('Could not start checkout. Please try again.');
         } finally {
             setBusyPlan(null);
         }
-    }, [supabaseUser, router, discountEligible]);
+    }, [supabaseUser, router]);
 
     const onCloseInlineModal = useCallback(() => {
         setActiveTx(null);
     }, []);
-
-    const userEmail = user?.email ?? supabaseUser?.email ?? null;
 
     return (
         <section id="pricing" className="scroll-mt-24 border-t border-hairline bg-surface/40 px-4 py-24 md:py-32">
@@ -263,13 +259,9 @@ export default function PricingSection() {
                     </ul>
                 </Reveal>
             </div>
-            {fungies && activeTx && (
-                <FungiesInlineModal
-                    fungies={fungies}
+            {dodoReady && activeTx && (
+                <DodoInlineModal
                     checkoutUrl={activeTx.checkoutUrl}
-                    userEmail={userEmail}
-                    customUserId={supabaseUser?.id ?? null}
-                    discountCode={activeTx.discountCode}
                     planName={activeTx.plan.name}
                     basePrice={PLAN_PRICE_USD[activeTx.plan.planId]}
                     imagesLabel={activeTx.plan.images}

@@ -1,5 +1,5 @@
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
-import { PLAN_IMAGE_LIMIT } from "@/lib/paddle";
+import { PLAN_IMAGE_LIMIT } from "@/lib/dodo";
 
 /**
  * Fungies 상품 매핑 — 진실원천은 코드.
