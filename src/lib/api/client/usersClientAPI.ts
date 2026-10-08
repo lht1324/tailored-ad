@@ -12,6 +12,12 @@ export interface UserUsageSummary {
     periodEnd?: string | null;
 }
 
+export interface ProfileLogo {
+    signedUrl: string;
+    fileName: string;
+    imageFileExtension: string;
+}
+
 export const usersClientAPI = {
     async getUserByUserId(userId: string): Promise<User | null> {
         try {
@@ -59,7 +65,8 @@ export const usersClientAPI = {
         }
     },
 
-    async patchUserApiKey(userId: string, falAiApiKey: string): Promise<{ success: boolean; message?: string; error?: string }> {
+    async patchUserApiKey(userId: string, falAiApiKey: string): Promise<{ success: boolean; message?: string; error?: string }>
+    {
         try {
             const response = await patchFetch(`/api/user/${userId}/api-key`, { fal_ai_api_key: falAiApiKey });
             const patchUserApiKeyResult = await response.json();
@@ -70,6 +77,20 @@ export const usersClientAPI = {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error occurred'
             };
+        }
+    },
+
+    async getProfileLogo(): Promise<ProfileLogo | null> {
+        try {
+            const response = await getFetch(`/api/profile/logo`);
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error ?? 'Profile logo not found');
+            }
+            return (result.data as { profileLogo?: ProfileLogo | null }).profileLogo ?? null;
+        } catch (error) {
+            console.error('Error fetching profile logo:', error);
+            return null;
         }
     },
 }

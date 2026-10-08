@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import AppHeader from "@/components/page/ad/app-header/AppHeader";
@@ -10,6 +10,7 @@ import {
     AdUploadedComponent,
 } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { adProjectClientAPI, BalanceExhaustedError } from "@/lib/api/client/ad/adProjectClientAPI";
+import { usersClientAPI } from "@/lib/api/client/usersClientAPI";
 import { downscaleImageFile } from "@/lib/imageResize";
 
 function inferFileExtension(fileName: string): string {
@@ -18,6 +19,10 @@ function inferFileExtension(fileName: string): string {
     if (['jpeg', 'png', 'webp'].includes(ext)) return ext;
     return 'png';
 }
+
+/** 공식 로고 프리필 식별자 — 수동 업로드(upload-…)와 구분용 */
+const OFFICIAL_LOGO_ID = 'official-logo';
+const OFFICIAL_LOGO_MAX_BYTES = 10 * 1024 * 1024;
 
 export default function CreatePageClient() {
     const router = useRouter();
@@ -29,10 +34,75 @@ export default function CreatePageClient() {
     // 부활 시: 주석 해제 + CreateForm person 셀 복원 + image/route 실파일 분기(存置) 사용.
     // const [person, setPerson] = useState<AdUploadedComponent | null>(null);
     const [brandLogo, setBrandLogo] = useState<AdUploadedComponent | null>(null);
+    /** 공식 로고 사용 가능 여부 — {user_id}/profile/brand_logo.* 다운로드·캐시 성공 시 true */
+    const [officialLogoAvailable, setOfficialLogoAvailable] = useState(false);
+    const officialFileRef = useRef<{ fileName: string; file: File; width: number; height: number } | null>(null);
+    const didPrefillRef = useRef(false);
 
     // AI 모델(페르소나) 사용 여부 + brief — 인물 포함 배치 신호
     const [personaEnabled, setPersonaEnabled] = useState(false);
     const [personaBrief, setPersonaBrief] = useState('');
+
+    // 공식 로고 프리필 — 진입 시 1회. 받아온 파일을 기존 brandLogo 상태에 그대로
+    // 넣어주므로 제출·서버·파이프라인은 수동 업로드와 완전히 동일하게 탄다.
+    useEffect(() => {
+        if (didPrefillRef.current) return;
+        didPrefillRef.current = true;
+        let cancelled = false;
+        const prefill = async () => {
+            const profile = await usersClientAPI.getProfileLogo();
+            if (cancelled || !profile) return;
+            try {
+                const response = await fetch(profile.signedUrl);
+                if (!response.ok) return;
+                const blob = await response.blob();
+                if (cancelled) return;
+                if (!blob.type.startsWith('image/') || blob.size > OFFICIAL_LOGO_MAX_BYTES) return;
+                const file = new File([blob], profile.fileName, { type: blob.type });
+                const previewUrl = URL.createObjectURL(file);
+                const dims = await new Promise<{ width: number; height: number }>((resolve) => {
+                    const image = new Image();
+                    image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+                    image.onerror = () => resolve({ width: 0, height: 0 });
+                    image.src = previewUrl;
+                });
+                if (cancelled) return;
+                officialFileRef.current = { fileName: profile.fileName, file, width: dims.width, height: dims.height };
+                setOfficialLogoAvailable(true);
+                setBrandLogo({
+                    id: OFFICIAL_LOGO_ID,
+                    fileName: profile.fileName,
+                    previewUrl,
+                    ...(dims.width > 0 ? { width: dims.width, height: dims.height } : {}),
+                    file,
+                });
+            } catch {
+                // 프리필 실패는 조용히 스킵 — 수동 업로드 경로 유지
+            }
+        };
+        void prefill();
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const brandLogoIsOfficial = useMemo(() => brandLogo?.id === OFFICIAL_LOGO_ID, [brandLogo]);
+
+    const onBrandLogoChange = useCallback((next: AdUploadedComponent | null) => {
+        setBrandLogo(next);
+    }, []);
+
+    const onUseOfficialLogo = useCallback(() => {
+        const cached = officialFileRef.current;
+        if (!cached) return;
+        setBrandLogo({
+            id: OFFICIAL_LOGO_ID,
+            fileName: cached.fileName,
+            previewUrl: URL.createObjectURL(cached.file),
+            ...(cached.width > 0 ? { width: cached.width, height: cached.height } : {}),
+            file: cached.file,
+        });
+    }, []);
 
     // 생성 옵션
     const [aspectRatios, setAspectRatios] = useState<AdAspectRatio[]>(['1:1']);
@@ -145,7 +215,10 @@ export default function CreatePageClient() {
                             product={product}
                             brandLogo={brandLogo}
                             onProductChange={setProduct}
-                            onBrandLogoChange={setBrandLogo}
+                            onBrandLogoChange={onBrandLogoChange}
+                            brandLogoIsOfficial={brandLogoIsOfficial}
+                            officialLogoAvailable={officialLogoAvailable}
+                            onUseOfficialLogo={onUseOfficialLogo}
                             personaEnabled={personaEnabled}
                             personaBrief={personaBrief}
                             onPersonaEnabledChange={setPersonaEnabled}

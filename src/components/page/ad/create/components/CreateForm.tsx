@@ -37,6 +37,11 @@ interface CreateFormProps {
     brandLogo: AdUploadedComponent | null;
     onProductChange: (file: AdUploadedComponent | null) => void;
     onBrandLogoChange: (file: AdUploadedComponent | null) => void;
+    /** 현재 로고가 공식 로고 프리필인지 — 뱃지 표시용 */
+    brandLogoIsOfficial?: boolean;
+    /** 공식 로고 사용 가능 + 현재 미사용 — 다시 불러오기 버튼 표시용 */
+    officialLogoAvailable?: boolean;
+    onUseOfficialLogo?: () => void;
     personaEnabled: boolean;
     personaBrief: string;
     onPersonaEnabledChange: (enabled: boolean) => void;
@@ -56,6 +61,9 @@ function CreateForm({
     brandLogo,
     onProductChange,
     onBrandLogoChange,
+    brandLogoIsOfficial,
+    officialLogoAvailable,
+    onUseOfficialLogo,
     personaEnabled,
     personaBrief,
     onPersonaEnabledChange,
@@ -255,6 +263,21 @@ function CreateForm({
                                 file={brandLogo}
                                 onChange={onBrandLogoChange}
                             />
+                            {brandLogoIsOfficial && brandLogo && (
+                                <p className="mt-2 text-[11px] font-medium text-text2">
+                                    <span className="rounded-full bg-accent/10 px-2 py-0.5 font-semibold text-accent">Official logo</span>
+                                    <span className="ml-1.5">Remove to skip logo for this batch.</span>
+                                </p>
+                            )}
+                            {!brandLogoIsOfficial && officialLogoAvailable && onUseOfficialLogo && (
+                                <button
+                                    type="button"
+                                    onClick={onUseOfficialLogo}
+                                    className="mt-2 self-start rounded-full border border-hairline bg-canvas px-3.5 py-1.5 text-[11px] font-medium text-text2 transition-colors hover:border-text2/30 hover:text-text1"
+                                >
+                                    Use official logo
+                                </button>
+                            )}
                         </div>
                     </div>
 
