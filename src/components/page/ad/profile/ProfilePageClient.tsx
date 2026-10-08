@@ -469,7 +469,20 @@ function ProfilePageClient() {
                             )}
                         </div>
                     </div>
-                ) : currentPaidPlan ? null : (
+                ) : currentPaidPlan ? (
+                    <div className="flex flex-col justify-center rounded-2xl border border-hairline bg-surface/60 p-8 text-center">
+                        <h3 className="mb-2 text-xl font-bold">{PLAN_DISPLAY_NAME[currentPaidPlan] ?? currentPaidPlan}</h3>
+                        <p className="mb-6 text-sm leading-relaxed text-text2">
+                            {usage?.periodEnd ? `Renews ${formatDate(usage.periodEnd)}` : 'Active subscription'}
+                        </p>
+                        <button
+                            onClick={() => setShowChangePlanModal(true)}
+                            className="w-full rounded-xl bg-text1 py-3 text-sm font-bold text-canvas transition-opacity hover:opacity-90"
+                        >
+                            Change Plan
+                        </button>
+                    </div>
+                ) : (
                     <div className="flex flex-col justify-center rounded-2xl border border-hairline bg-surface/60 p-8 text-center">
                         <h3 className="mb-2 text-xl font-bold">Upgrade Now</h3>
                         <p className="mb-6 text-sm leading-relaxed text-text2">
