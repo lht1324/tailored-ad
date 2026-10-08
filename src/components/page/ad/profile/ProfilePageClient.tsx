@@ -1,15 +1,15 @@
 'use client'
 
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Calendar, CreditCard, Images, Loader2, Mail, Receipt, User as UserIcon } from "lucide-react";
+import { Calendar, CreditCard, Images, ImagePlus, Loader2, Mail, Receipt, User as UserIcon, X } from "lucide-react";
 import AppHeader from "@/components/page/ad/app-header/AppHeader";
 import DefaultModal from "@/components/public/DefaultModal";
 import ChangePlanModal from "@/components/page/ad/profile/ChangePlanModal";
 import OrderItem from "@/components/page/ad/profile/OrderItem";
 import { useAuth } from "@/context/AuthContext";
-import { usersClientAPI, type UserUsageSummary } from "@/lib/api/client/usersClientAPI";
+import { usersClientAPI, type ProfileLogo, type UserUsageSummary } from "@/lib/api/client/usersClientAPI";
 import { dodoClientAPI } from "@/lib/api/client/dodoClientAPI";
 import type { OrderData } from "@/lib/api/types/api/dodo/orders/OrderData";
 import type { SubscriptionData } from "@/lib/api/types/api/dodo/subscriptions/SubscriptionData";
@@ -47,6 +47,10 @@ function ProfilePageClient() {
     const [isCanceling, setIsCanceling] = useState(false);
     const [revertTarget, setRevertTarget] = useState<'plan-change' | 'cancellation' | null>(null);
     const [isReverting, setIsReverting] = useState(false);
+    const [officialLogo, setOfficialLogo] = useState<ProfileLogo | null>(null);
+    const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+    const [logoError, setLogoError] = useState<string | null>(null);
+    const logoInputRef = useRef<HTMLInputElement>(null);
 
     const onHeaderUsageLoaded = useCallback(() => {
         setHeaderReady(true);
@@ -67,11 +71,13 @@ function ProfilePageClient() {
         if (!supabaseUser || !userEmail) return;
         setIsLoading(true);
         try {
-            const [summary] = await Promise.all([
+            const [summary, profileLogo] = await Promise.all([
                 usersClientAPI.getUserUsageSummary(supabaseUser.id),
+                usersClientAPI.getProfileLogo(),
                 loadBilling(userEmail),
             ]);
             setUsage(summary);
+            setOfficialLogo(profileLogo);
         } catch (error) {
             console.error("Error loading profile data:", error);
         } finally {
@@ -126,6 +132,46 @@ function ProfilePageClient() {
             setIsSigningOut(false);
         }
     }, [signOut, router]);
+
+    const onSelectLogoFile = useCallback(async (file: File | null) => {
+        if (!file || isUploadingLogo) return;
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+            setLogoError('Please upload a JPG, PNG, or WebP image.');
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            setLogoError('File is too large. Keep it under 10 MB.');
+            return;
+        }
+        setLogoError(null);
+        setIsUploadingLogo(true);
+        try {
+            const uploaded = await usersClientAPI.uploadProfileLogo(file);
+            if (uploaded) {
+                setOfficialLogo(uploaded);
+            } else {
+                setLogoError('Failed to upload logo. Please try again.');
+            }
+        } finally {
+            setIsUploadingLogo(false);
+        }
+    }, [isUploadingLogo]);
+
+    const onClickRemoveLogo = useCallback(async () => {
+        if (isUploadingLogo) return;
+        setIsUploadingLogo(true);
+        try {
+            const ok = await usersClientAPI.deleteProfileLogo();
+            if (ok) {
+                setOfficialLogo(null);
+                setLogoError(null);
+            } else {
+                setLogoError('Failed to remove logo. Please try again.');
+            }
+        } finally {
+            setIsUploadingLogo(false);
+        }
+    }, [isUploadingLogo]);
 
     const onConfirmChangePlan = useCallback(async (newPlan: PaidPlan): Promise<boolean> => {
         const ok = await dodoClientAPI.changePlan(newPlan);
@@ -261,6 +307,66 @@ function ProfilePageClient() {
                             <div className="text-xl font-semibold">{formatDate(user?.created_at)}</div>
                         </div>
                     </div>
+                </div>
+
+                {/* Official logo */}
+                <div className="mb-6 rounded-2xl border border-hairline bg-surface/60 p-8">
+                    <h3 className="mb-2 text-sm font-semibold tracking-wider text-text1 uppercase">
+                        Official logo
+                    </h3>
+                    <p className="mb-6 text-sm leading-relaxed text-text2">
+                        Prefilled as the brand logo in Create. Transparent PNG works best.
+                    </p>
+                    <div className="flex flex-wrap items-center gap-6">
+                        {officialLogo ? (
+                            <div className="relative h-20 w-20 overflow-hidden rounded-xl border border-hairline bg-canvas">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={officialLogo.signedUrl} alt={officialLogo.fileName} className="h-full w-full object-contain" />
+                            </div>
+                        ) : (
+                            <div className="flex h-20 w-20 items-center justify-center rounded-xl border border-dashed border-hairline bg-canvas">
+                                <ImagePlus size={24} className="text-text2" />
+                            </div>
+                        )}
+                        <div className="flex min-w-0 flex-1 flex-col gap-3">
+                            {officialLogo && (
+                                <p className="truncate text-sm font-medium text-text1">{officialLogo.fileName}</p>
+                            )}
+                            <div className="flex flex-wrap items-center gap-3">
+                                <button
+                                    onClick={() => logoInputRef.current?.click()}
+                                    disabled={isUploadingLogo}
+                                    className="flex items-center gap-2 rounded-xl bg-text1 px-5 py-2.5 text-sm font-bold text-canvas transition-opacity hover:opacity-90 disabled:opacity-50"
+                                >
+                                    {isUploadingLogo && <Loader2 size={14} className="animate-spin" />}
+                                    <span>{officialLogo ? 'Replace' : 'Upload'}</span>
+                                </button>
+                                {officialLogo && (
+                                    <button
+                                        onClick={onClickRemoveLogo}
+                                        disabled={isUploadingLogo}
+                                        className="flex items-center gap-2 rounded-xl border border-hairline px-5 py-2.5 text-sm font-medium text-text2 transition-colors hover:border-red-500/20 hover:bg-red-500/10 hover:text-red-500 disabled:opacity-50"
+                                    >
+                                        <X size={14} />
+                                        <span>Remove</span>
+                                    </button>
+                                )}
+                            </div>
+                            {logoError && (
+                                <p className="text-[12px] font-medium text-red-500">{logoError}</p>
+                            )}
+                        </div>
+                    </div>
+                    <input
+                        ref={logoInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(event) => {
+                            void onSelectLogoFile(event.target.files?.[0] ?? null);
+                            event.target.value = '';
+                        }}
+                    />
                 </div>
 
                 {/* Subscription */}

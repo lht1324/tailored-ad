@@ -62,6 +62,8 @@ async function loadHandlers(): Promise<Array<{ method: string; pattern: string[]
         { method: 'GET', pattern: ['api', 'user', ':userId'], mod: userById as unknown as Record<string, unknown> },
         { method: 'PATCH', pattern: ['api', 'user', ':userId'], mod: userById as unknown as Record<string, unknown> },
         { method: 'GET', pattern: ['api', 'profile', 'logo'], mod: profileLogo as unknown as Record<string, unknown> },
+        { method: 'POST', pattern: ['api', 'profile', 'logo'], mod: profileLogo as unknown as Record<string, unknown> },
+        { method: 'DELETE', pattern: ['api', 'profile', 'logo'], mod: profileLogo as unknown as Record<string, unknown> },
         { method: 'POST', pattern: ['api', 'image'], mod: image as unknown as Record<string, unknown> },
         { method: 'POST', pattern: ['api', 'image', 'generation', 'base'], mod: imageGenBase as unknown as Record<string, unknown> },
         { method: 'POST', pattern: ['api', 'image', 'generation', 'ratios'], mod: imageGenRatios as unknown as Record<string, unknown> },

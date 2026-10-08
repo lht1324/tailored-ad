@@ -1,5 +1,5 @@
 import {User} from "@/lib/api/types/supabase/Users";
-import {getFetch, patchFetch} from "@/lib/api/client/baseFetch";
+import {deleteFetch, getFetch, patchFetch, postFormFetch} from "@/lib/api/client/baseFetch";
 
 export interface UserUsageSummary {
     plan?: string | null;
@@ -91,6 +91,36 @@ export const usersClientAPI = {
         } catch (error) {
             console.error('Error fetching profile logo:', error);
             return null;
+        }
+    },
+
+    async uploadProfileLogo(file: File): Promise<ProfileLogo | null> {
+        try {
+            const formData = new FormData();
+            formData.append('logo', file);
+            const response = await postFormFetch(`/api/profile/logo`, formData);
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error ?? 'Profile logo upload failed');
+            }
+            return (result.data as { profileLogo?: ProfileLogo | null }).profileLogo ?? null;
+        } catch (error) {
+            console.error('Error uploading profile logo:', error);
+            return null;
+        }
+    },
+
+    async deleteProfileLogo(): Promise<boolean> {
+        try {
+            const response = await deleteFetch(`/api/profile/logo`);
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error ?? 'Profile logo delete failed');
+            }
+            return true;
+        } catch (error) {
+            console.error('Error deleting profile logo:', error);
+            return false;
         }
     },
 }
