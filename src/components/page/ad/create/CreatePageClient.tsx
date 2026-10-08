@@ -37,7 +37,8 @@ export default function CreatePageClient() {
     /** 공식 로고 사용 가능 여부 — {user_id}/profile/brand_logo.* 다운로드·캐시 성공 시 true */
     const [officialLogoAvailable, setOfficialLogoAvailable] = useState(false);
     const officialFileRef = useRef<{ fileName: string; file: File; width: number; height: number } | null>(null);
-    const didPrefillRef = useRef(false);
+    /** 다운로드 Promise 공유 — StrictMode dev 이중 마운트에도 1회만 다운로드 */
+    const prefillPromiseRef = useRef<Promise<{ fileName: string; file: File; width: number; height: number } | null> | null>(null);
 
     // AI 모델(페르소나) 사용 여부 + brief — 인물 포함 배치 신호
     const [personaEnabled, setPersonaEnabled] = useState(false);
@@ -46,41 +47,43 @@ export default function CreatePageClient() {
     // 공식 로고 프리필 — 진입 시 1회. 받아온 파일을 기존 brandLogo 상태에 그대로
     // 넣어주므로 제출·서버·파이프라인은 수동 업로드와 완전히 동일하게 탄다.
     useEffect(() => {
-        if (didPrefillRef.current) return;
-        didPrefillRef.current = true;
         let cancelled = false;
-        const prefill = async () => {
-            const profile = await usersClientAPI.getProfileLogo();
-            if (cancelled || !profile) return;
-            try {
-                const response = await fetch(profile.signedUrl);
-                if (!response.ok) return;
-                const blob = await response.blob();
-                if (cancelled) return;
-                if (!blob.type.startsWith('image/') || blob.size > OFFICIAL_LOGO_MAX_BYTES) return;
-                const file = new File([blob], profile.fileName, { type: blob.type });
-                const previewUrl = URL.createObjectURL(file);
-                const dims = await new Promise<{ width: number; height: number }>((resolve) => {
-                    const image = new Image();
-                    image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
-                    image.onerror = () => resolve({ width: 0, height: 0 });
-                    image.src = previewUrl;
-                });
-                if (cancelled) return;
-                officialFileRef.current = { fileName: profile.fileName, file, width: dims.width, height: dims.height };
-                setOfficialLogoAvailable(true);
-                setBrandLogo({
-                    id: OFFICIAL_LOGO_ID,
-                    fileName: profile.fileName,
-                    previewUrl,
-                    ...(dims.width > 0 ? { width: dims.width, height: dims.height } : {}),
-                    file,
-                });
-            } catch {
-                // 프리필 실패는 조용히 스킵 — 수동 업로드 경로 유지
-            }
-        };
-        void prefill();
+        if (!prefillPromiseRef.current) {
+            prefillPromiseRef.current = (async () => {
+                const profile = await usersClientAPI.getProfileLogo();
+                if (!profile) return null;
+                try {
+                    const response = await fetch(profile.signedUrl);
+                    if (!response.ok) return null;
+                    const blob = await response.blob();
+                    if (!blob.type.startsWith('image/') || blob.size > OFFICIAL_LOGO_MAX_BYTES) return null;
+                    const file = new File([blob], profile.fileName, { type: blob.type });
+                    const previewUrl = URL.createObjectURL(file);
+                    const dims = await new Promise<{ width: number; height: number }>((resolve) => {
+                        const image = new Image();
+                        image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+                        image.onerror = () => resolve({ width: 0, height: 0 });
+                        image.src = previewUrl;
+                    });
+                    return { fileName: profile.fileName, file, width: dims.width, height: dims.height };
+                } catch {
+                    // 프리필 실패는 조용히 스킵 — 수동 업로드 경로 유지
+                    return null;
+                }
+            })();
+        }
+        prefillPromiseRef.current.then((cached) => {
+            if (cancelled || !cached) return;
+            officialFileRef.current = cached;
+            setOfficialLogoAvailable(true);
+            setBrandLogo({
+                id: OFFICIAL_LOGO_ID,
+                fileName: cached.fileName,
+                previewUrl: URL.createObjectURL(cached.file),
+                ...(cached.width > 0 ? { width: cached.width, height: cached.height } : {}),
+                file: cached.file,
+            });
+        });
         return () => {
             cancelled = true;
         };
