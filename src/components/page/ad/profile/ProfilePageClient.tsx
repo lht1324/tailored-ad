@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Calendar, CreditCard, Images, ImagePlus, Loader2, Mail, Receipt, User as UserIcon, X } from "lucide-react";
@@ -51,6 +51,7 @@ function ProfilePageClient() {
     const [billingError, setBillingError] = useState(false);
     const [officialLogo, setOfficialLogo] = useState<ProfileLogo | null>(null);
     const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+    const [isDraggingLogo, setIsDraggingLogo] = useState(false);
     const [logoError, setLogoError] = useState<string | null>(null);
     const logoInputRef = useRef<HTMLInputElement>(null);
 
@@ -184,6 +185,21 @@ function ProfilePageClient() {
             setIsUploadingLogo(false);
         }
     }, [isUploadingLogo]);
+
+    const onDragOverLogo = useCallback((event: DragEvent<HTMLDivElement>) => {
+        event.preventDefault();
+        setIsDraggingLogo(true);
+    }, []);
+
+    const onDragLeaveLogo = useCallback(() => {
+        setIsDraggingLogo(false);
+    }, []);
+
+    const onDropLogo = useCallback((event: DragEvent<HTMLDivElement>) => {
+        event.preventDefault();
+        setIsDraggingLogo(false);
+        void onSelectLogoFile(event.dataTransfer.files?.[0] ?? null);
+    }, [onSelectLogoFile]);
 
     const onConfirmChangePlan = useCallback(async (newPlan: PaidPlan): Promise<boolean> => {
         const ok = await dodoClientAPI.changePlan(newPlan);
@@ -331,45 +347,63 @@ function ProfilePageClient() {
                     <p className="mb-6 text-sm leading-relaxed text-text2">
                         Prefilled as the brand logo in Create. Transparent PNG works best.
                     </p>
-                    <div className="flex flex-wrap items-center gap-6">
+                    <div
+                        onDragOver={onDragOverLogo}
+                        onDragLeave={onDragLeaveLogo}
+                        onDrop={onDropLogo}
+                        className={`rounded-xl transition-shadow ${isDraggingLogo ? 'shadow-[0_0_0_2px_rgba(var(--accent),0.5)]' : ''}`}
+                    >
                         {officialLogo ? (
-                            <div className="relative h-20 w-20 overflow-hidden rounded-xl border border-hairline bg-canvas">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={officialLogo.signedUrl} alt={officialLogo.fileName} className="h-full w-full object-contain" />
+                            <div className="flex flex-wrap items-center gap-6">
+                                <div className="relative h-20 w-20 overflow-hidden rounded-xl border border-hairline bg-canvas">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={officialLogo.signedUrl} alt={officialLogo.fileName} className="h-full w-full object-contain" />
+                                </div>
+                                <div className="flex min-w-0 flex-1 flex-col gap-3">
+                                    <p className="truncate text-sm font-medium text-text1">{officialLogo.fileName}</p>
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <button
+                                            onClick={() => logoInputRef.current?.click()}
+                                            disabled={isUploadingLogo}
+                                            className="flex items-center gap-2 rounded-xl bg-text1 px-5 py-2.5 text-sm font-bold text-canvas transition-opacity hover:opacity-90 disabled:opacity-50"
+                                        >
+                                            {isUploadingLogo && <Loader2 size={14} className="animate-spin" />}
+                                            <span>Replace</span>
+                                        </button>
+                                        <button
+                                            onClick={onClickRemoveLogo}
+                                            disabled={isUploadingLogo}
+                                            className="flex items-center gap-2 rounded-xl border border-hairline px-5 py-2.5 text-sm font-medium text-text2 transition-colors hover:border-red-500/20 hover:bg-red-500/10 hover:text-red-500 disabled:opacity-50"
+                                        >
+                                            <X size={14} />
+                                            <span>Remove</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         ) : (
-                            <div className="flex h-20 w-20 items-center justify-center rounded-xl border border-dashed border-hairline bg-canvas">
-                                <ImagePlus size={24} className="text-text2" />
-                            </div>
-                        )}
-                        <div className="flex min-w-0 flex-1 flex-col gap-3">
-                            {officialLogo && (
-                                <p className="truncate text-sm font-medium text-text1">{officialLogo.fileName}</p>
-                            )}
-                            <div className="flex flex-wrap items-center gap-3">
-                                <button
-                                    onClick={() => logoInputRef.current?.click()}
-                                    disabled={isUploadingLogo}
-                                    className="flex items-center gap-2 rounded-xl bg-text1 px-5 py-2.5 text-sm font-bold text-canvas transition-opacity hover:opacity-90 disabled:opacity-50"
-                                >
-                                    {isUploadingLogo && <Loader2 size={14} className="animate-spin" />}
-                                    <span>{officialLogo ? 'Replace' : 'Upload'}</span>
-                                </button>
-                                {officialLogo && (
-                                    <button
-                                        onClick={onClickRemoveLogo}
-                                        disabled={isUploadingLogo}
-                                        className="flex items-center gap-2 rounded-xl border border-hairline px-5 py-2.5 text-sm font-medium text-text2 transition-colors hover:border-red-500/20 hover:bg-red-500/10 hover:text-red-500 disabled:opacity-50"
-                                    >
-                                        <X size={14} />
-                                        <span>Remove</span>
-                                    </button>
+                            <button
+                                type="button"
+                                onClick={() => logoInputRef.current?.click()}
+                                disabled={isUploadingLogo}
+                                className={`flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-10 transition-colors disabled:opacity-50 ${
+                                    isDraggingLogo ? 'border-accent bg-accent/5' : 'border-hairline hover:border-text2/50'
+                                }`}
+                            >
+                                {isUploadingLogo ? (
+                                    <Loader2 className="h-5 w-5 animate-spin text-text2" />
+                                ) : (
+                                    <ImagePlus className="h-5 w-5 text-text2" strokeWidth={1.8} />
                                 )}
-                            </div>
-                            {logoError && (
-                                <p className="text-[12px] font-medium text-red-500">{logoError}</p>
-                            )}
-                        </div>
+                                <span className="text-[13px] text-text2">
+                                    Drop logo or <span className="text-text1 underline underline-offset-2">browse</span>
+                                </span>
+                                <span className="text-[11px] text-text2/60">JPG, PNG, WebP · up to 10 MB</span>
+                            </button>
+                        )}
+                        {logoError && (
+                            <p className="mt-3 text-[12px] font-medium text-red-500">{logoError}</p>
+                        )}
                     </div>
                     <input
                         ref={logoInputRef}
