@@ -47,6 +47,8 @@ function ProfilePageClient() {
     const [isCanceling, setIsCanceling] = useState(false);
     const [revertTarget, setRevertTarget] = useState<'plan-change' | 'cancellation' | null>(null);
     const [isReverting, setIsReverting] = useState(false);
+    /** 결제 조회 실패 여부 — 실패(null 아님)와 구독 없음(null)을 구분 */
+    const [billingError, setBillingError] = useState(false);
     const [officialLogo, setOfficialLogo] = useState<ProfileLogo | null>(null);
     const [isUploadingLogo, setIsUploadingLogo] = useState(false);
     const [logoError, setLogoError] = useState<string | null>(null);
@@ -57,14 +59,20 @@ function ProfilePageClient() {
     }, []);
 
     const loadBilling = useCallback(async (email: string) => {
-        const [orders, subscription] = await Promise.all([
-            dodoClientAPI.getOrders(email),
-            dodoClientAPI.getSubscription(email),
-        ]);
-        setOrderList((orders ?? []).sort((a, b) => {
-            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        }));
-        setSubscriptionData(subscription);
+        try {
+            const [orders, subscription] = await Promise.all([
+                dodoClientAPI.getOrders(email),
+                dodoClientAPI.getSubscription(email),
+            ]);
+            setOrderList((orders ?? []).sort((a, b) => {
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            }));
+            setSubscriptionData(subscription);
+            setBillingError(false);
+        } catch (error) {
+            console.error("Error loading billing data:", error);
+            setBillingError(true);
+        }
     }, []);
 
     const loadAllData = useCallback(async () => {
@@ -84,6 +92,10 @@ function ProfilePageClient() {
             setIsLoading(false);
         }
     }, [supabaseUser, userEmail, loadBilling]);
+
+    const onRetryBilling = useCallback(() => {
+        void loadAllData();
+    }, [loadAllData]);
 
     useEffect(() => {
         if (isInitializingAuthContext) return;
@@ -309,8 +321,10 @@ function ProfilePageClient() {
                     </div>
                 </div>
 
+                {/* Official logo + Billing — 2열 (모바일 스택) */}
+                <div className="mb-6 grid grid-cols-1 items-stretch gap-6 md:grid-cols-2">
                 {/* Official logo */}
-                <div className="mb-6 rounded-2xl border border-hairline bg-surface/60 p-8">
+                <div className="flex flex-col justify-center rounded-2xl border border-hairline bg-surface/60 p-8">
                     <h3 className="mb-2 text-sm font-semibold tracking-wider text-text1 uppercase">
                         Official logo
                     </h3>
@@ -370,8 +384,21 @@ function ProfilePageClient() {
                 </div>
 
                 {/* Subscription */}
-                {subscriptionData ? (
-                    <div className="mb-6 rounded-2xl border border-hairline bg-surface/60 p-8">
+                {billingError && !subscriptionData ? (
+                    <div className="flex flex-col justify-center rounded-2xl border border-hairline bg-surface/60 p-8 text-center">
+                        <h3 className="mb-2 text-xl font-bold">Could not load billing</h3>
+                        <p className="mb-6 text-sm leading-relaxed text-text2">
+                            Your subscription info is temporarily unavailable. Your images are safe.
+                        </p>
+                        <button
+                            onClick={onRetryBilling}
+                            className="w-full rounded-xl bg-text1 py-3 text-sm font-bold text-canvas transition-opacity hover:opacity-90"
+                        >
+                            Retry
+                        </button>
+                    </div>
+                ) : subscriptionData ? (
+                    <div className="rounded-2xl border border-hairline bg-surface/60 p-8">
                         <h3 className="mb-6 text-sm font-semibold tracking-wider text-text1 uppercase">
                             Subscription
                         </h3>
@@ -442,8 +469,8 @@ function ProfilePageClient() {
                             )}
                         </div>
                     </div>
-                ) : (
-                    <div className="mb-6 rounded-2xl border border-hairline bg-surface/60 p-8 text-center">
+                ) : currentPaidPlan ? null : (
+                    <div className="flex flex-col justify-center rounded-2xl border border-hairline bg-surface/60 p-8 text-center">
                         <h3 className="mb-2 text-xl font-bold">Upgrade Now</h3>
                         <p className="mb-6 text-sm leading-relaxed text-text2">
                             Get monthly images that never expire. Every batch is quality-gated.
@@ -456,6 +483,7 @@ function ProfilePageClient() {
                         </button>
                     </div>
                 )}
+                </div>
 
                 {/* Payment History */}
                 {orderList.length > 0 && (

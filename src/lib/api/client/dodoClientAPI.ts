@@ -39,32 +39,23 @@ export const dodoClientAPI = {
         }
     },
 
-    async getOrders(email: string): Promise<OrderData[] | null> {
-        try {
-            const response = await getFetch(`/api/dodo/orders?email=${encodeURIComponent(email)}`);
-            const result = await response.json();
-            if (!result.success || !result.data?.orderList) {
-                throw new Error(result.error ?? 'Failed to fetch orders');
-            }
-            return result.data.orderList as OrderData[];
-        } catch (error) {
-            console.error('Error fetching Dodo orders:', error);
-            return null;
+    async getOrders(email: string): Promise<OrderData[]> {
+        const response = await getFetch(`/api/dodo/orders?email=${encodeURIComponent(email)}`);
+        const result = await response.json();
+        if (!result.success || !result.data?.orderList) {
+            throw new Error(result.error ?? 'Failed to fetch orders');
         }
+        return result.data.orderList as OrderData[];
     },
 
+    /** 실패 시 throw — 구독 없음은 null (정상), 실패와 구분됨 */
     async getSubscription(email: string): Promise<SubscriptionData | null> {
-        try {
-            const response = await getFetch(`/api/dodo/subscriptions?email=${encodeURIComponent(email)}`);
-            const result = await response.json();
-            if (!result.success) {
-                throw new Error(result.error ?? 'Failed to fetch subscription');
-            }
-            return (result.data?.subscriptionData ?? null) as SubscriptionData | null;
-        } catch (error) {
-            console.error('Error fetching Dodo subscription:', error);
-            return null;
+        const response = await getFetch(`/api/dodo/subscriptions?email=${encodeURIComponent(email)}`);
+        const result = await response.json();
+        if (!result.success) {
+            throw new Error(result.error ?? 'Failed to fetch subscription');
         }
+        return (result.data?.subscriptionData ?? null) as SubscriptionData | null;
     },
 
     async changePlan(newPlan: DodoPaidPlan): Promise<boolean> {
