@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-10-04 03:57)
+# TailoredAd — 작업 기록 (Last Updated: 2026-10-10 02:00)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -28,7 +28,7 @@
    + `replicateInputMapper.ts` (모델별 input 조립 — `ReplicateModelId` enum + 1:1 switch)
 - `context/AuthContext.tsx`, 전역 레이아웃/globals
 - **세션 중 추가**: `proxy.ts` (로그인 가드), `app/api/client-gateway/` (C2S→S2S),
-  `app/api/user/[userId]/` (GET+PATCH, S2S+IDOR 가드), `public/logo/logo-64.png`,
+  `app/api/user/[userId]/` (GET+PATCH, S2S+IDOR 가드), `public/logo/` (logo.svg+32/64/180/512),
    `lib/replicateRateLimit.ts`, `lib/colorUtils.ts`, `lib/textMeasure.ts`,
    `lib/imageResize.ts` (참조 다운스케일 — Generate 시점 긴 변 1024px),
    `lib/billing.ts` (기본 quota 50 + KST 월경계 — 무료/무이력 폴백용으로 유지),
@@ -621,6 +621,20 @@
   Pricing Settings 지시 (10-04): Adaptive 통화 OFF (코드 USD 고정과 중복이라 혼란 방지) ·
   PPP OFF (145원 같은 이상 금액 원인, $19 균일가 정책) · 매력 가격 OFF · 3D Secure OFF (전환율).
   잔량: E2E 1건 (USD 확인) + Profile 5종 실측.
+- **브랜드 로고 확정·배치** (10-09/10, develop — 미배포):
+  Recraft `recraft-v4.1-svg`로 생성 (3번안: 조리개+크롭프레임, 타일형 `#EF2B70`+흰 glyph).
+  Ideogram v3-quality는 탈락 (`app icon` 프롬프트가 장면 목업을 유도, 배경 제거 불가).
+  gotcha 2개: (1) `style_type: Design`+`style_preset` 병용 금지 (프리셋은 AUTO/GENERAL만).
+  (2) `resolution`은 `None`+`aspect_ratio` 조합 (Flux식 `2K` 넣으면 invalid).
+  SVG 후처리: 흰 모서리 4조각 삭제 + 핑크 정사각→둥근 사각형(rx 460) + `#EF2B70` 통일 +
+  c2pa 메타 삭제 → `logo.svg` (5.6KB) + PNG 32/64/180/512 (rsvg-convert,
+  RGBA·모서리 alpha 0·중앙 #EF2B70 실측). dark 변형 없음 (타일형이라 공용).
+  `components/public/BrandMark.tsx` 신설 (16px 초과는 64파일 — 레티나 뭉개짐 수정) +
+  AdHeader·AppHeader 24px + AdFooter 22px + AuthForm 기존 유지 +
+  `layout.tsx` icons (파비콘 32·애플터치 180). tsc 깨끗 (`.next` stale 제외).
+- **ThemeToggle hydration 수정** (10-10, develop):
+  `useState` initializer가 localStorage를 읽어 dark 보유 시 서버 HTML과 불일치 → 크래시.
+  초기값 라이트 고정 + 마운트 후 effect 반영으로 이관.
 - [ ] **결제사 확정 후 코드 이식**: Polar 구조 복사 (체크아웃·웹훅·grant 3점, 수일 규모).
   Paddle 심사 결과 보고 결정 (LS 대기·Creem 탈락). 지금이 제일 쌀 때 (고객 생기면 마이그레이션 지옥).
 - [x] 프롬프트 컴포지션 1순위 (구조만 — 바이트 동일 검증, 푸시됨)
@@ -629,6 +643,8 @@
 - [x] 파이프라인 정합 1차 (prompt 항상 base · process 분기 · 함수改名 · RPC error 제거 — 완료)
 - [ ] **Bria 테스트 돌리기** (다음 1순위 — ratios 확장 실측, 가격 확인, Sync/webhook 정합)
 - [x] **FLUX 3 전환** (10-04 — base PoC 통과·매퍼 교체·Seedream 삭제, develop. ratios BRIA 유지).
+- [x] 브랜드 로고 배치 (10-10 — 생성·투명화·4사이즈·헤더/푸터/파비콘, develop. eyeball 대기).
+- [x] ThemeToggle hydration 수정 (10-10 — effect 이관, develop).
 - [ ] **HeroWall 잘림·저화질 체감** (09-22 신규 — 원인 1차 특정):
   `public/` hero 6종이 1:1 구버전이라 4:5 프레임에서 좌우 크롭 ("om Noise", "till Fighting").
   `landing-final/`에 4:5 WebP 준비됨 → `public/preview/` 덮어쓰기 대기 (사장님 작업).

@@ -4,6 +4,7 @@ import { memo, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import ProfileMenu from "@/components/page/ad/app-header/ProfileMenu";
+import BrandMark from "@/components/public/BrandMark";
 import ThemeToggle from "@/components/page/ad/public/ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
 import { usersClientAPI, type UserUsageSummary } from "@/lib/api/client/usersClientAPI";
@@ -39,6 +40,7 @@ function AppHeader({ onUsageLoaded }: { onUsageLoaded?: () => void }) {
         <header className="fixed inset-x-0 top-4 z-50 px-4">
             <nav className="mx-auto flex max-w-[87.5rem] items-center justify-between rounded-full border border-hairline bg-surface/70 py-2 pl-5 pr-2 backdrop-blur-xl">
                 <Link href="/" className="flex items-center gap-2.5">
+                    <BrandMark size={24} />
                     <span className="text-[15px] font-bold tracking-tight text-text1">TailoredAd</span>
                 </Link>
 
