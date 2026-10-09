@@ -1,8 +1,7 @@
 import { NextRequest } from "next/server";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
-import { adImageServerAPI, AD_IMAGE_STORAGE_BUCKET } from "@/lib/api/server/ad/imageServerAPI";
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/supabaseServiceRole";
+import { adImageServerAPI } from "@/lib/api/server/ad/imageServerAPI";
 
 const ACCEPTED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 const MAX_LOGO_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -19,18 +18,12 @@ async function requireUserId(request: NextRequest): Promise<string | null> {
     return request.nextUrl.searchParams.get('userId');
 }
 
-/** 기존 공식 로고 파일명(brand_logo.*) 목록 — 확장자 변경 시 구파일 잔류 방지용 */
-async function listExistingLogoNames(userId: string): Promise<string[]> {
-    const supabase = await createSupabaseServiceRoleClient();
-    const { data: files, error } = await supabase.storage
-        .from(AD_IMAGE_STORAGE_BUCKET)
-        .list(`${userId}/profile`, { limit: 10 });
-    if (error) {
-        throw new Error(`Failed to list profile folder: ${error.message}`);
-    }
-    return (files ?? [])
-        .filter((f) => f.name.startsWith('brand_logo.'))
-        .map((f) => `${userId}/profile/${f.name}`);
+/** 기존 공식 로고 키(brand_logo.*) 목록 — 확장자 변경 시 구파일 잔류 방지용 */
+async function listExistingLogoKeys(userId: string): Promise<string[]> {
+    const names = await adImageServerAPI.listKeys(`${userId}/profile/`);
+    return names
+        .filter((name) => name.startsWith('brand_logo.'))
+        .map((name) => `${userId}/profile/${name}`);
 }
 
 /**
@@ -49,7 +42,7 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        const existing = await listExistingLogoNames(userId);
+        const existing = await listExistingLogoKeys(userId);
         const logoFile = existing[0]?.split('/').pop();
         if (!logoFile) {
             return getNextBaseResponse({
@@ -130,27 +123,17 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        const supabase = await createSupabaseServiceRoleClient();
-        const existing = await listExistingLogoNames(userId);
+        const existing = await listExistingLogoKeys(userId);
         if (existing.length > 0) {
-            const { error: removeError } = await supabase.storage
-                .from(AD_IMAGE_STORAGE_BUCKET)
-                .remove(existing);
-            if (removeError) {
-                throw new Error(`Failed to remove previous logo: ${removeError.message}`);
-            }
+            await adImageServerAPI.deleteKeys(existing);
         }
 
         const fileName = `brand_logo.${imageFileExtension}`;
         const filePath = `${userId}/profile/${fileName}`;
-        const { error: uploadError } = await supabase.storage
-            .from(AD_IMAGE_STORAGE_BUCKET)
-            .upload(filePath, await file.arrayBuffer(), {
-                contentType: file.type,
-                upsert: true,
-            });
-        if (uploadError) {
-            throw new Error(`Failed to upload logo: ${uploadError.message}`);
+        try {
+            await adImageServerAPI.uploadObject(filePath, await file.arrayBuffer(), file.type);
+        } catch (uploadError) {
+            throw new Error(`Failed to upload logo: ${uploadError instanceof Error ? uploadError.message : 'unknown'}`);
         }
 
         const signedUrl = await adImageServerAPI.getProfileBrandLogoSignedUrl(userId, imageFileExtension);
@@ -188,15 +171,9 @@ export async function DELETE(request: NextRequest) {
     }
 
     try {
-        const supabase = await createSupabaseServiceRoleClient();
-        const existing = await listExistingLogoNames(userId);
+        const existing = await listExistingLogoKeys(userId);
         if (existing.length > 0) {
-            const { error: removeError } = await supabase.storage
-                .from(AD_IMAGE_STORAGE_BUCKET)
-                .remove(existing);
-            if (removeError) {
-                throw new Error(`Failed to remove logo: ${removeError.message}`);
-            }
+            await adImageServerAPI.deleteKeys(existing);
         }
 
         return getNextBaseResponse({

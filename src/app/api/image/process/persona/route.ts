@@ -5,10 +5,8 @@ import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { internalFireAndForgetFetch } from "@/lib/utils/internalFetch";
 import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatchServerAPI";
 import {
-    AD_IMAGE_STORAGE_BUCKET,
     adImageServerAPI,
 } from "@/lib/api/server/ad/imageServerAPI";
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/supabaseServiceRole";
 
 /**
  * 페르소나 후처리 — 웹훅 배달부(webhook/.../persona)에서 전달받아 실행.
@@ -104,7 +102,6 @@ export async function POST(request: NextRequest) {
         const fileExtension = adImageServerAPI.inferFileExtension(contentType, outputUrl);
         const filePath = `${batch.user_id}/${batchId}/person_image.${fileExtension}`;
 
-        const supabase = await createSupabaseServiceRoleClient();
         const uploadContentType = fileExtension === 'jpeg'
             ? 'image/jpeg'
             : fileExtension === 'png'
@@ -113,19 +110,15 @@ export async function POST(request: NextRequest) {
                     ? 'image/webp'
                     : `image/${fileExtension}`;
 
-        const { error: uploadError } = await supabase.storage
-            .from(AD_IMAGE_STORAGE_BUCKET)
-            .upload(filePath, imageBuffer, {
-                contentType: uploadContentType,
-                upsert: true,
-            });
-
-        if (uploadError) {
-            await failBatch(`Supabase Storage upload failed: ${uploadError.message}`);
+        try {
+            await adImageServerAPI.uploadObject(filePath, imageBuffer, uploadContentType);
+        } catch (uploadError) {
+            const message = `Storage upload failed (${filePath}): ${uploadError instanceof Error ? uploadError.message : 'unknown'}`;
+            await failBatch(message);
             return getNextBaseResponse({
                 success: false,
                 status: 500,
-                error: `Supabase Storage upload failed (${filePath}): ${uploadError.message}`
+                error: message,
             });
         }
 

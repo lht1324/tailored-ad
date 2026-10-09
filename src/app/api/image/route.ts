@@ -19,9 +19,8 @@ import { NextRequest } from "next/server";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { internalFireAndForgetFetch } from "@/lib/utils/internalFetch";
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/supabaseServiceRole";
 import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatchServerAPI";
-import { AD_IMAGE_STORAGE_BUCKET } from "@/lib/api/server/ad/imageServerAPI";
+import { adImageServerAPI } from "@/lib/api/server/ad/imageServerAPI";
 import { usersServerAPI } from "@/lib/api/server/usersServerAPI";
 import { usageServerAPI } from "@/lib/api/server/usageServerAPI";
 import {
@@ -223,7 +222,6 @@ export async function POST(request: NextRequest) {
 
         // 원본 이미지 업로드 — batch 생성과 같은 요청 안에서, specs 출발 전에.
         // 실제 저장 확장자(MIME 기준)로 DB 기록을 정정해 조회 경로 일치를 보장한다.
-        const supabase = await createSupabaseServiceRoleClient();
         const recordKey: Record<"product" | "person" | "brand_logo", "product_image" | "person_image" | "brand_logo"> = {
             product: "product_image",
             person: "person_image",
@@ -238,14 +236,10 @@ export async function POST(request: NextRequest) {
             const ext = getExtensionFromFile(file);
             const filePath = `${userId}/${createdAdGenerationBatch.id}/${key}_image.${ext}`;
             const arrayBuffer = await file.arrayBuffer();
-            const { error: uploadError } = await supabase.storage
-                .from(AD_IMAGE_STORAGE_BUCKET)
-                .upload(filePath, arrayBuffer, {
-                    contentType: file.type,
-                    upsert: true,
-                });
-            if (uploadError) {
-                throw new Error(`Failed to upload ${key} image: ${uploadError.message}`);
+            try {
+                await adImageServerAPI.uploadObject(filePath, arrayBuffer, file.type);
+            } catch (uploadError) {
+                throw new Error(`Failed to upload ${key} image: ${uploadError instanceof Error ? uploadError.message : 'unknown'}`);
             }
             const declared = key === "brand_logo"
                 ? body.brandLogo?.imageFileExtension

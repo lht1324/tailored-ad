@@ -1,4 +1,4 @@
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/supabaseServiceRole";
+import { r2ServerAPI } from "@/lib/r2";
 import {
     AdGenerationBatch,
     AdRatioKey,
@@ -6,7 +6,9 @@ import {
 
 /**
  * ad 이미지 Storage 헬퍼 — 원본(product/person/brand_logo) 및 결과 이미지의
- * 규칙 경로 조립과 signed URL 발급을 담당한다.
+ * 규칙 경로 조립과 서명 URL 발급을 담당한다.
+ *
+ * 저장소는 R2 (S3 규격, private 버킷). 서명 URL 만료 24시간 — Supabase 시절과 동일.
  *
  * 경로 규칙 (DB 저장 없이 규칙으로 재조립):
  *  - 입력:  {user_id}/{batch_id}/{product|person|brand_logo}_image.{imageFileExtension}
@@ -52,11 +54,10 @@ function getBatchBrandLogoPath(
 
 export const adImageServerAPI = {
     /**
-     * 원본(product/person) 참조 이미지 signed URL 목록.
+     * 원본(product/person) 참조 이미지 서명 URL 목록.
      * 존재하는 컴포넌트만 포함 — 둘 다 없으면 빈 배열.
      */
     async getAdOriginalImageSignedUrls(batch: AdGenerationBatch): Promise<string[]> {
-        const supabase = await createSupabaseServiceRoleClient();
         const signedUrls: string[] = [];
 
         const components: Array<{ name: "product" | "person"; record: AdGenerationBatch["product_image"] }> = [
@@ -76,25 +77,21 @@ export const adImageServerAPI = {
                 component.record.imageFileExtension,
             );
 
-            const { data, error } = await supabase.storage
-                .from(AD_IMAGE_STORAGE_BUCKET)
-                .createSignedUrl(filePath, 60 * 60 * 24);
-
-            if (error || !data?.signedUrl) {
+            try {
+                signedUrls.push(await r2ServerAPI.presignGet(filePath));
+            } catch (error) {
                 throw new Error(
-                    `Failed to create signed URL for ${component.name} image (${filePath}): ${error?.message ?? "no signedUrl"}`,
+                    `Failed to create signed URL for ${component.name} image (${filePath}): ${error instanceof Error ? error.message : "presign failed"}`,
                 );
             }
-
-            signedUrls.push(data.signedUrl);
         }
 
         return signedUrls;
     },
 
     /**
-     * 결과 이미지 1장의 signed URL — 확장자는 RPC 마커(imageFileExtension)에서 얻는다.
-     * transform 지정 시 Supabase image transformation URL로 발급 (표시용 경량본).
+     * 결과 이미지 1장의 서명 URL — 확장자는 RPC 마커(imageFileExtension)에서 얻는다.
+     * transform은 Supabase 시절 잔재 (쿼터 고갈로 미사용 중). R2+Transformations 붙일 때 부활.
      * 미지정 시 원본 (다운로드·에디터·파이프라인용).
      */
     async getAdResultImageSignedUrl(
@@ -105,20 +102,16 @@ export const adImageServerAPI = {
         imageFileExtension: string,
         transform?: { width?: number; height?: number; quality?: number; resize?: 'cover' | 'contain' | 'fill' },
     ): Promise<string> {
-        const supabase = await createSupabaseServiceRoleClient();
+        void transform;
         const filePath = getAdResultImagePath(userId, batchId, creativeIndex, ratioKey, imageFileExtension);
 
-        const { data, error } = await supabase.storage
-            .from(AD_IMAGE_STORAGE_BUCKET)
-            .createSignedUrl(filePath, 60 * 60 * 24, transform ? { transform } : undefined);
-
-        if (error || !data?.signedUrl) {
+        try {
+            return await r2ServerAPI.presignGet(filePath);
+        } catch (error) {
             throw new Error(
-                `Failed to create signed URL for result image (${filePath}): ${error?.message ?? "no signedUrl"}`,
+                `Failed to create signed URL for result image (${filePath}): ${error instanceof Error ? error.message : "presign failed"}`,
             );
         }
-
-        return data.signedUrl;
     },
 
     /** 규칙 경로 노출 (테스트·디버깅용) */
@@ -127,41 +120,50 @@ export const adImageServerAPI = {
     getProfileBrandLogoPath,
     getBatchBrandLogoPath,
 
+    /** 업로드 — upsert 고정 */
+    async uploadObject(key: string, data: ArrayBuffer | Uint8Array, contentType: string): Promise<void> {
+        await r2ServerAPI.putObject(key, data, contentType);
+    },
+
+    /** prefix 아래 키 목록 */
+    async listKeys(prefix: string): Promise<string[]> {
+        return r2ServerAPI.listKeys(prefix);
+    },
+
+    /** 삭제 — 빈 배열이면 no-op */
+    async deleteKeys(keys: string[]): Promise<void> {
+        await r2ServerAPI.deleteKeys(keys);
+    },
+
     /**
-     * 프로필 기본 로고 signed URL — {user_id}/profile/brand_logo.{ext}
+     * 프로필 기본 로고 서명 URL — {user_id}/profile/brand_logo.{ext}
      */
     async getProfileBrandLogoSignedUrl(
         userId: string,
         imageFileExtension: string,
     ): Promise<string> {
-        const supabase = await createSupabaseServiceRoleClient();
         const filePath = getProfileBrandLogoPath(userId, imageFileExtension);
-        const { data, error } = await supabase.storage
-            .from(AD_IMAGE_STORAGE_BUCKET)
-            .createSignedUrl(filePath, 60 * 60 * 24);
-        if (error || !data?.signedUrl) {
-            throw new Error(`Failed to create signed URL for profile brand logo (${filePath}): ${error?.message ?? "no signedUrl"}`);
+        try {
+            return await r2ServerAPI.presignGet(filePath);
+        } catch (error) {
+            throw new Error(`Failed to create signed URL for profile brand logo (${filePath}): ${error instanceof Error ? error.message : "presign failed"}`);
         }
-        return data.signedUrl;
     },
 
     /**
-     * 배치 로고 signed URL — {user_id}/{batch_id}/brand_logo_image.{ext}
+     * 배치 로고 서명 URL — {user_id}/{batch_id}/brand_logo_image.{ext}
      */
     async getBatchBrandLogoSignedUrl(
         userId: string,
         batchId: string,
         imageFileExtension: string,
     ): Promise<string> {
-        const supabase = await createSupabaseServiceRoleClient();
         const filePath = getBatchBrandLogoPath(userId, batchId, imageFileExtension);
-        const { data, error } = await supabase.storage
-            .from(AD_IMAGE_STORAGE_BUCKET)
-            .createSignedUrl(filePath, 60 * 60 * 24);
-        if (error || !data?.signedUrl) {
-            throw new Error(`Failed to create signed URL for batch brand logo (${filePath}): ${error?.message ?? "no signedUrl"}`);
+        try {
+            return await r2ServerAPI.presignGet(filePath);
+        } catch (error) {
+            throw new Error(`Failed to create signed URL for batch brand logo (${filePath}): ${error instanceof Error ? error.message : "presign failed"}`);
         }
-        return data.signedUrl;
     },
 
     /**

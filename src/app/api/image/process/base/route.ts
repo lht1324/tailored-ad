@@ -5,10 +5,8 @@ import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { internalFireAndForgetFetch } from "@/lib/utils/internalFetch";
 import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatchServerAPI";
 import {
-    AD_IMAGE_STORAGE_BUCKET,
     adImageServerAPI,
 } from "@/lib/api/server/ad/imageServerAPI";
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/supabaseServiceRole";
 import { usageServerAPI } from "@/lib/api/server/usageServerAPI";
 import { AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { selectBaseRatio } from "@/lib/api/server/ad/creativeCombinationSampler";
@@ -180,7 +178,6 @@ export async function POST(request: NextRequest) {
             fileExtension,
         );
 
-        const supabase = await createSupabaseServiceRoleClient();
         const uploadContentType = fileExtension === 'jpeg'
             ? 'image/jpeg'
             : fileExtension === 'png'
@@ -189,15 +186,10 @@ export async function POST(request: NextRequest) {
                     ? 'image/webp'
                     : `image/${fileExtension}`;
 
-        const { error: uploadError } = await supabase.storage
-            .from(AD_IMAGE_STORAGE_BUCKET)
-            .upload(filePath, imageBuffer, {
-                contentType: uploadContentType,
-                upsert: true,
-            });
-
-        if (uploadError) {
-            throw new Error(`Supabase Storage upload failed (${filePath}): ${uploadError.message}`);
+        try {
+            await adImageServerAPI.uploadObject(filePath, imageBuffer, uploadContentType);
+        } catch (uploadError) {
+            throw new Error(`Storage upload failed (${filePath}): ${uploadError instanceof Error ? uploadError.message : 'unknown'}`);
         }
 
         // 과금 원장 — 저장 확정분만 1줄. 중복 무시, 실패는 로그 후 계속 (유저 플로우 보호)
