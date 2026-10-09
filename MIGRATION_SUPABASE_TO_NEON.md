@@ -61,6 +61,47 @@
   - 이미지 동등성 육안 확인.
   - Realtime 진행 표시 확인.
 
+  ## 진행 상태 (2026-10-10 05:27, develop `ad4e55d` 푸시됨)
+
+  - [x] Neon 프로젝트 (Singapore) + production/development 브랜치 + Neon Auth ON.
+  - [x] `neon` CLI 전역 설치 + login + skills/MCP + link (production) + `neon.ts` (auth:true) + deploy.
+  - [x] DB 스키마·함수·데이터 → development 브랜치 완료 (테이블 4종, 함수 3종, 건수 2/65/14/278 대조됨).
+    파일: `db/neon/01_schema.sql`, `02_functions.sql`, `03_verify.sql`.
+  - [x] Storage 코드 → R2 (S3 규격, private + presigned URL). `src/lib/r2.ts` 신규.
+    키 규칙 그대로라 호출부 변경 0. `@aws-sdk/client-s3 ^3.1128.0` +
+    `@aws-sdk/s3-request-presigner ^3.1128.0` (package.json).
+  - [x] 기존 파일 459건(754MB) R2 업로드 완료 (`{user_id}/…` 키 그대로, 실패 0).
+  - [x] R2 읽기 검증: Projects 화면 썸네일 정상 (DB는 Supabase, 이미지는 R2 혼합 상태).
+  - [ ] DB 코드 교체 (다음 작업, 아래 인수인계 참조).
+  - [ ] R2 쓰기 검증: Create 1건 생성 → 표시 (미실시).
+  - [ ] Realtime, Auth, Transformations (미착수).
+
+  ## 인수인계 — DB 코드 교체 (supabase-js → drizzle/Neon)
+
+  - 범위: 데이터 호출만. 서버 4곳 (`usersServerAPI`, `usageServerAPI`,
+    `adGenerationBatchServerAPI`, `proxy.ts` 39행 plan 조회 1건).
+    Auth·Realtime·클라 supabase 호출은 손대지 않는다.
+    직접 `.from(` 쓰는 곳은 위 4곳뿐 (나머지는 이 모듈 경유).
+  - RPC 3종은 Neon에 이식済み → drizzle `sql`로 함수 직접 호출, 로직 그대로.
+    데드 2종 이식 불필요 (`increment_user_credit` — DB에 없음+호출자 없음,
+    `update_creative_reframe_outputs` — 호출자 없음).
+    `prompt_outputs`는 코드가 쓰는 오버로드 1개만 이식됨
+    (`p_creative_prompt`+`p_base_ratio`).
+  - 패키지: `drizzle-orm ^0.45.3` + `@neondatabase/serverless ^1.1.0`
+    (최신 확인済み, package.json 미반영 — 추가 후 사장이 `npm install`).
+  - 드라이버: `drizzle-orm/neon-http` + serverless `neon()` (fetch 기반,
+    middleware/edge 포함 전역 동작. WS 드라이버 불필요).
+  - 새 파일: `src/lib/db/neon.ts` (싱글톤) + `src/lib/db/schema.ts` (4 테이블,
+    `db/neon/01_schema.sql`과 1:1).
+  - env: `NEON_DATABASE_URL` (development, pooled) `.env.local`에 추가 필요.
+    production 값(`DATABASE_URL`)과 혼동 금지 — 코드는 development를 본다.
+    취득: `neon connection-string development` (pooled 기본).
+  - `proxy.ts` plan 조회는 Auth가 Supabase인 동안 user.id 그대로 사용 가능
+    (UUID 동일). Auth 전환 전까지 유효.
+  - 선행작업 아님: `usageServerAPI`·`usersServerAPI`·`adGenerationBatchServerAPI`
+    전문은 이미 읽음 (호출 시그니처 유지, 내부만 교체).
+  - 검증: staging 풀사이클 E2E (가입→결제→생성→Profile) + 크레딧 diff 0.
+
   ## 비용 요약
 
   | 항목 | 초기 | 트래픽 후 |

@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-10-10 02:00)
+# TailoredAd — 작업 기록 (Last Updated: 2026-10-10 05:27)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -753,5 +753,31 @@ npm run deploy   # opennext build + deploy (master에서)
   변환: `ffmpeg -i in.png -c:v libwebp -quality 85 -preset photo out.webp` (장당 24~115KB).
   원본 PNG군은 `/home/jaeho/다운로드/tailored-portfolio/landing-final/` 보관.
 - 커밋 완료 (09-23): `public/preview` 19종 + HeroWall/HeroSection/PortfolioSection + finals.zip 개명 — `3dd11eb` 푸시됨.
+
+## 12. Supabase → Neon + R2 마이그레이션 세션 (10-09/10, develop — DB 코드 교체 직전)
+
+> 상세 계획: `MIGRATION_SUPABASE_TO_NEON.md` (상태·인수인계 포함). 이 섹션은 요약만.
+
+- **확정 스코프**: DB→Neon, Auth→Neon Auth(ON済み), Storage→R2, Realtime→Upstash pub/sub+SSE.
+  cli R2 전환은 별도 탭 (여기 범위 밖).
+- **Neon**: Singapore `divine-sea-22567219`, production + development 브랜치.
+  `neon` CLI 전역 설치·login·link(production)·`neon.ts`(auth:true)·deploy 완료.
+- **DB 이관 완료** (development 브랜치): 테이블 4종 + 함수 3종 + 데이터 2/65/14/278 대조됨.
+  `db/neon/01_schema.sql`·`02_functions.sql`·`03_verify.sql`.
+  데드 제외 2종: `increment_user_credit` (DB에 없음+호출자 없음),
+  `update_creative_reframe_outputs` (호출자 없음).
+  중복 유니크는 1개씩만 생성. FK 없음. `user_id` 인덱스 원본부터 없음 (미러 유지).
+- **Storage 코드 R2 이식 완료** (`ad4e55d` 푸시됨): `src/lib/r2.ts` 신규 (S3 규격, private+presign 24h).
+  키 규칙 그대로라 호출부 변경 0. Replicate가 서명 URL 직접 읽어서 presign 유지 (버킷 공개 불필요).
+  `@aws-sdk/client-s3 ^3.1128.0` + `@aws-sdk/s3-request-presigner ^3.1128.0`
+  (실설치 3.984.0/3.1148.0 — 동작 무영향).
+  transform은 이미 꺼져 있어서(쿼터 고갈) 동등 작업 없음. R2+Transformations는 후순위 enhancement.
+- **기존 파일 459건(754MB) R2 업로드 완료** (실패 0, 카운트 대조됨).
+- **R2 읽기 검증됨**: Projects 썸네일 정상 (DB Supabase + 이미지 R2 혼합).
+- **다음 작업 (인수인계)**: DB 코드 교체 — `MIGRATION_SUPABASE_TO_NEON.md` 인수인계 섹션 참조.
+  한 줄 요약: 서버 4곳만 drizzle 교체 + 패키지 2종 추가(사장 `npm install`) +
+  `NEON_DATABASE_URL`(development pooled) env 추가. Auth·Realtime 손대지 않음.
+- **미커밋 주의**: 없음 (BrandMark 180 상향은 사장님 직접 수정 — 이번 커밋에 포함).
+  `package-lock.json`은 사장 `npm install` 결과물이라 이번 커밋에 포함.
 
 (End of file)
