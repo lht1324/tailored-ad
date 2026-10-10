@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-10-10 16:21)
+# TailoredAd — 작업 기록 (Last Updated: 2026-10-10 20:54)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -783,8 +783,14 @@ npm run deploy   # opennext build + deploy (master에서)
   패키지 `drizzle-orm ^0.45.3` + `@neondatabase/serverless ^1.2.0` (사장님 설치済み).
   데이터 실측 일치 (2/65/14/278). 잔재: Supabase Auth + Realtime 5곳
   (쓰기가 Neon으로 가서 실시간 갱신 안 옴 — 수동 Refresh·폴백만 동작, Upstash 이관까지).
-- **다음 작업**: staging E2E 1건 (생성→크레딧 diff 0→eyeball. Realtime은 수동 갱신으로 확인) —
-  상세 절차는 `MIGRATION_SUPABASE_TO_NEON.md` 참조.
+- **Realtime Upstash 이관 완료** (10-10, develop — 파이프 검증済み, 테스트 UI 제거済み):
+  Supabase channel() 5곳 → `useBatchEvents` 훅 + `GET /api/events`(SSE) + Upstash Streams.
+  REST는 SUBSCRIBE 불가라 Streams+XADD/XRANGE(1.5초 폴링, ~30초 후 재연결) 조합.
+  발행점은 서버 API 내부 (grant→grants, batch post/patch→batches+batch, user patch→user, fail-soft).
+  gotcha 2개: (1) Upstash REST는 `data`를 객체로 파싱해서 줌 (문자열 가정 파서 전량 스킵 — 양쪽 흡수).
+  (2) XRANGE 시작 커서는 inclusive라 커서 자신 제외 (아니면 매 틱 중복 배달).
+  검증은 dev 전용 `RealtimeTestPanel`+`/api/events/test`로 1클릭 1줄 확인 후 둘 다 삭제.
+  tsc·eslint 깨끗. 잔재: Supabase Auth만.
   한 줄 요약: 서버 4곳만 drizzle 교체 + 패키지 2종 추가(사장 `npm install`) +
   env는 확정됨 (`NEON_DATABASE_URL`·`UNPOOLED` = development `ep-lucky-fire-b3xre8la`,
   旧 production 쌍에서 교체済み, Auth URL도 development값으로 교체済み).

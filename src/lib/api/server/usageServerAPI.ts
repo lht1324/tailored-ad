@@ -1,5 +1,6 @@
 import { and, count, desc, eq } from "drizzle-orm";
 import { getNeonDb, isNeonUniqueViolation, neonErrorMessage } from "@/lib/db/neon";
+import { publishUserEvent } from "@/lib/batchEvents";
 import { subscriptionGrants, usageLedger } from "@/lib/db/schema";
 import { User } from "@/lib/api/types/supabase/Users";
 
@@ -73,6 +74,8 @@ export const usageServerAPI = {
             if (isNeonUniqueViolation(error)) return 'duplicate';
             throw new Error(`Failed to record grant: ${neonErrorMessage(error)}`);
         }
+        // 적립 알림 (결제 성공 화면) — fail-soft
+        void publishUserEvent(record.userId, 'grants');
         return 'recorded';
     },
 

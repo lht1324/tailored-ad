@@ -1,5 +1,6 @@
 import { desc, eq, sql } from "drizzle-orm";
 import { getNeonDb, neonErrorMessage } from "@/lib/db/neon";
+import { publishBatchWrite } from "@/lib/batchEvents";
 import { adGenerationBatches } from "@/lib/db/schema";
 import {
     AdBatchStatus,
@@ -26,7 +27,10 @@ export const adGenerationBatchServerAPI = {
                 throw new Error('No row returned.');
             }
 
-            return row as unknown as AdGenerationBatch;
+            const created = row as unknown as AdGenerationBatch;
+            // 생성 알림 (목록·상세) — fail-soft
+            void publishBatchWrite(created.id, created.user_id);
+            return created;
         } catch (error) {
             throw new Error(`Failed to create ad generation batch: ${neonErrorMessage(error)}`);
         }
@@ -68,7 +72,10 @@ export const adGenerationBatchServerAPI = {
                 throw new Error('No matching row.');
             }
 
-            return row as unknown as AdGenerationBatch;
+            const updated = row as unknown as AdGenerationBatch;
+            // 변경 알림 (목록·상세·에디터) — fail-soft
+            void publishBatchWrite(updated.id, updated.user_id);
+            return updated;
         } catch (error) {
             throw new Error(`Failed to update ad generation batch: ${neonErrorMessage(error)}`);
         }

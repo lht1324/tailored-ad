@@ -3,6 +3,7 @@
 import React, {createContext, useCallback, useContext, useEffect, useState} from 'react'
 import { User as SupabaseUser, Session } from '@supabase/supabase-js'
 import { User } from '@/lib/api/types/supabase/Users'
+import { useBatchEvents } from "@/components/public/useBatchEvents";
 import {usersClientAPI} from "@/lib/api/client/usersClientAPI";
 import {createBrowserClient} from "@supabase/ssr";
 
@@ -115,31 +116,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [fetchUserProfile, isInitialized]);
 
-    // Users 테이블 실시간 구독
-    useEffect(() => {
-        if (!user?.id) return;
-
-        const channel = supabase
-            .channel(`user-${user.id}`)
-            .on(
-                'postgres_changes',
-                {
-                    event: 'UPDATE',
-                    schema: 'public',
-                    table: 'users',
-                    filter: `id=eq.${user.id}`,
-                },
-                (payload) => {
-                    setUser(payload.new as User);
-                }
-            )
-            .subscribe(() => {
-            });
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [user?.id]);
+    // Users 변경 알림 — 플랜 동기화 등 서버 쓰기 시 프로필 강제 재조회 (Realtime 대체)
+    // fetchUserProfile은 동일 ID면 캐시를 돌려줘서 직접 조회한다
+    useBatchEvents({
+        userId: user?.id,
+        onEvent: (event) => {
+            if (event.type !== 'user' || !user?.id) return;
+            const userId = user.id;
+            void usersClientAPI.getUserByUserId(userId).then((profile) => setUser(profile));
+        },
+    });
 
     const value: AuthContextType = {
         user: user,

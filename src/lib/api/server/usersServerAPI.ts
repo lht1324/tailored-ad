@@ -1,6 +1,7 @@
 import {User} from "@/lib/api/types/supabase/Users";
 import { eq } from "drizzle-orm";
 import { getNeonDb } from "@/lib/db/neon";
+import { publishUserEvent } from "@/lib/batchEvents";
 import { users } from "@/lib/db/schema";
 
 /** undefined 값 제거 — drizzle이 DEFAULT를 쓰게 (Supabase는 undefined를 무시했음) */
@@ -52,7 +53,10 @@ export const usersServerAPI = {
             if (!row) {
                 throw new Error('No matching row.');
             }
-            return row as unknown as User;
+            const updated = row as unknown as User;
+            // 플랜 동기화 알림 (AuthContext user 스트림) — fail-soft
+            void publishUserEvent(userId, 'user');
+            return updated;
         } catch (error) {
             console.error('Error updating user:', error);
             return null;

@@ -4,11 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FolderOpen, Loader2, Plus, RefreshCw } from 'lucide-react';
 import AppHeader from "@/components/page/ad/app-header/AppHeader";
+import { useAuth } from "@/context/AuthContext";
+import { useBatchEvents } from "@/components/public/useBatchEvents";
 import ProjectCard from "@/components/page/ad/projects/components/ProjectCard";
 import { adProjectClientAPI } from "@/lib/api/client/ad/adProjectClientAPI";
 import { AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { buildProjectImageUrl } from "@/lib/projectImageUrl";
-import { supabase } from "@/lib/supabase/supabaseClient";
 
 type FilterKey = 'all' | 'running' | 'completed';
 
@@ -24,6 +25,7 @@ function isRunningStatus(status: string): boolean {
 
 export default function ProjectsPageClient() {
     const router = useRouter();
+    const { supabaseUser } = useAuth();
     const [projects, setProjects] = useState<AdGenerationBatch[]>([]);
     const [thumbnailCreativeIndexes, setThumbnailCreativeIndexes] = useState<Record<string, number>>({});
     const [thumbnailRatioKeys, setThumbnailRatioKeys] = useState<Record<string, AdRatioKey>>({});
@@ -69,49 +71,14 @@ export default function ProjectsPageClient() {
         };
     }, [fetchProjects]);
 
-    // Realtime 구독 — running 여부에 관계없이 변경 시 리스트를 패치 (폴링 제거, 끊기면 Refresh 버튼으로 수동 갱신)
-    // StrictMode 이중 마운트로 인한 "cannot add postgres_changes after subscribe" 방지: 채널명에 랜덤 suffix
+    // 변경 알림 — 내 배치 변경 시 리스트 재조회 (Realtime 대체, 끊기면 Refresh 버튼으로 수동 갱신)
     // 썸네일은 최고점 1장의 signedUrl이라 UPDATE 시 재조회로 갱신 필요
-    useEffect(() => {
-        let channel: ReturnType<typeof supabase.channel> | null = null;
-
-        (async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-
-            channel = supabase
-                .channel(`ad-batches-list-${user.id}-${Math.random().toString(36).slice(2, 6)}`)
-                .on(
-                    'postgres_changes',
-                    { event: '*', schema: 'public', table: 'ad_generation_batches', filter: `user_id=eq.${user.id}` },
-                    (payload) => {
-                        if (payload.eventType === 'INSERT') {
-                            setProjects((prev) => [payload.new as AdGenerationBatch, ...prev]);
-                        } else if (payload.eventType === 'UPDATE') {
-                            // 최고점 썸네일이 바뀔 수 있어 전체 재조회로 signedUrl 갱신
-                            fetchProjects(true);
-                        } else if (payload.eventType === 'DELETE') {
-                            setProjects((prev) => prev.filter((p) => p.id !== (payload.old as AdGenerationBatch).id));
-                            setThumbnailCreativeIndexes((prev) => {
-                                const next = { ...prev };
-                                delete next[(payload.old as AdGenerationBatch).id];
-                                return next;
-                            });
-                            setThumbnailRatioKeys((prev) => {
-                                const next = { ...prev };
-                                delete next[(payload.old as AdGenerationBatch).id];
-                                return next;
-                            });
-                        }
-                    },
-                )
-                .subscribe();
-        })();
-
-        return () => {
-            if (channel) supabase.removeChannel(channel);
-        };
-    }, [fetchProjects]);
+    useBatchEvents({
+        userId: supabaseUser?.id,
+        onEvent: (event) => {
+            if (event.type === 'batches') void fetchProjects(true);
+        },
+    });
 
     const onClickRefresh = useCallback(() => {
         fetchProjects(true);

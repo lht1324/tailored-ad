@@ -61,7 +61,7 @@
   - 이미지 동등성 육안 확인.
   - Realtime 진행 표시 확인.
 
-  ## 진행 상태 (2026-10-10 05:27, develop `ad4e55d` 푸시됨)
+  ## 진행 상태 (2026-10-10, develop — Realtime 이관 완료)
 
   - [x] Neon 프로젝트 (Singapore) + production/development 브랜치 + Neon Auth ON.
   - [x] `neon` CLI 전역 설치 + login + skills/MCP + link (production) + `neon.ts` (auth:true) + deploy.
@@ -72,9 +72,13 @@
     `@aws-sdk/s3-request-presigner ^3.1128.0` (package.json).
   - [x] 기존 파일 459건(754MB) R2 업로드 완료 (`{user_id}/…` 키 그대로, 실패 0).
   - [x] R2 읽기 검증: Projects 화면 썸네일 정상 (DB는 Supabase, 이미지는 R2 혼합 상태).
-  - [ ] DB 코드 교체 (다음 작업, 아래 인수인계 참조).
+  - [x] DB 코드 교체: 서버 3곳 drizzle 교체 (`src/lib/db/neon.ts` + `schema.ts`),
+    `patchUserCreditCountByUserId` 삭제 (호출자 0). `proxy.ts` 무변경.
+  - [x] Realtime → Upstash Streams + SSE (`src/lib/batchEvents.ts` +
+    `GET /api/events` + `useBatchEvents`, channel() 5곳 교체, 발행점 3모듈).
+    REST SUBSCRIBE 불가라 Streams+XADD/XRANGE 조합. dev 테스트 UI로 검증 후 삭제.
   - [ ] R2 쓰기 검증: Create 1건 생성 → 표시 (미실시).
-  - [ ] Realtime, Auth, Transformations (미착수).
+  - [ ] Auth, Transformations (미착수).
 
   ## 인수인계 — DB 코드 교체 (supabase-js → drizzle/Neon)
 

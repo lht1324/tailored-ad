@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Check, Download, Loader2 } from 'lucide-react';
 import AppHeader from "@/components/page/ad/app-header/AppHeader";
+import { useAuth } from "@/context/AuthContext";
+import { useBatchEvents } from "@/components/public/useBatchEvents";
 import AssetTree, { type AssetTreeCreative } from "@/components/page/ad/projects/[projectId]/edit/AssetTree";
 import Inspector, { type EditorCopy } from "@/components/page/ad/projects/[projectId]/edit/Inspector";
 import type { AdStillInput } from "@/components/page/ad/projects/[projectId]/edit/AdStillComposition";
@@ -17,7 +19,6 @@ import { buildProjectImageUrl } from "@/lib/projectImageUrl";
 import { patchFetch } from "@/lib/api/client/baseFetch";
 import { AdCreativeResult, AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import type { AdDesignLayout } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
-import { supabase } from "@/lib/supabase/supabaseClient";
 
 const EditorCanvas = dynamic(
     () => import("@/components/page/ad/projects/[projectId]/edit/EditorCanvas"),
@@ -109,30 +110,16 @@ export default function EditorPageClient() {
         };
     }, [fetchProject]);
 
-    // Realtime — 파이프라인 잔여 업데이트 반영 (편집 중 덮어쓰기 주의: running 배치는 저장 잠금)
-    useEffect(() => {
-        if (status !== 'ready') return;
-        let cancelled = false;
-        let channel: ReturnType<typeof supabase.channel> | null = null;
-        (async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (cancelled || !user) return;
-            channel = supabase
-                .channel(`ad-edit-${projectId}-${Math.random().toString(36).slice(2, 6)}`)
-                .on(
-                    'postgres_changes',
-                    { event: '*', schema: 'public', table: 'ad_generation_batches', filter: `id=eq.${projectId}` },
-                    () => {
-                        fetchProject();
-                    },
-                )
-                .subscribe();
-        })();
-        return () => {
-            cancelled = true;
-            if (channel) supabase.removeChannel(channel);
-        };
-    }, [projectId, status, fetchProject]);
+    // 변경 알림 — 파이프라인 잔여 업데이트 반영 (Realtime 대체, 편집 중 덮어쓰기 주의: running 배치는 저장 잠금)
+    const { supabaseUser: editorUser } = useAuth();
+    useBatchEvents({
+        userId: editorUser?.id,
+        batchIds: [projectId],
+        enabled: status === 'ready',
+        onEvent: (event) => {
+            if (event.type === 'batch' || event.type === 'batches') void fetchProject();
+        },
+    });
 
     // Esc — 팝오버 닫기
     useEffect(() => {

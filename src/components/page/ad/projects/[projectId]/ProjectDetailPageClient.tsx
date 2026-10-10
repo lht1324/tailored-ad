@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, AlertTriangle, CheckCircle2, Clock, Layers, Loader2, Palette, Pencil, RefreshCw } from 'lucide-react';
 import AppHeader from "@/components/page/ad/app-header/AppHeader";
+import { useAuth } from "@/context/AuthContext";
+import { useBatchEvents } from "@/components/public/useBatchEvents";
 import CreativeRow from "@/components/page/ad/projects/[projectId]/components/CreativeRow";
 import AdLightboxModal from "@/components/page/ad/projects/[projectId]/components/AdLightboxModal";
 import DownloadMenuButton from "@/components/page/ad/projects/[projectId]/components/DownloadMenuButton";
@@ -14,7 +16,6 @@ import { adProjectClientAPI, getProjectProgress } from "@/lib/api/client/ad/adPr
 import { buildProjectImageUrl } from "@/lib/projectImageUrl";
 import { AdCreativeResult, AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import { AdDesignLayout } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
-import { supabase } from "@/lib/supabase/supabaseClient";
 
 type DetailStatus = 'loading' | 'ready' | 'error';
 
@@ -118,36 +119,17 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
         return project.status !== 'completed' && project.status !== 'failed';
     }, [project]);
 
-    // Realtime 구독 — 해당 batch의 변경 시 즉시 갱신 (폴링 제거, 끊기면 Refresh 버튼으로 수동 갱신)
-    // StrictMode 이중 마운트 충돌 방지: 채널명 랜덤 suffix, 세션 확보 후 구독(RLS)
-    useEffect(() => {
-        if (status !== 'ready') return;
-
-        let cancelled = false;
-        let channel: ReturnType<typeof supabase.channel> | null = null;
-
-        (async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (cancelled || !user) return;
-
-            channel = supabase
-                .channel(`ad-batch-${projectId}-${Math.random().toString(36).slice(2, 6)}`)
-                .on(
-                    'postgres_changes',
-                    { event: '*', schema: 'public', table: 'ad_generation_batches', filter: `id=eq.${projectId}` },
-                    () => {
-                        // payload.new에는 메타만 있고 signedUrls는 서버에서 재계산해야 하므로 전체 fetch
-                        fetchProject(true);
-                    },
-                )
-                .subscribe();
-        })();
-
-        return () => {
-            cancelled = true;
-            if (channel) supabase.removeChannel(channel);
-        };
-    }, [projectId, status, fetchProject]);
+    // 변경 알림 — 해당 batch 변경 시 즉시 갱신 (Realtime 대체, 끊기면 Refresh 버튼으로 수동 갱신)
+    // payload에는 메타만 있고 signedUrls는 서버에서 재계산해야 하므로 전체 fetch
+    const { supabaseUser: detailUser } = useAuth();
+    useBatchEvents({
+        userId: detailUser?.id,
+        batchIds: [projectId],
+        enabled: status === 'ready',
+        onEvent: (event) => {
+            if (event.type === 'batch' || event.type === 'batches') void fetchProject(true);
+        },
+    });
 
     const progress = useMemo(() => {
         if (!project) return null;
