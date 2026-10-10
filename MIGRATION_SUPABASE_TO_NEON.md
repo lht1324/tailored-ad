@@ -77,8 +77,12 @@
   - [x] Realtime → Upstash Streams + SSE (`src/lib/batchEvents.ts` +
     `GET /api/events` + `useBatchEvents`, channel() 5곳 교체, 발행점 3모듈).
     REST SUBSCRIBE 불가라 Streams+XADD/XRANGE 조합. dev 테스트 UI로 검증 후 삭제.
+  - [x] Auth → Managed Better Auth (`@neondatabase/auth@0.5.0-beta`,
+    세션→email 매핑, callback find-or-create, proxy는 `src/`에).
+    E2E 통과 (Google 로그인·행 재사용·잔액·리다이렉트). Supabase 잔재 전량 삭제.
   - [ ] R2 쓰기 검증: Create 1건 생성 → 표시 (미실시).
-  - [ ] Auth, Transformations (미착수).
+  - [ ] Transformations (미착수).
+  - [ ] prod 컷오버 (GitHub provider + trusted domains + Secrets 정리 후).
 
   ## 인수인계 — DB 코드 교체 (supabase-js → drizzle/Neon)
 
