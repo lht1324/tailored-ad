@@ -93,9 +93,12 @@
     middleware/edge 포함 전역 동작. WS 드라이버 불필요).
   - 새 파일: `src/lib/db/neon.ts` (싱글톤) + `src/lib/db/schema.ts` (4 테이블,
     `db/neon/01_schema.sql`과 1:1).
-  - env: `NEON_DATABASE_URL` (development, pooled) `.env.local`에 추가 필요.
-    production 값(`DATABASE_URL`)과 혼동 금지 — 코드는 development를 본다.
-    취득: `neon connection-string development` (pooled 기본).
+  - env 확정 (10-10): `NEON_DATABASE_URL` (development pooled) +
+    `NEON_DATABASE_URL_UNPOOLED` (development direct, drizzle-kit용).
+    旧 `DATABASE_URL` 쌍은 production (`ep-falling-butterfly-b3x9wevp`)이라 교체됨.
+    현 값은 development (`ep-lucky-fire-b3xre8la`, pooled/direct 쌍).
+    Auth URL (`NEON_AUTH_*`)도 브랜치 종속이라 development 값으로 교체됨 (동일 호스트 `neonauth`).
+    앱 코드는 pooled만 사용, Workers에는 `NEON_DATABASE_URL`만 등록 (UNPOOLED 불필요).
   - `proxy.ts` plan 조회는 Auth가 Supabase인 동안 user.id 그대로 사용 가능
     (UUID 동일). Auth 전환 전까지 유효.
   - 선행작업 아님: `usageServerAPI`·`usersServerAPI`·`adGenerationBatchServerAPI`

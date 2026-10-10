@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-10-10 05:27)
+# TailoredAd — 작업 기록 (Last Updated: 2026-10-10 16:21)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -774,9 +774,21 @@ npm run deploy   # opennext build + deploy (master에서)
   transform은 이미 꺼져 있어서(쿼터 고갈) 동등 작업 없음. R2+Transformations는 후순위 enhancement.
 - **기존 파일 459건(754MB) R2 업로드 완료** (실패 0, 카운트 대조됨).
 - **R2 읽기 검증됨**: Projects 썸네일 정상 (DB Supabase + 이미지 R2 혼합).
-- **다음 작업 (인수인계)**: DB 코드 교체 — `MIGRATION_SUPABASE_TO_NEON.md` 인수인계 섹션 참조.
+- **DB 코드 교체 완료** (10-10, develop — tsc 깨끗, E2E 대기):
+  `src/lib/db/neon.ts` (neon-http 싱글톤, `NEON_DATABASE_URL`) +
+  `src/lib/db/schema.ts` (`01_schema.sql` 1:1 미러, timestamptz는 ISO 문자열 계약 유지) +
+  3모듈 내부 교체 (users·usage·batches, 시그니처·에러문·duplicate 판정 유지, RPC 3종 `sql` 호출).
+  `patchUserCreditCountByUserId` 삭제 (호출자 0 + DB 함수 없음).
+  `proxy.ts`는 손대지 않음 (plan 조회 없음 — 계획서 기재는 stale).
+  패키지 `drizzle-orm ^0.45.3` + `@neondatabase/serverless ^1.2.0` (사장님 설치済み).
+  데이터 실측 일치 (2/65/14/278). 잔재: Supabase Auth + Realtime 5곳
+  (쓰기가 Neon으로 가서 실시간 갱신 안 옴 — 수동 Refresh·폴백만 동작, Upstash 이관까지).
+- **다음 작업**: staging E2E 1건 (생성→크레딧 diff 0→eyeball. Realtime은 수동 갱신으로 확인) —
+  상세 절차는 `MIGRATION_SUPABASE_TO_NEON.md` 참조.
   한 줄 요약: 서버 4곳만 drizzle 교체 + 패키지 2종 추가(사장 `npm install`) +
-  `NEON_DATABASE_URL`(development pooled) env 추가. Auth·Realtime 손대지 않음.
+  env는 확정됨 (`NEON_DATABASE_URL`·`UNPOOLED` = development `ep-lucky-fire-b3xre8la`,
+  旧 production 쌍에서 교체済み, Auth URL도 development값으로 교체済み).
+  Auth·Realtime 손대지 않음.
 - **미커밋 주의**: 없음 (BrandMark 180 상향은 사장님 직접 수정 — 이번 커밋에 포함).
   `package-lock.json`은 사장 `npm install` 결과물이라 이번 커밋에 포함.
 

@@ -1,4 +1,6 @@
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/supabaseServiceRole";
+import { and, count, desc, eq } from "drizzle-orm";
+import { getNeonDb, isNeonUniqueViolation, neonErrorMessage } from "@/lib/db/neon";
+import { subscriptionGrants, usageLedger } from "@/lib/db/schema";
 import { User } from "@/lib/api/types/supabase/Users";
 
 /**
@@ -40,83 +42,94 @@ export interface GrantRecord {
 export const usageServerAPI = {
     // 원장 기록 — 중복(웹훅 재시도)은 무시, 그 외 실패는 throw
     async recordImageUsage(record: UsageRecord): Promise<'recorded' | 'duplicate'> {
-        const supabase = await createSupabaseServiceRoleClient();
-        const { error } = await supabase.from('usage_ledger').insert({
-            user_id: record.userId,
-            batch_id: record.batchId,
-            creative_index: record.creativeIndex,
-            ratio_key: record.ratioKey,
-        });
-        if (error) {
-            if (error.code === '23505') return 'duplicate';
-            throw new Error(`Failed to record image usage: ${error.message}`);
+        const db = await getNeonDb();
+        try {
+            await db.insert(usageLedger).values({
+                user_id: record.userId,
+                batch_id: record.batchId,
+                creative_index: record.creativeIndex,
+                ratio_key: record.ratioKey,
+            });
+        } catch (error) {
+            if (isNeonUniqueViolation(error)) return 'duplicate';
+            throw new Error(`Failed to record image usage: ${neonErrorMessage(error)}`);
         }
         return 'recorded';
     },
 
     // 부여 기록 — append-only. 동일(구독, 사이클, 사유) 중복은 무시, 그 외 실패는 throw
     async recordGrant(record: GrantRecord): Promise<'recorded' | 'duplicate'> {
-        const supabase = await createSupabaseServiceRoleClient();
-        const { error } = await supabase.from('subscription_grants').insert({
-            user_id: record.userId,
-            polar_subscription_id: record.polarSubscriptionId,
-            cycle_start: record.cycleStart,
-            cycle_end: record.cycleEnd,
-            granted: record.granted,
-            reason: record.reason,
-        });
-        if (error) {
-            if (error.code === '23505') return 'duplicate';
-            throw new Error(`Failed to record grant: ${error.message}`);
+        const db = await getNeonDb();
+        try {
+            await db.insert(subscriptionGrants).values({
+                user_id: record.userId,
+                polar_subscription_id: record.polarSubscriptionId,
+                cycle_start: record.cycleStart,
+                cycle_end: record.cycleEnd,
+                granted: record.granted,
+                reason: record.reason,
+            });
+        } catch (error) {
+            if (isNeonUniqueViolation(error)) return 'duplicate';
+            throw new Error(`Failed to record grant: ${neonErrorMessage(error)}`);
         }
         return 'recorded';
     },
 
     async sumGrantedAllTime(userId: string): Promise<{ granted: number; hasHistory: boolean; hasPaid: boolean }> {
-        const supabase = await createSupabaseServiceRoleClient();
-        const { data, error } = await supabase
-            .from('subscription_grants')
-            .select('granted, reason')
-            .eq('user_id', userId);
-        if (error) {
-            throw new Error(`Failed to sum grants: ${error.message}`);
+        const db = await getNeonDb();
+        try {
+            const rows = await db
+                .select({
+                    granted: subscriptionGrants.granted,
+                    reason: subscriptionGrants.reason,
+                })
+                .from(subscriptionGrants)
+                .where(eq(subscriptionGrants.user_id, userId));
+            return {
+                granted: rows.reduce((sum, row) => sum + (row.granted ?? 0), 0),
+                hasHistory: rows.length > 0,
+                hasPaid: rows.some((row) => row.reason === 'subscription' && (row.granted ?? 0) > 0),
+            };
+        } catch (error) {
+            throw new Error(`Failed to sum grants: ${neonErrorMessage(error)}`);
         }
-        const rows = data ?? [];
-        return {
-            granted: rows.reduce((sum, row) => sum + (row.granted ?? 0), 0),
-            hasHistory: rows.length > 0,
-            hasPaid: rows.some((row) => row.reason === 'subscription' && (row.granted ?? 0) > 0),
-        };
     },
 
     async countImagesAllTime(userId: string): Promise<number> {
-        const supabase = await createSupabaseServiceRoleClient();
-        const { count, error } = await supabase
-            .from('usage_ledger')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', userId);
-        if (error) {
-            throw new Error(`Failed to count all-time usage: ${error.message}`);
+        const db = await getNeonDb();
+        try {
+            const rows = await db
+                .select({ value: count() })
+                .from(usageLedger)
+                .where(eq(usageLedger.user_id, userId));
+            return rows[0]?.value ?? 0;
+        } catch (error) {
+            throw new Error(`Failed to count all-time usage: ${neonErrorMessage(error)}`);
         }
-        return count ?? 0;
     },
 
     // 환불 회수용 — 해당 구독의 최신 'subscription' 부여행
     async latestGrantForSubscription(
         polarSubscriptionId: string,
-    ): Promise<{ user_id: string; cycle_start: string; cycle_end: string; granted: number } | null> {        const supabase = await createSupabaseServiceRoleClient();
-        const { data, error } = await supabase
-            .from('subscription_grants')
-            .select('user_id, cycle_start, cycle_end, granted')
-            .eq('polar_subscription_id', polarSubscriptionId)
-            .eq('reason', 'subscription')
-            .order('cycle_start', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-        if (error) {
-            throw new Error(`Failed to fetch latest grant: ${error.message}`);
+    ): Promise<{ user_id: string; cycle_start: string; cycle_end: string; granted: number } | null> {
+        const db = await getNeonDb();
+        try {
+            const rows = await db
+                .select({
+                    user_id: subscriptionGrants.user_id,
+                    cycle_start: subscriptionGrants.cycle_start,
+                    cycle_end: subscriptionGrants.cycle_end,
+                    granted: subscriptionGrants.granted,
+                })
+                .from(subscriptionGrants)
+                .where(eq(subscriptionGrants.polar_subscription_id, polarSubscriptionId))
+                .orderBy(desc(subscriptionGrants.cycle_start))
+                .limit(1);
+            return rows[0] ?? null;
+        } catch (error) {
+            throw new Error(`Failed to fetch latest grant: ${neonErrorMessage(error)}`);
         }
-        return data;
     },
 
     // 사이클 순부여합 — 같은 구독·사이클에 찍힌 전 사유 합 (subscription + upgrade:* − refund).
@@ -125,16 +138,21 @@ export const usageServerAPI = {
         polarSubscriptionId: string,
         cycleStart: string,
     ): Promise<number> {
-        const supabase = await createSupabaseServiceRoleClient();
-        const { data, error } = await supabase
-            .from('subscription_grants')
-            .select('granted')
-            .eq('polar_subscription_id', polarSubscriptionId)
-            .eq('cycle_start', cycleStart);
-        if (error) {
-            throw new Error(`Failed to sum cycle grants: ${error.message}`);
+        const db = await getNeonDb();
+        try {
+            const rows = await db
+                .select({ granted: subscriptionGrants.granted })
+                .from(subscriptionGrants)
+                .where(
+                    and(
+                        eq(subscriptionGrants.polar_subscription_id, polarSubscriptionId),
+                        eq(subscriptionGrants.cycle_start, cycleStart),
+                    ),
+                );
+            return (rows ?? []).reduce((sum, row) => sum + (row.granted ?? 0), 0);
+        } catch (error) {
+            throw new Error(`Failed to sum cycle grants: ${neonErrorMessage(error)}`);
         }
-        return (data ?? []).reduce((sum, row) => sum + (row.granted ?? 0), 0);
     },
 
     // 사용량 상태 — 잔액제 단일. 부여 이력 없으면 trial 10장 lazy 부여 후 잔액제.
@@ -172,16 +190,20 @@ export const usageServerAPI = {
 
     // 첫 유료 여부 — 체크아웃 첫주문 할인 eligibility용 (trial은 유료 아님)
     async hasPaidGrant(userId: string): Promise<boolean> {
-        const supabase = await createSupabaseServiceRoleClient();
-        const { count, error } = await supabase
-            .from('subscription_grants')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', userId)
-            .eq('reason', 'subscription')
-            .limit(1);
-        if (error) {
-            throw new Error(`Failed to check paid grants: ${error.message}`);
+        const db = await getNeonDb();
+        try {
+            const rows = await db
+                .select({ value: count() })
+                .from(subscriptionGrants)
+                .where(
+                    and(
+                        eq(subscriptionGrants.user_id, userId),
+                        eq(subscriptionGrants.reason, 'subscription'),
+                    ),
+                );
+            return (rows[0]?.value ?? 0) > 0;
+        } catch (error) {
+            throw new Error(`Failed to check paid grants: ${neonErrorMessage(error)}`);
         }
-        return (count ?? 0) > 0;
     },
 };

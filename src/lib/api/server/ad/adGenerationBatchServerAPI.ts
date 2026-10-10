@@ -1,49 +1,48 @@
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/supabaseServiceRole";
+import { desc, eq, sql } from "drizzle-orm";
+import { getNeonDb, neonErrorMessage } from "@/lib/db/neon";
+import { adGenerationBatches } from "@/lib/db/schema";
 import {
     AdBatchStatus,
     AdGenerationBatch,
 } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 
 /**
- * ad_generation_batches 전용 서버 API — 서비스 롤 클라이언트로 동작 (내부 파이프라인 전용).
- * videoGenerationTasksServerAPI 관례를 따른다.
+ * ad_generation_batches 전용 서버 API — Neon(drizzle)으로 동작 (내부 파이프라인 전용).
+ * 호출 시그니처·에러 메시지 유지. RPC 3종은 drizzle sql로 함수 직접 호출.
  */
 export const adGenerationBatchServerAPI = {
     // POST - 새 배치 생성
     async postAdGenerationBatch(batchData: Partial<AdGenerationBatch>): Promise<AdGenerationBatch> {
-        const supabase = await createSupabaseServiceRoleClient();
+        const db = await getNeonDb();
 
-        const { data, error } = await supabase
-            .from('ad_generation_batches')
-            .insert(batchData)
-            .select()
-            .single();
+        try {
+            const rows = await db
+                .insert(adGenerationBatches)
+                .values(batchData as typeof adGenerationBatches.$inferInsert)
+                .returning();
 
-        if (error) {
-            throw new Error(`Failed to create ad generation batch: ${error.message}`);
+            const row = rows[0];
+            if (!row) {
+                throw new Error('No row returned.');
+            }
+
+            return row as unknown as AdGenerationBatch;
+        } catch (error) {
+            throw new Error(`Failed to create ad generation batch: ${neonErrorMessage(error)}`);
         }
-
-        return data;
     },
 
     // GET - 배치 ID로 단일 조회
     async getAdGenerationBatchById(batchId: string): Promise<AdGenerationBatch | null> {
-        const supabase = await createSupabaseServiceRoleClient();
+        const db = await getNeonDb();
 
-        const { data, error } = await supabase
-            .from('ad_generation_batches')
-            .select('*')
-            .eq('id', batchId)
-            .single();
+        const rows = await db
+            .select()
+            .from(adGenerationBatches)
+            .where(eq(adGenerationBatches.id, batchId))
+            .limit(1);
 
-        if (error) {
-            if (error.code === 'PGRST116') { // No rows returned
-                return null;
-            }
-            throw new Error(`Failed to get ad generation batch: ${error.message}`);
-        }
-
-        return data;
+        return (rows[0] as unknown as AdGenerationBatch | undefined) ?? null;
     },
 
     // PATCH - 배치 데이터 업데이트 (updated_at 자동 기록)
@@ -51,24 +50,28 @@ export const adGenerationBatchServerAPI = {
         batchId: string,
         patch: Partial<AdGenerationBatch>,
     ): Promise<AdGenerationBatch> {
-        const supabase = await createSupabaseServiceRoleClient();
+        const db = await getNeonDb();
         const currentDateString = new Date().toISOString();
 
-        const { data, error } = await supabase
-            .from('ad_generation_batches')
-            .update({
-                ...patch,
-                updated_at: currentDateString,
-            })
-            .eq('id', batchId)
-            .select()
-            .single();
+        try {
+            const rows = await db
+                .update(adGenerationBatches)
+                .set({
+                    ...patch,
+                    updated_at: currentDateString,
+                } as Partial<typeof adGenerationBatches.$inferInsert>)
+                .where(eq(adGenerationBatches.id, batchId))
+                .returning();
 
-        if (error) {
-            throw new Error(`Failed to update ad generation batch: ${error.message}`);
+            const row = rows[0];
+            if (!row) {
+                throw new Error('No matching row.');
+            }
+
+            return row as unknown as AdGenerationBatch;
+        } catch (error) {
+            throw new Error(`Failed to update ad generation batch: ${neonErrorMessage(error)}`);
         }
-
-        return data;
     },
 
     // GET - 유저별 배치 리스트 (최신순, 페이지네이션)
@@ -76,43 +79,36 @@ export const adGenerationBatchServerAPI = {
         userId: string,
         options?: { limit?: number; offset?: number },
     ): Promise<AdGenerationBatch[]> {
-        const supabase = await createSupabaseServiceRoleClient();
+        const db = await getNeonDb();
         const limit = Math.min(Math.max(options?.limit ?? 20, 1), 50);
         const offset = Math.max(options?.offset ?? 0, 0);
 
-        const { data, error } = await supabase
-            .from('ad_generation_batches')
-            .select('*')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false })
-            .range(offset, offset + limit - 1);
+        const rows = await db
+            .select()
+            .from(adGenerationBatches)
+            .where(eq(adGenerationBatches.user_id, userId))
+            .orderBy(desc(adGenerationBatches.created_at))
+            .limit(limit)
+            .offset(offset);
 
-        if (error) {
-            throw new Error(`Failed to list ad generation batches: ${error.message}`);
-        }
-
-        return (data ?? []) as AdGenerationBatch[];
+        return rows as unknown as AdGenerationBatch[];
     },
 
     // GET - 유저 소유 검증 포함 단일 조회
     async getAdGenerationBatchByIdForUser(batchId: string, userId: string): Promise<AdGenerationBatch | null> {
-        const supabase = await createSupabaseServiceRoleClient();
+        const db = await getNeonDb();
 
-        const { data, error } = await supabase
-            .from('ad_generation_batches')
-            .select('*')
-            .eq('id', batchId)
-            .eq('user_id', userId)
-            .single();
+        const rows = await db
+            .select()
+            .from(adGenerationBatches)
+            .where(eq(adGenerationBatches.id, batchId))
+            .limit(1);
 
-        if (error) {
-            if (error.code === 'PGRST116') {
-                return null;
-            }
-            throw new Error(`Failed to get ad generation batch: ${error.message}`);
+        const row = (rows[0] as unknown as AdGenerationBatch | undefined) ?? null;
+        if (row && row.user_id !== userId) {
+            return null;
         }
-
-        return data;
+        return row;
     },
 
     // PATCH - 상태만 업데이트
@@ -128,18 +124,14 @@ export const adGenerationBatchServerAPI = {
         baseRatio: string,
         copy: { headline: string | null; cta: string | null },
     ): Promise<void> {
-        const supabase = await createSupabaseServiceRoleClient();
+        const db = await getNeonDb();
 
-        const { error } = await supabase.rpc('update_creative_prompt_outputs', {
-            p_batch_id: batchId,
-            p_creative_index: creativeIndex,
-            p_creative_prompt: creativePrompt,
-            p_base_ratio: baseRatio,
-            p_copy: copy,
-        });
-
-        if (error) {
-            throw new Error(`Failed to update creative prompt outputs: ${error.message}`);
+        try {
+            await db.execute(
+                sql`SELECT public.update_creative_prompt_outputs(${batchId}::uuid, ${creativeIndex}, ${creativePrompt}, ${baseRatio}, ${JSON.stringify(copy)}::jsonb)`,
+            );
+        } catch (error) {
+            throw new Error(`Failed to update creative prompt outputs: ${neonErrorMessage(error)}`);
         }
     },
 
@@ -149,16 +141,14 @@ export const adGenerationBatchServerAPI = {
         creativeIndex: number,
         imageResults: Record<string, unknown>,
     ): Promise<void> {
-        const supabase = await createSupabaseServiceRoleClient();
+        const db = await getNeonDb();
 
-        const { error } = await supabase.rpc('update_creative_image_analysis', {
-            p_batch_id: batchId,
-            p_creative_index: creativeIndex,
-            p_image_results: imageResults,
-        });
-
-        if (error) {
-            throw new Error(`Failed to update creative image analysis: ${error.message}`);
+        try {
+            await db.execute(
+                sql`SELECT public.update_creative_image_analysis(${batchId}::uuid, ${creativeIndex}, ${JSON.stringify(imageResults)}::jsonb)`,
+            );
+        } catch (error) {
+            throw new Error(`Failed to update creative image analysis: ${neonErrorMessage(error)}`);
         }
     },
 
@@ -170,28 +160,22 @@ export const adGenerationBatchServerAPI = {
         fileExtension: string | null,
         imageError?: { code: string; message: string } | null,
     ): Promise<{ isLastCreative: boolean; batchCompleted: boolean }> {
-        const supabase = await createSupabaseServiceRoleClient();
+        const db = await getNeonDb();
 
-        const { data, error: rpcError } = await supabase.rpc(
-            'update_creative_image_by_ratio_generation_completed',
-            {
-                p_batch_id: batchId,
-                p_creative_index: creativeIndex,
-                p_ratio_key: ratioKey,
-                p_file_extension: fileExtension,
-                p_error: imageError ?? null,
-            },
-        );
+        try {
+            const res = await db.execute(
+                sql`SELECT public.update_creative_image_by_ratio_generation_completed(${batchId}::uuid, ${creativeIndex}, ${ratioKey}, ${fileExtension}, ${JSON.stringify(imageError ?? null)}::jsonb) AS result`,
+            );
+            const result = (res.rows[0] as unknown as {
+                result?: { isLastCreative?: boolean; batchCompleted?: boolean } | null;
+            } | undefined)?.result;
 
-        if (rpcError) {
-            throw new Error(`Failed to update creative image completion: ${rpcError.message}`);
+            return {
+                isLastCreative: result?.isLastCreative ?? false,
+                batchCompleted: result?.batchCompleted ?? false,
+            };
+        } catch (error) {
+            throw new Error(`Failed to update creative image completion: ${neonErrorMessage(error)}`);
         }
-
-        const result = data as { isLastCreative?: boolean; batchCompleted?: boolean } | null;
-
-        return {
-            isLastCreative: result?.isLastCreative ?? false,
-            batchCompleted: result?.batchCompleted ?? false,
-        };
     },
 };
