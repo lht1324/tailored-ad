@@ -25,7 +25,7 @@ function isRunningStatus(status: string): boolean {
 
 export default function ProjectsPageClient() {
     const router = useRouter();
-    const { supabaseUser } = useAuth();
+    const { user } = useAuth();
     const [projects, setProjects] = useState<AdGenerationBatch[]>([]);
     const [thumbnailCreativeIndexes, setThumbnailCreativeIndexes] = useState<Record<string, number>>({});
     const [thumbnailRatioKeys, setThumbnailRatioKeys] = useState<Record<string, AdRatioKey>>({});
@@ -74,7 +74,7 @@ export default function ProjectsPageClient() {
     // 변경 알림 — 내 배치 변경 시 리스트 재조회 (Realtime 대체, 끊기면 Refresh 버튼으로 수동 갱신)
     // 썸네일은 최고점 1장의 signedUrl이라 UPDATE 시 재조회로 갱신 필요
     useBatchEvents({
-        userId: supabaseUser?.id,
+        userId: user?.id,
         onEvent: (event) => {
             if (event.type === 'batches') void fetchProjects(true);
         },

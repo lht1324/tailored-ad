@@ -121,7 +121,7 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
 
     // 변경 알림 — 해당 batch 변경 시 즉시 갱신 (Realtime 대체, 끊기면 Refresh 버튼으로 수동 갱신)
     // payload에는 메타만 있고 signedUrls는 서버에서 재계산해야 하므로 전체 fetch
-    const { supabaseUser: detailUser } = useAuth();
+    const { user: detailUser } = useAuth();
     useBatchEvents({
         userId: detailUser?.id,
         batchIds: [projectId],

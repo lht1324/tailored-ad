@@ -35,6 +35,23 @@ export const usersClientAPI = {
         }
     },
 
+    // Auth 이관용 — 세션 email로 우리 행 조회 (Better Auth ID는 UUID가 아니라서 ID 직조회 불가)
+    async getUserByEmail(email: string): Promise<User | null> {
+        try {
+            const response = await getFetch(`/api/user/by-email?email=${encodeURIComponent(email)}`);
+            const result = await response.json();
+
+            if (!result.success || !result.data) {
+                throw new Error(result.error ?? 'User not found');
+            }
+
+            return result.data.user;
+        } catch (error) {
+            console.error('Error fetching user by email:', error);
+            return null;
+        }
+    },
+
     async getUserUsageSummary(userId: string): Promise<UserUsageSummary | null> {
         try {
             const response = await getFetch(`/api/user/${userId}`);

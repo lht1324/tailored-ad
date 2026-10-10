@@ -111,7 +111,7 @@ export default function EditorPageClient() {
     }, [fetchProject]);
 
     // 변경 알림 — 파이프라인 잔여 업데이트 반영 (Realtime 대체, 편집 중 덮어쓰기 주의: running 배치는 저장 잠금)
-    const { supabaseUser: editorUser } = useAuth();
+    const { user: editorUser } = useAuth();
     useBatchEvents({
         userId: editorUser?.id,
         batchIds: [projectId],

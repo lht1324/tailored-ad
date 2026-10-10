@@ -1,63 +1,37 @@
 import {NextRequest, NextResponse} from 'next/server'
 import {usersServerAPI} from '@/lib/api/server/usersServerAPI'
-import {createSupabaseServer} from "@/lib/supabase/supabaseServer";
+import { getAuth } from "@/lib/auth/server";
 import {User} from "@/lib/api/types/supabase/Users";
 
+/**
+ * OAuth 귀환 처리 — Managed Auth가 소셜 교환을 끝낸 뒤 여기로 보낸다.
+ * 세션 email 기준 find-or-create (Better Auth ID는 UUID가 아니라 users.id로 못 씀).
+ * 기존 행 재사용이라 잔액·이력·trial 상태가 그대로 이어진다.
+ */
 export async function GET(request: NextRequest) {
-    const supabase = await createSupabaseServer("mutate");
-
     try {
         const { searchParams } = new URL(request.url);
-        const code = searchParams.get('code');
         const redirectTo = searchParams.get('redirectTo');
-        let user: User | null;
 
-        if (code) {
-            const { error } = await supabase.auth.exchangeCodeForSession(code)
+        const auth = await getAuth();
+        const { data: session } = await auth.getSession();
 
-            if (error) {
-                console.error('Auth callback error:', error)
-                // 레이스 폴백: 콜백 중복 호출(flow_state_already_used) 시 첫 호출이 세션을 잡았을 수 있음.
-                // 세션이 살아있으면 에러 페이지 대신 앱으로 보낸다.
-                const { data: { session: racedSession } } = await supabase.auth.getSession()
-                if (racedSession?.user) {
-                    const redirectPath = redirectTo && redirectTo.startsWith("/") ? redirectTo : "/projects"
-                    return NextResponse.redirect(new URL(redirectPath, process.env.NODE_ENV === 'production' ? request.url : "http://localhost:3000"))
-                }
-                throw error;
-            }
+        const authUser = session?.user ?? null;
+        const email = authUser?.email ?? null;
+        if (!authUser || !email) {
+            throw Error("Session is not available");
+        }
 
-            // 세션 정보 가져오기
-            const { data: { session } } = await supabase.auth.getSession()
-
-            if (session?.user) {
-                const userId = session.user.id
-
-                // users 테이블에 사용자 존재 여부 확인
-                const existingUser = await usersServerAPI.getUserByUserId(userId)
-
-                if (existingUser === null) {
-                    // 사용자가 없으면 새로 생성
-                    const fullName = session.user.user_metadata?.full_name as (string | undefined);
-                    const name = session.user.user_metadata?.name as (string | undefined);
-                    const userName = (fullName || name) ?? "";
-
-                    user = await usersServerAPI.postUsers({
-                        id: userId,
-                        email: session.user.email || '',
-                        name: userName,
-                        avatar_url: session.user.user_metadata?.avatar_url || '',
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    })
-                } else {
-                    user = existingUser;
-                }
-            } else {
-                throw Error("Session is not available");
-            }
-        } else {
-            throw Error("Auth callback code is invalid");
+        let user: User | null = await usersServerAPI.getUserByEmail(email);
+        if (user === null) {
+            const userName = authUser.name ?? "";
+            user = await usersServerAPI.postUsers({
+                email,
+                name: userName,
+                avatar_url: authUser.image ?? '',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            });
         }
 
         if (!user) {

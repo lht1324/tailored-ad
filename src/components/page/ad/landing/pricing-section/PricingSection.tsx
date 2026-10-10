@@ -149,7 +149,7 @@ function PricingCard({ plan, busy, showDiscountNote, onClickCheckout }: {
 }
 
 export default function PricingSection() {
-    const { supabaseUser } = useAuth();
+    const { user } = useAuth();
     const router = useRouter();
     const { ready: dodoReady, envError } = useDodo();
     const [busyPlan, setBusyPlan] = useState<PaidPlan | null>(null);
@@ -163,27 +163,27 @@ export default function PricingSection() {
         // 동기 setState는 lint(react-hooks/set-state-in-effect) 위반이라 마이크로태스크로 지연
         void Promise.resolve().then(() => {
             if (!live) return;
-            if (!supabaseUser) {
+            if (!user) {
                 setDiscountEligible(true);
                 return;
             }
-            void usersClientAPI.getUserUsageSummary(supabaseUser.id).then((summary) => {
+            void usersClientAPI.getUserUsageSummary(user.id).then((summary) => {
                 if (live) setDiscountEligible(!!summary && !summary.hasPaid);
             });
         });
         return () => {
             live = false;
         };
-    }, [supabaseUser?.id]);
+    }, [user?.id]);
 
     const onClickCheckout = useCallback(async (plan: Plan) => {
-        if (!supabaseUser) {
+        if (!user) {
             router.push('/sign-in?redirectTo=/#pricing');
             return;
         }
         // 구독 중이면 체크아웃 대신 Projects로 (이중 구독 방지)
         try {
-            const summary = await usersClientAPI.getUserUsageSummary(supabaseUser.id);
+            const summary = await usersClientAPI.getUserUsageSummary(user.id);
             const activePlan = (summary as unknown as { plan?: string | null } | null)?.plan;
             if (activePlan && activePlan !== 'none') {
                 router.push('/projects');
@@ -210,7 +210,7 @@ export default function PricingSection() {
         } finally {
             setBusyPlan(null);
         }
-    }, [supabaseUser, router]);
+    }, [user, router]);
 
     const onCloseInlineModal = useCallback(() => {
         setActiveTx(null);

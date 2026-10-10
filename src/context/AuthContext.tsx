@@ -1,11 +1,10 @@
 'use client'
 
-import React, {createContext, useCallback, useContext, useEffect, useState} from 'react'
-import { User as SupabaseUser, Session } from '@supabase/supabase-js'
+import React, {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react'
 import { User } from '@/lib/api/types/supabase/Users'
+import { authClient } from "@/lib/auth/client";
 import { useBatchEvents } from "@/components/public/useBatchEvents";
 import {usersClientAPI} from "@/lib/api/client/usersClientAPI";
-import {createBrowserClient} from "@supabase/ssr";
 
 export enum OAuthProvider {
     Google = "google",
@@ -14,69 +13,67 @@ export enum OAuthProvider {
 
 interface AuthContextType {
     user: User | null
-    supabaseUser: SupabaseUser | null
-    session: Session | null
     isInitializingAuthContext: boolean
     signInWithOAuth: (provider: OAuthProvider, redirectTo?: string) => Promise<{ error?: string }>
     signOut: () => Promise<void>
     refreshUser: () => Promise<void>
 }
-const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-)
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+    // Better Auth 세션 (auth 테이블 신원) — 우리 users 행과 분리. 매칭은 email로.
+    const { data: session, isPending: isSessionPending } = authClient.useSession();
     const [user, setUser] = useState<User | null>(null)
-    const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null)
-    const [session, setSession] = useState<Session | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
-    const [isInitialized, setIsInitialized] = useState(false)
+    const [profileKnown, setProfileKnown] = useState(false)
+    const lastEmailRef = useRef<string | null>(null);
 
-    // 서버에서 사용자 프로필 가져오기 (중복 호출 방지)
-    const fetchUserProfile = useCallback(async (userId: string) => {
-        // 이미 같은 사용자의 프로필이 있다면 스킵
-        if (user?.id === userId) {
-            return user;
-        }
+    // 세션 email → 우리 users 행 (ID 체계가 달라서 email 매핑. 없으면 null)
+    const loadProfile = useCallback(async (email: string) => {
+        const profile = await usersClientAPI.getUserByEmail(email);
+        setUser(profile);
+        setProfileKnown(true);
+    }, []);
 
-        const result = await usersClientAPI.getUserByUserId(userId);
-        return result;
-    }, [user]);
+    useEffect(() => {
+        if (isSessionPending) return;
+        const email = session?.user?.email ?? null;
+        let cancelled = false;
+        // 동기 setState는 lint(react-hooks/set-state-in-effect) 위반이라 마이크로태스크로 지연
+        void Promise.resolve().then(() => {
+            if (cancelled) return;
+            if (!email) {
+                lastEmailRef.current = null;
+                setUser(null);
+                setProfileKnown(true);
+                return;
+            }
+            // 동일 email이면 재조회 생략 (세션 갱신 반복 호출 방지)
+            if (email === lastEmailRef.current) return;
+            lastEmailRef.current = email;
+            setProfileKnown(false);
+            void loadProfile(email);
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, [session?.user?.email, isSessionPending, loadProfile]);
 
     const refreshUser = useCallback(async () => {
-        if (session?.user) {
-            const profile = await fetchUserProfile(session.user.id)
-            setUser(profile)
+        const email = session?.user?.email;
+        if (email) {
+            await loadProfile(email);
         }
-    }, [session, fetchUserProfile]);
-    
-    const getOAuthOptionByProvider = useCallback((provider: OAuthProvider) => {
-        switch (provider) {
-            case OAuthProvider.Google: return {
-                queryParams: {
-                    access_type: 'offline',
-                    prompt: 'consent',
-                },
-            }
-            case OAuthProvider.GitHub: return {
-                scopes: 'user'
-            }
-        }
-    }, []);
-    
+    }, [session?.user?.email, loadProfile]);
+
     const signInWithOAuth = useCallback(async (provider: OAuthProvider, redirectTo?: string): Promise<{ error?: string }> => {
         try {
             // 빌드타임 NEXT_PUBLIC_BASE_URL 금지 — prod 번들에 localhost가 박혀 OAuth가 localhost로 튐.
             // 클라 런타임 origin이 항상 정답 (dev localhost·ngrok·prod 실도메인 전부).
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider: provider,
-                options: {
-                    redirectTo: `${window.location.origin}/callback/auth${redirectTo ? `?redirectTo=${redirectTo}` : ""}`,
-                    ...getOAuthOptionByProvider(provider),
-                }
-            })
+            // callbackURL은 trusted domains에 등록돼 있어야 함 (localhost 기본 허용).
+            const { error } = await authClient.signIn.social({
+                provider,
+                callbackURL: `${window.location.origin}/callback/auth${redirectTo ? `?redirectTo=${redirectTo}` : ""}`,
+            });
             if (error) {
                 throw error;
             }
@@ -84,40 +81,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
             return { error: `An error occurred during ${provider} sign in: ${error instanceof Error ? error.message : 'Unknown error'}` }
         }
-    }, [getOAuthOptionByProvider]);
-
-    const signOut = useCallback(async () => {
-        await supabase.auth.signOut();
     }, []);
 
-    useEffect(() => {
-        // Auth 상태 변경 감지 (초기 상태도 포함)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (event, session) => {
-                if (!isInitialized) {
-                    setIsInitialized(true)
-                }
+    const signOut = useCallback(async () => {
+        await authClient.signOut();
+        setUser(null);
+        setProfileKnown(true);
+    }, []);
 
-                setSession(session)
-                setSupabaseUser(session?.user ?? null)
-
-                if (session?.user) {
-                    const profile = await fetchUserProfile(session.user.id)
-                    setUser(profile)
-                } else {
-                    setUser(null)
-                }
-                setIsLoading(false)
-            }
-        )
-
-        return () => {
-            subscription?.unsubscribe()
-        }
-    }, [fetchUserProfile, isInitialized]);
-
-    // Users 변경 알림 — 플랜 동기화 등 서버 쓰기 시 프로필 강제 재조회 (Realtime 대체)
-    // fetchUserProfile은 동일 ID면 캐시를 돌려줘서 직접 조회한다
+    // Users 변경 알림 — 플랜 동기화 등 서버 쓰기 시 프로필 강제 재조회
     useBatchEvents({
         userId: user?.id,
         onEvent: (event) => {
@@ -129,9 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const value: AuthContextType = {
         user: user,
-        supabaseUser: supabaseUser,
-        session: session,
-        isInitializingAuthContext: isLoading,
+        isInitializingAuthContext: isSessionPending || !profileKnown,
         signInWithOAuth: signInWithOAuth,
         signOut: signOut,
         refreshUser: refreshUser

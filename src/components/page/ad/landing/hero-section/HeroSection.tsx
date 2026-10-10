@@ -7,8 +7,8 @@ import { useAuth } from "@/context/AuthContext";
 import { usersClientAPI, type UserUsageSummary } from "@/lib/api/client/usersClientAPI";
 
 export default function HeroSection() {
-    const { supabaseUser } = useAuth();
-    const userId = supabaseUser?.id;
+    const { user } = useAuth();
+    const userId = user?.id;
     const [usage, setUsage] = useState<UserUsageSummary | null>(null);
 
     const fetchUsage = useCallback(async (isCancelled: () => boolean) => {

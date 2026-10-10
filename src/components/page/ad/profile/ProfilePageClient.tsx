@@ -33,7 +33,7 @@ function formatAmount(cents: number, currency: string): string {
 
 function ProfilePageClient() {
     const router = useRouter();
-    const { user, supabaseUser, signOut, isInitializingAuthContext } = useAuth();
+    const { user, signOut, isInitializingAuthContext } = useAuth();
     const userEmail = user?.email ?? null;
 
     const [isLoading, setIsLoading] = useState(true);
@@ -77,11 +77,11 @@ function ProfilePageClient() {
     }, []);
 
     const loadAllData = useCallback(async () => {
-        if (!supabaseUser || !userEmail) return;
+        if (!user || !userEmail) return;
         setIsLoading(true);
         try {
             const [summary, profileLogo] = await Promise.all([
-                usersClientAPI.getUserUsageSummary(supabaseUser.id),
+                usersClientAPI.getUserUsageSummary(user.id),
                 usersClientAPI.getProfileLogo(),
                 loadBilling(userEmail),
             ]);
@@ -92,7 +92,7 @@ function ProfilePageClient() {
         } finally {
             setIsLoading(false);
         }
-    }, [supabaseUser, userEmail, loadBilling]);
+    }, [user, userEmail, loadBilling]);
 
     const onRetryBilling = useCallback(() => {
         void loadAllData();
@@ -100,7 +100,7 @@ function ProfilePageClient() {
 
     useEffect(() => {
         if (isInitializingAuthContext) return;
-        if (!supabaseUser) {
+        if (!user) {
             router.push('/sign-in?redirectTo=/profile');
             return;
         }
@@ -108,7 +108,7 @@ function ProfilePageClient() {
             await loadAllData();
         };
         void run();
-    }, [isInitializingAuthContext, supabaseUser, loadAllData, router]);
+    }, [isInitializingAuthContext, user, loadAllData, router]);
 
     const planDisplayName = useMemo(() => {
         const plan = usage?.plan ?? user?.plan ?? null;
@@ -207,11 +207,11 @@ function ProfilePageClient() {
         setShowChangePlanModal(false);
         if (userEmail) {
             await loadBilling(userEmail);
-            const summary = supabaseUser ? await usersClientAPI.getUserUsageSummary(supabaseUser.id) : null;
+            const summary = user ? await usersClientAPI.getUserUsageSummary(user.id) : null;
             setUsage(summary);
         }
         return true;
-    }, [userEmail, supabaseUser, loadBilling]);
+    }, [userEmail, user, loadBilling]);
 
     const onConfirmCancelSubscription = useCallback(async () => {
         if (!subscriptionData?.id) return;

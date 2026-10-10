@@ -23,6 +23,19 @@ export const usersServerAPI = {
         }
     },
 
+    // Auth 이관용 — Better Auth ID는 UUID가 아니라서 세션→email→우리 행으로 매핑.
+    // email 중복 행은 이론상 가능하나 find-or-create(콜백) 단일 경로라 1행 보장. 없으면 null.
+    async getUserByEmail(email: string): Promise<User | null> {
+        try {
+            const db = await getNeonDb();
+            const rows = await db.select().from(users).where(eq(users.email, email)).limit(1);
+            return (rows[0] as unknown as User | undefined) ?? null;
+        } catch (error) {
+            console.error('Unexpected error in getUserByEmail:', error);
+            return null;
+        }
+    },
+
     async postUsers(user: Partial<User>): Promise<User | null> {
         try {
             const db = await getNeonDb();
@@ -41,8 +54,7 @@ export const usersServerAPI = {
         }
     },
 
-    async patchUserByUserId(userId: string, user: Partial<User>): Promise<User | null> {
-        try {
+    async patchUserByUserId(userId: string, user: Partial<User>): Promise<User | null> {        try {
             const db = await getNeonDb();
             const rows = await db
                 .update(users)

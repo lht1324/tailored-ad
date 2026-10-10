@@ -15,6 +15,7 @@ async function loadHandlers(): Promise<Array<{ method: string; pattern: string[]
         adBatches,
         adBatchById,
         userById,
+        userByEmail,
         profileLogo,
         image,
         imageGenBase,
@@ -36,6 +37,7 @@ async function loadHandlers(): Promise<Array<{ method: string; pattern: string[]
         import("@/app/api/ad-generation-batches/route"),
         import("@/app/api/ad-generation-batches/[batchId]/route"),
         import("@/app/api/user/[userId]/route"),
+        import("@/app/api/user/by-email/route"),
         import("@/app/api/profile/logo/route"),
         import("@/app/api/image/route"),
         import("@/app/api/image/generation/base/route"),
@@ -59,6 +61,8 @@ async function loadHandlers(): Promise<Array<{ method: string; pattern: string[]
     const entries: Array<{ method: string; pattern: string[]; mod: Record<string, unknown> }> = [
         { method: 'GET', pattern: ['api', 'ad-generation-batches'], mod: adBatches as unknown as Record<string, unknown> },
         { method: 'GET', pattern: ['api', 'ad-generation-batches', ':batchId'], mod: adBatchById as unknown as Record<string, unknown> },
+        // 고정 경로는 파라미터(:userId)보다 먼저 — 먼저 매칭된 쪽이 이긴다
+        { method: 'GET', pattern: ['api', 'user', 'by-email'], mod: userByEmail as unknown as Record<string, unknown> },
         { method: 'GET', pattern: ['api', 'user', ':userId'], mod: userById as unknown as Record<string, unknown> },
         { method: 'PATCH', pattern: ['api', 'user', ':userId'], mod: userById as unknown as Record<string, unknown> },
         { method: 'GET', pattern: ['api', 'profile', 'logo'], mod: profileLogo as unknown as Record<string, unknown> },
