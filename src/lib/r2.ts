@@ -24,7 +24,11 @@ async function getR2(): Promise<{ client: S3Client; bucket: string }> {
         const endpoint = await requireServerEnv('CLOUDFLARE_R2_ENDPOINT');
         const accessKeyId = await requireServerEnv('CLOUDFLARE_R2_ACCESS_KEY_ID');
         const secretAccessKey = await requireServerEnv('CLOUDFLARE_R2_SECRET_ACCESS_KEY');
-        cachedBucket = await requireServerEnv('CLOUDFLARE_R2_BUCKET');
+        // CLOUDFLARE_R2_BUCKET은 base 이름(예: tailored-ad-images) 고정.
+        // dev는 -dev 버킷을 본다 (기존 459건 이사済み). prod는 base 그대로(빈 깡통 시작).
+        // 전제: env값에 -dev를 붙이지 말 것 (중복 접미사 방지).
+        const baseBucket = await requireServerEnv('CLOUDFLARE_R2_BUCKET');
+        cachedBucket = process.env.NODE_ENV === 'production' ? baseBucket : `${baseBucket}-dev`;
         cachedClient = new S3Client({
             region: 'auto',
             endpoint,
