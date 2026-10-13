@@ -3,7 +3,8 @@ import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { usersServerAPI } from "@/lib/api/server/usersServerAPI";
 import { usageServerAPI } from "@/lib/api/server/usageServerAPI";
-import { getPlanByDodoProduct, PLAN_IMAGE_LIMIT } from "@/lib/dodo";
+import { getPlanByDodoProduct, PLAN_IMAGE_LIMIT, PLAN_PRICE_USD } from "@/lib/dodo";
+import { getDodoClient } from "@/lib/dodoClient";
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
 
 /**
@@ -41,6 +42,78 @@ function resolvePeriod(data: DodoSubscriptionData): { start?: string; end?: stri
         start: data.current_period_start ?? data.currentBillingPeriod?.startsAt,
         end: data.current_period_end ?? data.currentBillingPeriod?.endsAt,
     };
+}
+
+// 비례환불 — refund.succeeded 1건당 해당 사이클 미사용분만 회수 (약관 §2).
+// 환불액(USD) → 회수 장수 역산 후 음수 grant 행 기록. 동일 refund_id 중복은 유니크로 흡수.
+// 전제: USD 고정 상품 (Adaptive/PPP OFF). 첫주문 할인가 결제는 정가 기준이라 과다 회수 가능 —
+// 미사용 상한으로 차단. 14일 규칙은 대시보드 수동 환불(지원 메일) 쪽에서 지킴.
+interface DodoRefundData {
+    refund_id?: unknown;
+    payment_id?: unknown;
+    amount?: unknown; // 최소 단위 (USD → cents)
+    currency?: unknown;
+    subscription_id?: unknown;
+}
+
+async function handleRefundSucceeded(data: DodoRefundData) {
+    const refundId = typeof data.refund_id === 'string' ? data.refund_id : '';
+    const paymentId = typeof data.payment_id === 'string' ? data.payment_id : '';
+    const amountCents = typeof data.amount === 'number' ? data.amount : NaN;
+    if (!refundId || !paymentId || !Number.isFinite(amountCents) || amountCents <= 0) {
+        console.warn(`[dodo/process] refund.succeeded: unmapped payload (refund=${refundId})`);
+        return;
+    }
+    if (typeof data.currency === 'string' && data.currency !== '' && data.currency !== 'USD') {
+        console.warn(`[dodo/process] refund.succeeded: non-USD currency, skipping (refund=${refundId})`);
+        return;
+    }
+
+    let subId = typeof data.subscription_id === 'string' ? data.subscription_id : '';
+    if (!subId) {
+        // 페이로드에 구독 연결이 없으면 결제 조회로 역추적 (결제 읽기 권한 사용)
+        try {
+            const dodo = await getDodoClient();
+            const payment = await dodo.payments.retrieve(paymentId);
+            subId = (payment as unknown as { subscription_id?: unknown }).subscription_id as string ?? '';
+        } catch (error) {
+            console.warn(`[dodo/process] refund.succeeded: payment lookup failed (refund=${refundId}):`, error);
+            return;
+        }
+    }
+    if (!subId) {
+        console.warn(`[dodo/process] refund.succeeded: subscription unmapped (refund=${refundId})`);
+        return;
+    }
+
+    const latest = await usageServerAPI.latestGrantForSubscription(subId);
+    if (!latest) {
+        console.warn(`[dodo/process] refund.succeeded: no grant row (refund=${refundId}, subscription=${subId})`);
+        return;
+    }
+    const cycleTarget = await usageServerAPI.sumGrantedForSubscriptionCycle(subId, latest.cycle_start);
+    const user = await usersServerAPI.getUserByUserId(latest.user_id);
+    const price = user?.plan ? (PLAN_PRICE_USD[user.plan as keyof typeof PLAN_PRICE_USD] ?? 0) : 0;
+    if (!user || price <= 0 || cycleTarget <= 0) {
+        console.warn(`[dodo/process] refund.succeeded: price unmapped (refund=${refundId}, subscription=${subId})`);
+        return;
+    }
+
+    const usedInCycle = await usageServerAPI.countImagesInWindow(latest.user_id, latest.cycle_start, latest.cycle_end);
+    const unused = Math.max(0, cycleTarget - usedInCycle);
+    const revoke = Math.min(Math.round((amountCents / 100 / price) * cycleTarget), unused);
+    if (revoke <= 0) {
+        console.warn(`[dodo/process] refund.succeeded: nothing to revoke (refund=${refundId}, unused=${unused})`);
+        return;
+    }
+    await usageServerAPI.recordGrant({
+        userId: latest.user_id,
+        polarSubscriptionId: subId,
+        cycleStart: latest.cycle_start,
+        cycleEnd: latest.cycle_end,
+        granted: -revoke,
+        reason: `refund:${refundId}`,
+    });
 }
 
 async function handleSubscriptionEvent(type: string, data: DodoSubscriptionData) {
@@ -140,6 +213,9 @@ export async function POST(request: NextRequest) {
             case 'subscription.cancelled':
             case 'subscription.expired':
                 await handleSubscriptionEvent(type, data as DodoSubscriptionData);
+                break;
+            case 'refund.succeeded':
+                await handleRefundSucceeded(data as DodoRefundData);
                 break;
             default:
                 break;

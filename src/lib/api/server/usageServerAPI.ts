@@ -1,4 +1,4 @@
-import { and, count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, gte, lt } from "drizzle-orm";
 import { getNeonDb, isNeonUniqueViolation, neonErrorMessage } from "@/lib/db/neon";
 import { publishUserEvent } from "@/lib/batchEvents";
 import { subscriptionGrants, usageLedger } from "@/lib/db/schema";
@@ -191,9 +191,28 @@ export const usageServerAPI = {
         };
     },
 
-    // 첫 유료 여부 — 체크아웃 첫주문 할인 eligibility용 (trial은 유료 아님)
-    async hasPaidGrant(userId: string): Promise<boolean> {
+    // 사이클 기간 내 사용량 — 비례환불 미사용분 계산용 (원장 created_at 기준, 경계분 오차 감수)
+    async countImagesInWindow(userId: string, cycleStart: string, cycleEnd: string): Promise<number> {
         const db = await getNeonDb();
+        try {
+            const rows = await db
+                .select({ value: count() })
+                .from(usageLedger)
+                .where(
+                    and(
+                        eq(usageLedger.user_id, userId),
+                        gte(usageLedger.created_at, cycleStart),
+                        lt(usageLedger.created_at, cycleEnd),
+                    ),
+                );
+            return rows[0]?.value ?? 0;
+        } catch (error) {
+            throw new Error(`Failed to count window usage: ${neonErrorMessage(error)}`);
+        }
+    },
+
+    // 첫 유료 여부 — 체크아웃 첫주문 할인 eligibility용 (trial은 유료 아님)
+    async hasPaidGrant(userId: string): Promise<boolean> {        const db = await getNeonDb();
         try {
             const rows = await db
                 .select({ value: count() })
