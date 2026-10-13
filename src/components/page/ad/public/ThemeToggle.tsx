@@ -1,27 +1,28 @@
 'use client'
 
 import { Moon, Sun } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "ad-theme-preview";
 
 export default function ThemeToggle() {
-    // Lazy initializer keeps the icon and the document class in sync from the
-    // first client render. Light is the default; only an explicit stored
-    // "dark" starts dark. A transient mismatch is harmless here (preview UI).
-    const [isLight, setIsLight] = useState<boolean>(() => {
-        if (typeof window === "undefined") return true;
+    // 서버와 첫 클라이언트 렌더는 항상 동일(라이트 고정) — hydration mismatch 방지.
+    // 저장된 테마는 마운트 후 effect에서 반영한다 (initializer에서 읽으면
+    // 저장값 dark 보유 시 서버 HTML과 달라져 하이드레이션 실패).
+    const [isLight, setIsLight] = useState<boolean>(true);
+
+    useEffect(() => {
         try {
             if (window.localStorage.getItem(STORAGE_KEY) === "dark") {
                 document.documentElement.classList.remove("theme-light");
-                return false;
+                setIsLight(false);
+                return;
             }
         } catch {
             /* storage unavailable */
         }
         document.documentElement.classList.add("theme-light");
-        return true;
-    });
+    }, []);
 
     const onClickToggle = () => {
         const next = !isLight;

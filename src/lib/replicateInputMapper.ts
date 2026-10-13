@@ -5,14 +5,13 @@
  */
 
 /**
- * ad 이미지 생성 모델 — Seedream 하이브리드 (ByteDance).
- * - 5.0 Lite (`bytedance/seedream-5-lite`, $0.035/장 고정): 기본. 4:5 미지원.
- * - 4.5 (`bytedance/seedream-4.5`, $0.04/장 고정): 배치에 4:5 포함 시 통째로.
- * 비율 단위 분기는 금지 — 같은 creative 내 모델 혼재 시 "같은 개념" 보장이 깨짐.
+ * ad 이미지 생성 모델 — FLUX 3 Image 단일화 (Black Forest Labs).
+ * - `black-forest-labs/flux-3-image`: 4:5 포함 전부 네이티브 → 하이브리드 분기 삭제.
+ * - ratios는 BRIA outpainting 유지 (생성이 아니라 확장이라 정체성 보존).
+ * - base·persona·base재시도는 selectImageModel 하나로 자동 전환.
  */
 export enum ReplicateModelId {
-    SEEDREAM_5_LITE = "bytedance/seedream-5-lite",
-    SEEDREAM_4_5 = "bytedance/seedream-4.5",
+    FLUX_3_IMAGE = "black-forest-labs/flux-3-image",
     BRIA_EXPAND = "bria/expand-image",
 }
 
@@ -44,11 +43,12 @@ export function resolveImageInputTags(prompt: string, order: ImageInputTag[]): s
 }
 
 /**
- * 배치 단위 모델 판정 — aspect_ratios에 4_5가 하나라도 있으면 배치 전체 4.5.
- * 호출마다 같은 답이 나오므로 base·ratios 어디서 호출해도 일관.
+ * 배치 단위 모델 판정 — FLUX 3 단일화라 항상 동일 답.
+ * 시그니처 유지 (호출부 무수정).
  */
 export function selectImageModel(aspectRatios: string[]): ReplicateModelId {
-    return aspectRatios.includes("4_5") ? ReplicateModelId.SEEDREAM_4_5 : ReplicateModelId.SEEDREAM_5_LITE;
+    void aspectRatios;
+    return ReplicateModelId.FLUX_3_IMAGE;
 }
 
 export interface ReplicateImageInputParams {
@@ -72,27 +72,20 @@ export function buildReplicateImageInput(
     const ratio = aspectRatio ? aspectRatio.replace('_', ':') : undefined;
 
     switch (model) {
-        case ReplicateModelId.SEEDREAM_5_LITE:
+        case ReplicateModelId.FLUX_3_IMAGE: {
+            // FLUX 3는 images 배열 + 서술형 프롬프트. image_input[n] 토큰은
+            // "reference image n"으로 번역 (가정 — PoC에서 검증).
+            const fluxPrompt = prompt.replace(/image_input\[(\d+)\]/g, (_, n) => `reference image ${Number(n) + 1}`);
             return {
-                prompt,
-                size: "2K",
-                sequential_image_generation: "disabled",
-                max_images: 1,
-                ...(imageUrls.length > 0 && { image_input: imageUrls }),
+                prompt: fluxPrompt,
+                ...(imageUrls.length > 0 && { images: imageUrls }),
                 ...(ratio && { aspect_ratio: ratio }),
+                resolution: "2k",
+                grounding: true,
+                safety_tolerance: 4,
                 output_format: "png",
             };
-
-        case ReplicateModelId.SEEDREAM_4_5:
-            return {
-                prompt,
-                size: "2K",
-                sequential_image_generation: "disabled",
-                max_images: 1,
-                ...(imageUrls.length > 0 && { image_input: imageUrls }),
-                ...(ratio && { aspect_ratio: ratio }),
-                disable_safety_checker: false,
-            };
+        }
 
         case ReplicateModelId.BRIA_EXPAND: {
             // 전문 outpainting — 원본 앵커 고정 + 주변만 확장. prompt는 확장 영역 지시만.

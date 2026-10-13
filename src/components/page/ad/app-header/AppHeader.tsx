@@ -4,10 +4,11 @@ import { memo, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import ProfileMenu from "@/components/page/ad/app-header/ProfileMenu";
+import BrandMark from "@/components/public/BrandMark";
 import ThemeToggle from "@/components/page/ad/public/ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
 import { usersClientAPI, type UserUsageSummary } from "@/lib/api/client/usersClientAPI";
-import { PLAN_DISPLAY_NAME } from "@/lib/polar";
+import { PLAN_DISPLAY_NAME } from "@/lib/dodo";
 
 function planLabel(plan: string | null | undefined): string {
     if (!plan) return 'Free plan';
@@ -15,17 +16,17 @@ function planLabel(plan: string | null | undefined): string {
 }
 
 function AppHeader({ onUsageLoaded }: { onUsageLoaded?: () => void }) {
-    const { supabaseUser } = useAuth();
+    const { user } = useAuth();
     const [usage, setUsage] = useState<UserUsageSummary | null>(null);
 
     useEffect(() => {
-        if (!supabaseUser) {
+        if (!user) {
             setUsage(null);
             onUsageLoaded?.();
             return;
         }
         let live = true;
-        void usersClientAPI.getUserUsageSummary(supabaseUser.id).then((result) => {
+        void usersClientAPI.getUserUsageSummary(user.id).then((result) => {
             if (live) {
                 setUsage(result);
                 onUsageLoaded?.();
@@ -34,12 +35,13 @@ function AppHeader({ onUsageLoaded }: { onUsageLoaded?: () => void }) {
         return () => {
             live = false;
         };
-    }, [supabaseUser?.id, onUsageLoaded]);
+    }, [user?.id, onUsageLoaded]);
     return (
         <header className="fixed inset-x-0 top-4 z-50 px-4">
             <nav className="mx-auto flex max-w-[87.5rem] items-center justify-between rounded-full border border-hairline bg-surface/70 py-2 pl-5 pr-2 backdrop-blur-xl">
                 <Link href="/" className="flex items-center gap-2.5">
-                    <span className="text-[15px] font-bold tracking-tight text-text1">TailoredAd</span>
+                    <BrandMark size={28} />
+                    <span className="text-[17px] font-bold tracking-tight text-text1">TailoredAd</span>
                 </Link>
 
                 <div className="hidden items-center gap-3 md:flex">

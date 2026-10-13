@@ -1,19 +1,19 @@
 'use client'
 
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Calendar, CreditCard, Images, Loader2, Mail, Receipt, User as UserIcon } from "lucide-react";
+import { Calendar, CreditCard, Images, ImagePlus, Loader2, Mail, Receipt, User as UserIcon, X } from "lucide-react";
 import AppHeader from "@/components/page/ad/app-header/AppHeader";
 import DefaultModal from "@/components/public/DefaultModal";
 import ChangePlanModal from "@/components/page/ad/profile/ChangePlanModal";
 import OrderItem from "@/components/page/ad/profile/OrderItem";
 import { useAuth } from "@/context/AuthContext";
-import { usersClientAPI, type UserUsageSummary } from "@/lib/api/client/usersClientAPI";
-import { paddleClientAPI } from "@/lib/api/client/paddleClientAPI";
-import type { OrderData } from "@/lib/api/types/api/paddle/orders/OrderData";
-import type { SubscriptionData } from "@/lib/api/types/api/paddle/subscriptions/SubscriptionData";
-import { PLAN_DISPLAY_NAME, type PaidPlan } from "@/lib/paddle";
+import { usersClientAPI, type ProfileLogo, type UserUsageSummary } from "@/lib/api/client/usersClientAPI";
+import { dodoClientAPI } from "@/lib/api/client/dodoClientAPI";
+import type { OrderData } from "@/lib/api/types/api/dodo/orders/OrderData";
+import type { SubscriptionData } from "@/lib/api/types/api/dodo/subscriptions/SubscriptionData";
+import { PLAN_DISPLAY_NAME, type DodoPaidPlan as PaidPlan } from "@/lib/dodo";
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
 
 function formatDate(iso: string | null | undefined): string {
@@ -33,7 +33,7 @@ function formatAmount(cents: number, currency: string): string {
 
 function ProfilePageClient() {
     const router = useRouter();
-    const { user, supabaseUser, signOut, isInitializingAuthContext } = useAuth();
+    const { user, signOut, isInitializingAuthContext } = useAuth();
     const userEmail = user?.email ?? null;
 
     const [isLoading, setIsLoading] = useState(true);
@@ -47,41 +47,60 @@ function ProfilePageClient() {
     const [isCanceling, setIsCanceling] = useState(false);
     const [revertTarget, setRevertTarget] = useState<'plan-change' | 'cancellation' | null>(null);
     const [isReverting, setIsReverting] = useState(false);
+    /** 결제 조회 실패 여부 — 실패(null 아님)와 구독 없음(null)을 구분 */
+    const [billingError, setBillingError] = useState(false);
+    const [officialLogo, setOfficialLogo] = useState<ProfileLogo | null>(null);
+    const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+    const [isDraggingLogo, setIsDraggingLogo] = useState(false);
+    const [logoError, setLogoError] = useState<string | null>(null);
+    const logoInputRef = useRef<HTMLInputElement>(null);
 
     const onHeaderUsageLoaded = useCallback(() => {
         setHeaderReady(true);
     }, []);
 
     const loadBilling = useCallback(async (email: string) => {
-        const [orders, subscription] = await Promise.all([
-            paddleClientAPI.getOrders(email),
-            paddleClientAPI.getSubscription(email),
-        ]);
-        setOrderList((orders ?? []).sort((a, b) => {
-            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        }));
-        setSubscriptionData(subscription);
+        try {
+            const [orders, subscription] = await Promise.all([
+                dodoClientAPI.getOrders(email),
+                dodoClientAPI.getSubscription(email),
+            ]);
+            setOrderList((orders ?? []).sort((a, b) => {
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            }));
+            setSubscriptionData(subscription);
+            setBillingError(false);
+        } catch (error) {
+            console.error("Error loading billing data:", error);
+            setBillingError(true);
+        }
     }, []);
 
     const loadAllData = useCallback(async () => {
-        if (!supabaseUser || !userEmail) return;
+        if (!user || !userEmail) return;
         setIsLoading(true);
         try {
-            const [summary] = await Promise.all([
-                usersClientAPI.getUserUsageSummary(supabaseUser.id),
+            const [summary, profileLogo] = await Promise.all([
+                usersClientAPI.getUserUsageSummary(user.id),
+                usersClientAPI.getProfileLogo(),
                 loadBilling(userEmail),
             ]);
             setUsage(summary);
+            setOfficialLogo(profileLogo);
         } catch (error) {
             console.error("Error loading profile data:", error);
         } finally {
             setIsLoading(false);
         }
-    }, [supabaseUser, userEmail, loadBilling]);
+    }, [user, userEmail, loadBilling]);
+
+    const onRetryBilling = useCallback(() => {
+        void loadAllData();
+    }, [loadAllData]);
 
     useEffect(() => {
         if (isInitializingAuthContext) return;
-        if (!supabaseUser) {
+        if (!user) {
             router.push('/sign-in?redirectTo=/profile');
             return;
         }
@@ -89,7 +108,7 @@ function ProfilePageClient() {
             await loadAllData();
         };
         void run();
-    }, [isInitializingAuthContext, supabaseUser, loadAllData, router]);
+    }, [isInitializingAuthContext, user, loadAllData, router]);
 
     const planDisplayName = useMemo(() => {
         const plan = usage?.plan ?? user?.plan ?? null;
@@ -127,23 +146,78 @@ function ProfilePageClient() {
         }
     }, [signOut, router]);
 
+    const onSelectLogoFile = useCallback(async (file: File | null) => {
+        if (!file || isUploadingLogo) return;
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+            setLogoError('Please upload a JPG, PNG, or WebP image.');
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            setLogoError('File is too large. Keep it under 10 MB.');
+            return;
+        }
+        setLogoError(null);
+        setIsUploadingLogo(true);
+        try {
+            const uploaded = await usersClientAPI.uploadProfileLogo(file);
+            if (uploaded) {
+                setOfficialLogo(uploaded);
+            } else {
+                setLogoError('Failed to upload logo. Please try again.');
+            }
+        } finally {
+            setIsUploadingLogo(false);
+        }
+    }, [isUploadingLogo]);
+
+    const onClickRemoveLogo = useCallback(async () => {
+        if (isUploadingLogo) return;
+        setIsUploadingLogo(true);
+        try {
+            const ok = await usersClientAPI.deleteProfileLogo();
+            if (ok) {
+                setOfficialLogo(null);
+                setLogoError(null);
+            } else {
+                setLogoError('Failed to remove logo. Please try again.');
+            }
+        } finally {
+            setIsUploadingLogo(false);
+        }
+    }, [isUploadingLogo]);
+
+    const onDragOverLogo = useCallback((event: DragEvent<HTMLDivElement>) => {
+        event.preventDefault();
+        setIsDraggingLogo(true);
+    }, []);
+
+    const onDragLeaveLogo = useCallback(() => {
+        setIsDraggingLogo(false);
+    }, []);
+
+    const onDropLogo = useCallback((event: DragEvent<HTMLDivElement>) => {
+        event.preventDefault();
+        setIsDraggingLogo(false);
+        void onSelectLogoFile(event.dataTransfer.files?.[0] ?? null);
+    }, [onSelectLogoFile]);
+
     const onConfirmChangePlan = useCallback(async (newPlan: PaidPlan): Promise<boolean> => {
-        const ok = await paddleClientAPI.changePlan(newPlan);
+        const ok = await dodoClientAPI.changePlan(newPlan);
         if (!ok) return false;
         setShowChangePlanModal(false);
         if (userEmail) {
             await loadBilling(userEmail);
-            const summary = supabaseUser ? await usersClientAPI.getUserUsageSummary(supabaseUser.id) : null;
+            const summary = user ? await usersClientAPI.getUserUsageSummary(user.id) : null;
             setUsage(summary);
         }
         return true;
-    }, [userEmail, supabaseUser, loadBilling]);
+    }, [userEmail, user, loadBilling]);
 
     const onConfirmCancelSubscription = useCallback(async () => {
         if (!subscriptionData?.id) return;
         setIsCanceling(true);
         try {
-            const ok = await paddleClientAPI.cancelSubscription(subscriptionData.id);
+            const ok = await dodoClientAPI.cancelSubscription(subscriptionData.id);
             setShowCancelModal(false);
             if (ok && userEmail) {
                 await loadBilling(userEmail);
@@ -159,7 +233,7 @@ function ProfilePageClient() {
         if (!revertTarget) return;
         setIsReverting(true);
         try {
-            const ok = await paddleClientAPI.revertScheduled(revertTarget);
+            const ok = await dodoClientAPI.revertScheduled(revertTarget);
             setRevertTarget(null);
             if (ok && userEmail) {
                 await loadBilling(userEmail);
@@ -263,9 +337,102 @@ function ProfilePageClient() {
                     </div>
                 </div>
 
+                {/* Official logo + Billing — 2열 (모바일 스택) */}
+                <div className="mb-6 grid grid-cols-1 items-stretch gap-6 md:grid-cols-2">
+                {/* Official logo */}
+                <div className="flex flex-col justify-center rounded-2xl border border-hairline bg-surface/60 p-8">
+                    <h3 className="mb-2 text-sm font-semibold tracking-wider text-text1 uppercase">
+                        Official logo
+                    </h3>
+                    <p className="mb-6 text-sm leading-relaxed text-text2">
+                        Prefilled as the brand logo in Create. Transparent PNG works best.
+                    </p>
+                    <div
+                        onDragOver={onDragOverLogo}
+                        onDragLeave={onDragLeaveLogo}
+                        onDrop={onDropLogo}
+                        className={`rounded-xl transition-shadow ${isDraggingLogo ? 'shadow-[0_0_0_2px_rgba(var(--accent),0.5)]' : ''}`}
+                    >
+                        {officialLogo ? (
+                            <div className="flex flex-wrap items-center gap-6">
+                                <div className="relative h-20 w-20 overflow-hidden rounded-xl border border-hairline bg-canvas">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={officialLogo.signedUrl} alt={officialLogo.fileName} className="h-full w-full object-contain" />
+                                </div>
+                                <div className="flex min-w-0 flex-1 flex-col gap-3">
+                                    <p className="truncate text-sm font-medium text-text1">{officialLogo.fileName}</p>
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <button
+                                            onClick={() => logoInputRef.current?.click()}
+                                            disabled={isUploadingLogo}
+                                            className="flex items-center gap-2 rounded-xl bg-text1 px-5 py-2.5 text-sm font-bold text-canvas transition-opacity hover:opacity-90 disabled:opacity-50"
+                                        >
+                                            {isUploadingLogo && <Loader2 size={14} className="animate-spin" />}
+                                            <span>Replace</span>
+                                        </button>
+                                        <button
+                                            onClick={onClickRemoveLogo}
+                                            disabled={isUploadingLogo}
+                                            className="flex items-center gap-2 rounded-xl border border-hairline px-5 py-2.5 text-sm font-medium text-text2 transition-colors hover:border-red-500/20 hover:bg-red-500/10 hover:text-red-500 disabled:opacity-50"
+                                        >
+                                            <X size={14} />
+                                            <span>Remove</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => logoInputRef.current?.click()}
+                                disabled={isUploadingLogo}
+                                className={`flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-10 transition-colors disabled:opacity-50 ${
+                                    isDraggingLogo ? 'border-accent bg-accent/5' : 'border-hairline hover:border-text2/50'
+                                }`}
+                            >
+                                {isUploadingLogo ? (
+                                    <Loader2 className="h-5 w-5 animate-spin text-text2" />
+                                ) : (
+                                    <ImagePlus className="h-5 w-5 text-text2" strokeWidth={1.8} />
+                                )}
+                                <span className="text-[13px] text-text2">
+                                    Drop logo or <span className="text-text1 underline underline-offset-2">browse</span>
+                                </span>
+                                <span className="text-[11px] text-text2/60">JPG, PNG, WebP · up to 10 MB</span>
+                            </button>
+                        )}
+                        {logoError && (
+                            <p className="mt-3 text-[12px] font-medium text-red-500">{logoError}</p>
+                        )}
+                    </div>
+                    <input
+                        ref={logoInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(event) => {
+                            void onSelectLogoFile(event.target.files?.[0] ?? null);
+                            event.target.value = '';
+                        }}
+                    />
+                </div>
+
                 {/* Subscription */}
-                {subscriptionData ? (
-                    <div className="mb-6 rounded-2xl border border-hairline bg-surface/60 p-8">
+                {billingError && !subscriptionData ? (
+                    <div className="flex flex-col justify-center rounded-2xl border border-hairline bg-surface/60 p-8 text-center">
+                        <h3 className="mb-2 text-xl font-bold">Could not load billing</h3>
+                        <p className="mb-6 text-sm leading-relaxed text-text2">
+                            Your subscription info is temporarily unavailable. Your images are safe.
+                        </p>
+                        <button
+                            onClick={onRetryBilling}
+                            className="w-full rounded-xl bg-text1 py-3 text-sm font-bold text-canvas transition-opacity hover:opacity-90"
+                        >
+                            Retry
+                        </button>
+                    </div>
+                ) : subscriptionData ? (
+                    <div className="rounded-2xl border border-hairline bg-surface/60 p-8">
                         <h3 className="mb-6 text-sm font-semibold tracking-wider text-text1 uppercase">
                             Subscription
                         </h3>
@@ -336,8 +503,21 @@ function ProfilePageClient() {
                             )}
                         </div>
                     </div>
+                ) : currentPaidPlan ? (
+                    <div className="flex flex-col justify-center rounded-2xl border border-hairline bg-surface/60 p-8 text-center">
+                        <h3 className="mb-2 text-xl font-bold">{PLAN_DISPLAY_NAME[currentPaidPlan] ?? currentPaidPlan}</h3>
+                        <p className="mb-6 text-sm leading-relaxed text-text2">
+                            {usage?.periodEnd ? `Renews ${formatDate(usage.periodEnd)}` : 'Active subscription'}
+                        </p>
+                        <button
+                            onClick={() => setShowChangePlanModal(true)}
+                            className="w-full rounded-xl bg-text1 py-3 text-sm font-bold text-canvas transition-opacity hover:opacity-90"
+                        >
+                            Change Plan
+                        </button>
+                    </div>
                 ) : (
-                    <div className="mb-6 rounded-2xl border border-hairline bg-surface/60 p-8 text-center">
+                    <div className="flex flex-col justify-center rounded-2xl border border-hairline bg-surface/60 p-8 text-center">
                         <h3 className="mb-2 text-xl font-bold">Upgrade Now</h3>
                         <p className="mb-6 text-sm leading-relaxed text-text2">
                             Get monthly images that never expire. Every batch is quality-gated.
@@ -350,6 +530,7 @@ function ProfilePageClient() {
                         </button>
                     </div>
                 )}
+                </div>
 
                 {/* Payment History */}
                 {orderList.length > 0 && (

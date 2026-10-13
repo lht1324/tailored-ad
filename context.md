@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-09-26 01:37)
+# TailoredAd — 작업 기록 (Last Updated: 2026-10-14 01:55)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -8,7 +8,8 @@
 - **브랜드**: TailoredAd — "Tailored ads, not templates" (Harnessed AI ad studio)
 - **도메인**: `tailoredad.com` 구매됨. DNS 연결은 실생성 이미지 준비될 때까지 홀딩.
 - **짝꿍 도메인**: `tailorad.com` 미구매. 살 때 같이 사서 리다이렉트 예정.
-- **스택**: Next.js 16 + Tailwind v4 + Supabase + Replicate/OpenRouter + Upstash Redis + Remotion Player, Cloudflare Workers 배포(OpenNext)
+- **스택**: Next.js 16 + Tailwind v4 + Neon(DB+Auth) + R2 + Upstash SSE + Replicate/OpenRouter + Dodo, Cloudflare Workers 배포(OpenNext)
+  (Supabase는 Auth·DB·Realtime 전부 제거됨 — 10-11 이관 완료)
 - **Git**: Git Flow (`master` 프로덕션 / `develop` 작업). develop 푸시됨 (origin/develop).
 - **포트**: 클라 `3000` (`npm run dev`) / 서버 `3001` (`docker compose up`, 컨테이너 `3000` 매핑). short_real과 동일.
 - **테마**: 라이트가 기본 (`theme-light`), 다크는 토글.
@@ -23,33 +24,39 @@
 - `lib`: `api/client/ad`, `api/client/baseFetch*`, `api/client/usersClientAPI`,
   `api/types/supabase/ad`, `api/types/supabase/Users.ts`(포크),
   `api/types/api/BaseResponse.ts`, `api/server/ad`, `usersServerAPI.ts`,
-  `supabase/*`, `utils/{getIsValidRequest,getNextBaseResponse,internalFetch,jsonUtils}`,
+  `supabase/*` — Auth 이관으로 10-11 전량 삭제, `utils/{getIsValidRequest,getNextBaseResponse,internalFetch,jsonUtils}`,
    `llm-prompts/ad`, `OpenRouterClient.ts`, `FontFamilyList.ts`, `ReplicateClient.ts`, `fonts.ts`
    + `replicateInputMapper.ts` (모델별 input 조립 — `ReplicateModelId` enum + 1:1 switch)
 - `context/AuthContext.tsx`, 전역 레이아웃/globals
-- **세션 중 추가**: `proxy.ts` (로그인 가드), `app/api/client-gateway/` (C2S→S2S),
-  `app/api/user/[userId]/` (GET+PATCH, S2S+IDOR 가드), `public/logo/logo-64.png`,
+- **세션 중 추가**: `src/proxy.ts` (로그인 가드 — root 것은 미실행이라 src/로, 10-11),
+  `app/api/client-gateway/` (C2S→S2S),
+  `app/api/user/[userId]/` (GET+PATCH, S2S+IDOR 가드), `public/logo/` (logo.svg+32/64/180/512),
    `lib/replicateRateLimit.ts`, `lib/colorUtils.ts`, `lib/textMeasure.ts`,
    `lib/imageResize.ts` (참조 다운스케일 — Generate 시점 긴 변 1024px),
    `lib/billing.ts` (기본 quota 50 + KST 월경계 — 무료/무이력 폴백용으로 유지),
-   `lib/api/server/usageServerAPI.ts` (원장+부여+잔액),
-   `lib/polar.ts` (상품 ID 매핑 — 진실원천, 코드 상수),
-   `lib/polarClient.ts` (서버 전용 Polar 싱글톤 — 클라 import 금지),
-   `lib/api/client/polarClientAPI.ts` (체크아웃 생성),
+    `lib/api/server/usageServerAPI.ts` (원장+부여+잔액),
+    `lib/db/` (`neon.ts` 싱글톤 + `schema.ts` — 10-10),
+    `lib/auth/` (server + client — 10-11) + `app/api/auth/[...path]/` (Managed 프록시),
+    `lib/batchEvents.ts` + `components/public/useBatchEvents.tsx` + `GET /api/events` (SSE — 10-10),
+    `components/public/BrandMark.tsx`,
+   `lib/polar.ts` (상품 ID 매핑 — 진실원천, 코드 상수 — Dodo 확정으로 10-03 삭제),
+   `lib/polarClient.ts` (서버 전용 Polar 싱글톤 — 10-03 삭제),
+   `lib/api/client/polarClientAPI.ts` (체크아웃 생성 — 10-03 삭제),
   `components/.../[projectId]/components/compositeDownload.tsx`,
   `components/.../[projectId]/components/DownloadMenuButton.tsx`,
    `app/api/creative/[creative-index]/design/` (에디터 저장 PATCH),
-   `app/api/webhook/polar/` (Polar 구독 웹훅 리시버 — 서명 검증+grant 적립),
-   `app/api/polar/checkouts/` (체크아웃 세션 생성 — body `{plan}`만),
+   `app/api/webhook/polar/` (10-11 삭제 — Dodo 확정),
+   `app/api/polar/checkouts/` (10-03 삭제),
    `app/checkout/success/` + `components/page/checkout/` (결제 성공 읽기전용 화면),
   `app/projects/[projectId]/edit/` + `components/.../edit/` (Remotion 에디터 일체:
   EditorPageClient, AssetTree, Inspector, FontPicker, EditorCanvas, AdStillComposition)
 - **신규 의존성**: `@upstash/redis ^1.38.0`, `@upstash/ratelimit ^2.0.8`,
+  `drizzle-orm ^0.45.3` + `@neondatabase/serverless ^1.2.0` (10-10) +
+  `@neondatabase/auth 0.5.0-beta` exact (10-11),
   `html-to-image ^1.11.13`, `jszip ^3.10.1`, `@types/jszip ^3.4.1`,
   `remotion 4.0.458` + `@remotion/player 4.0.458` (exact 고정, 공식 지침),
-  `@polar-sh/sdk 0.49.0` (exact 고정, SDK beta라 pin 권고. 설치 확인.
-  `npm install`이 caret로 바꾼 흔적 있어 exact로 복원함 — 재발 시 확인),
-  `standardwebhooks ^1.1.1` (웹훅 서명 직접 검증용 — 아래 403 건)
+  `@polar-sh/sdk` 삭제 (10-03) + `@supabase/*` 2종 삭제 (10-11),
+  `standardwebhooks ^1.1.1` (웹훅 서명 직접 검증용 — Dodo 수신부가 사용 중)
 
 ## 3. 분리 시 적용한 변경
 
@@ -439,7 +446,7 @@
 
 - [x] 실생성 이미지 19장 → 랜딩 배치 완료 (Hero 8 + Portfolio 11, `public/preview/` 실파일, §10 09-21 기록)
 - [ ] `support@tailoredad.com` (+`contact@`) Email Routing (tailoredad.com 도메인에서 별도 설정)
-- [ ] Polar 과금 연결 (블로커 — 09-24 탈락으로 중단, 코드는 develop에 보존):
+- [x] Polar 과금 연결 (종료 — 09-24 탈락 → Dodo 확정 10-03, 코드 전량 삭제 10-03/11):
   - [x] 상품 3종 + metadata + Checkout Description (샌드박스 $9/39/69 — 新 가격 $19/49/99 미반영)
   - [x] `lib/polar.ts` 매핑표, 웹훅 리시버, 잔액제 코드
   - [x] Supabase SQL 2종 + users 주기 컬럼 + trial SQL (실행됨)
@@ -452,17 +459,14 @@
   - [x] 구독 관리 서버 (조회 3종·change·cancel·revert) + Profile UI — develop, 샌드박스 403 확인
     (OAT 스코프 부족. `orders:read`·`subscriptions:write` 추가 후 E2E 가능)
   - [ ] E2E 테스트 (기각으로 보류 — 재신청 시점에 Wiederaufnahme)
-- [ ] LS 심사 대응 (09-24 접수됨, 결과 대기): 스토어 접수됨. 상품 3종 Subscription ($19/49/99) draft→publish.
-  첫주문 할인은 Discount Codes에서 별도 생성.
-- [ ] Paddle 심사 대응 (09-24/25 진행 중): 개인 트랙, 상품 3종 샌드박스 생성됨.
-  하이브리드 체크아웃 E2E 통과 (결제→적립). 첫주문 할인 적용 정상 확인
-  (트랜잭션 $9.50 실측) + 인라인 모달 첫달 표시 추가. 남은 건 live 연결.
-- [ ] Creem 심사 대응 (09-24 기각, 어필 불가): 개인 트랙. compliance 최종 거절.
+- [x] LS 심사 대응 (종료 — Dodo 확정으로 불필요)
+- [x] Paddle 심사 대응 (종료 — Dodo 확정으로 불필요)
+- [x] Creem 심사 대응 (09-24 기각, 어필 불가 — 종료)
   Polar와 동일 패턴 (AI 이미지 MoR 리스크, 카테고리 단위). 재생성·우회 금지.
   Moderation·AUP 숙제는 LS/Stripe 서사에 재사용.
-- [ ] Supabase SQL (사장님, 급함 — 차액 적립이 이 제약에 걸리면 top-up 유실):
-  `subscription_grants` reason 제약에 `OR reason LIKE 'upgrade:%'` 추가 (제약명 조회 후 교체 실행).
-- [ ] OAT 정리 (사장님): dev 샌드박스 토큰 폐기·재생성 (로그 노출) + 스코프 확대.
+- [x] Supabase SQL (불필요 — Neon 스키마에 reason 체크제약 없음. top-up 정상)
+- [x] OAT 정리 (불필요 — Polar/Paddle 사망)
+- [x] Supabase 대시보드 확인 (불필요 — Realtime 제거됨)
 - [ ] 약관 실체 검토 (한국 조항 유지 여부 포함)
 - [ ] `tailorad.com` 구매 + 리다이렉트
 - [ ] `shortreal.ai/ad` → 301 (런칭 당일)
@@ -493,9 +497,148 @@
 - [x] Paddle 실경로 이식 — 샌드박스분 (09-25/26, develop):
   Pricing 체크아웃 교체 (서버 트랜잭션 + 인라인 모달, `usePaddle` 공용 훅, 첫달가 서버 판정 표시) +
   Profile 5종 Paddle판 (products·orders·subscriptions·change·cancel·revert + 타입·게이트웨이·배선).
-- [ ] Paddle live 연결 (전제: AI 심사 통과 + prod 상품·할인·키·destination 생성):
-  `lib/paddle.ts` prod ID 기입 + Cloudflare Secrets + live E2E 1건 + Polar 코드 삭제.
+- [x] Paddle live 연결 (종료 — Dodo 확정으로 불필요):
+  상품·할인·키는 생성됨 (위 매핑 참조). 남은 건 `lib/paddle.ts` prod ID 기입 +
+  Cloudflare Secrets + live E2E 1건 + Polar 코드 삭제.
+  live 토큰(`live_` prefix)·notification destination·도메인 승인·payout은 대시보드 작업으로 잔류.
+- [ ] **Fungies 테스트** (09-29/30 진행 중 — E2E 블로킹, 지원 답변 대기):
+  아래 §4 Fungies 블록 참조.
+  - [x] stage 웹훅 생성 (ngrok + `/api/webhook/fungies`, 구독 4종) + secret 입력됨.
+  - [x] 상품 3종 custom field `user_id` 정의.
+  - [ ] E2E 1건: **블로킹 중** (10-01 — 체크아웃 tRPC 403, 거래 0건. 지원 대기 없이 직접 재시도).
+  - [ ] 첫주문 할인 (sale 50% Starter 한정 — 체크아웃 코드 전달 방식 확정 후).
+  - [ ] production 통화 USD 확인 메일 → production 카탈로그 USD seed.
+  - [ ] Fungies 실경로 이식 (Pricing 오버레이 완료 10-02 — Profile 5종 남음, Paddle판 복사).
+    통과하면 Paddle/Fungies 양택 → Paddle 코드 삭제는 Fungies prod E2E 후.
+- [x] **Dodo 이식** (10-03, develop — 코드 완료, E2E 대기):
+  SDK·매핑·웹훅·오버레이·Profile 5종·Paddle/Polar 삭제. USD 고정·테마·return_url 정리됨.
+  잔량: E2E 1건 (USD 확인) + Profile 5종 실측 + 첫주문 $9.50 실측.
+- [ ] 릴리즈 머지 (대기 — 사장님 판단 시: 로컬 master에 develop `--no-ff` 머지 후 푸시.
+  현 릴리즈분은 gitignore+AGENTS.md라 사이트 무영향, 배포 생략可).
 - [x] Paddle 첫주문 할인 (09-25/26 — 트랜잭션 단 $9.50 정상 확인, 인라인 첫달 표시 추가).
+- **Paddle prod 배포 2건** (09-26, master — `15850835`→`4073823b`, 소스 `47b9e16`→`89f9210`):
+  1차에서 develop 전량(Paddle 연동·페르소나 문구·약관 3종) prod 반영 + 샌드박스 결제 완주.
+  2차는 환경 판정 일원화 수정 (`paddle.ts` NODE_ENV 판정 삭제 → `paddleClient` PADDLE_ENV 단일 소스;
+  prod 빌드가 빈 live 맵을 읽고 400 뱉던 버그). 직전 배포도 약관·합성 문구 깨끗했음 확인済み.
+- **Paddle 어필 제출** (09-26 — Typeform 제출됨):
+  Typeform은 단방향이라 추적 불가. 확인처는 대시보드 Checkout > Website approval 상태 +
+  거절 메일 회신 (Paddle 공식 어필 경로). 수동 리뷰 5~7영업일. 이번 주는 대기.
+- **Paddle live 카탈로그 생성됨** (09-26/27 — live 상품·가격·할인 active, 코드는 미반영):
+  샌드박스 동등품 (Starter $19 / Growth $49 / Pro $99, tax saas, custom_data plan/imageLimit,
+  첫주문 50% 단발·Starter 한정·코드 없음). ID 매핑 (진실원천 — 시드 스크립트는 스태시 정리로 소실):
+  plan-1 `pro_01m3egjwk56ednk99kxcdwx1w9` / `pri_01m3egjwve0ca25fraprnw6fgr`,
+  plan-2 `pro_01m3egjx46p56k5f6r9j1ggsws` / `pri_01m3egjxbbsc4tc3cmmehxv09j`,
+  plan-3 `pro_01m3egjxkskh6e14hjs54310jh` / `pri_01m3egjxtmbxvb41q77pv5c6sa`,
+  할인 `dsc_01m3egjy1mc4p00r3nb0ax7pwm`.
+  live API 키는 `.env.local` PADDLE_API_KEY에 (샌드박스 키 덮어씀 — dev 샌드박스 결제는 고장 상태,
+  Cloudflare Secrets 값으로 복원 필요). `scripts/`는 gitignore 추가됨.
+- **Git Flow 운용 확정** (09-27 — AGENTS.md 반영, develop 커밋済み):
+  작업은 develop(큰 건 sub-branch), master 직접 커밋 금지, 릴리즈 머지만(`--no-ff`),
+  push 평소 develop만, 머지·푸시≠배포. 개념 정리: 커밋은 브랜치 소속이 없음
+  (양쪽이 같은 커밋을 가리키면 양쪽 이력 — reflog로 입증済み).
+  현재 브랜치 상태: develop `264c106`(푸시됨), 로컬 master `b9df153`(미푸시 Merge),
+  origin/master `89f9210`(prod 배포 상태). 스태시 정리됨 (2건 삭제).
+- **결제사 추가 조사** (09-27): Fungies 유력 (MoR, 5%+50¢, 일 정산, AI SaaS 승인 사례
+  RenderAI·TextToVideo 등, API·웹훅·구독 갖춤, 약관 AI 금지 없음) /
+  InflowPay 보류 (극초기 pre-seed, 스테이블코인 레일, 구독 API 실체 미확인, 신청제).
+  방침: Paddle 어필 대기 중 Fungies 병렬 트랙 (무료 가입, 구조가 같아 이중 작업 아님).
+- **Fungies activation 제출** (09-27 — Store Activation Request 제출됨):
+  de-AI 문구 확정 (엠대시 제거·짧은 문장, 변명 톤 제거. 인물 전원 AI 생성은 1문장으로 자연 기술 —
+  사이트 Step 03과 일치 유지). 주소 영문: `302, A-dong, Yuwon-yeonrip, 41 Seongan-ro 3-gil,
+  Gangdong-gu, Seoul, South Korea`. 사이트는 Paddle 샌드박스 노출 중 — 심사 무관 판정
+  (심사 대상은 사이트 실체, 죽은 버튼보다 테스트 완주가 낫고 이전이 일상).
+- **Fungies 승인됨** (09-29 — production store activation approved):
+  요금 Paddle과 동일 (양쪽 5% + 50¢, 공식 확인済み). Paddle 어필은 유지 (백업).
+  실정산에는 Payouts 계좌 등록 별도 필요 (activation ≠ 정산 개시).
+- **Fungies stage 개통** (09-29/30):
+  stage 대시보드는 승인 없이可, 체크아웃 테스트는 이메일 승인 필요 →
+  지원 메일 발송 → stage 승인됨 (API+체크아웃 테스트 가능).
+  stage 키(`pub_test_`·`sec_test_`)는 stage 호스트 전용
+  (`api.stage.fungies.net/v0`, `.env.local` FUNGIES_API_BASE_URL).
+  production 호스트에서는 invalid (실측). 테스트 카드는 Stripe 번호 그대로.
+- **Fungies SDK·MCP 실체** (09-29/30):
+  `@fungies/fungies-js 0.7.3` 존재 (체크아웃용, 사장님 설치, caret 유지 결정) +
+  공식 호스팅 MCP 존재 (`mcp.fungies.io/mcp`, 읽기 17종·쓰기 40종).
+  단 MCP는 production upstream 고정이라 stage 키 불가 → stage 작업은 REST로
+  (`opencode.json` 등록은 해둠, gitignore. production 단계에서 재사용).
+- **Fungies stage 카탈로그 완성** (09-30 — 3종 OPEN·무제한·월간):
+  Starter offer `da014edc` (₩19000) / Growth offer `bb1fd0bf` (₩69000, 사장님 생성분) /
+  Pro offer `1dd18ae2` (₩139000). element 3종 ACTIVE
+  (`524098e3`·`e3ffb74b`·`f8f8f1a3`, 오퍼 1개씩).
+  교훈 3개: (1) offer `limit: 0` = 재고 0 Sold out, 무제한은 `limit: null`.
+  (2) 워크스페이스 통화는 첫 오퍼가 seed — stage는 KRW 고정됨.
+  production USD 여부는 첫 오퍼 전 지원에 확인 메일 예정.
+  (3) offer `internalId`(SKU)는 생성 시 externalId로만 기입, 사후 변경 무시됨.
+  Growth SKU 비어있으나 코드 매핑으로 커버. 중복 Growth 정리됨 (archive).
+  시드: `scripts/seed-fungies-stage.mjs` (1회성, stage 가드 내장).
+- **Fungies 코드 1차 완성** (09-30, develop — tsc 통과, 미배포):
+  `lib/fungiesClient.ts` (fetch 래퍼, URL·헤더 격리, stage 오버라이드) +
+  `lib/fungies.ts` (offer·element 매핑, 금액 판정, 장수) +
+  `/api/webhook/fungies` (HMAC-SHA256 검증→전달) +
+  `/api/fungies/process` (grant·차액·해지, Paddle 동일 정책).
+  체크아웃 모델: element URL + fungies.js 오버레이 + customFields `user_id`
+  (Paddle보다 단순 — 서버 트랜잭션 생성 불필요). 적립은 웹훅만.
+- **Fungies E2E 1차 시도 블로킹** (10-01 — 카드 탓 아님, 스토어 앞단 차단):
+  stage 웹훅 생성됨 (ngrok URL + `/api/webhook/fungies`, 구독 4종, secret=API 키 재사용 →
+  `.env.local` FUNGIES_WEBHOOK_SECRET 입력됨). 상품 3종 custom field `user_id` 정의됨.
+  hosted element 결제 시도 (4242) → "Something went wrong", 거래 0건 (API 실측).
+  콘솔: `offers.search`·`user.get` tRPC 전부 403. 비활성 배너 잔류와 같은 뿌리 추정 —
+  승인 메일은 왔으나 스토어 반영 미완.
+  스토어 호스트 실측: `tailoredad-test.stage.fungies.net`
+  (`lib/fungies.ts` 베이스 URL 정정済み). element 페이지 200 뜸 (10-02 실측) — 페이지는 존재,
+  결제만 안 되는 상태. 지원 답변 대기 없이 직접 재시도 방침.
+- **Pricing Fungies 교체** (10-02, develop — 미배포):
+  `useFungies` 신설 (CDN `@0.7.3` exact pin, env 모르면 에러, 완료 시 success) +
+  `FungiesInlineModal` 신설 (Paddle 모달 동일 껍데기, embed 모드, 첫달 표시 유지) +
+  PricingSection Paddle→Fungies 교체 (서버 트랜잭션 삭제 → element URL 직접 오픈 +
+  `customFields {user_id}`, 첫달가 클라 자격 판정).
+  gotcha: `window.Fungies`는 네임스페이스 (`{DOM_CHECKOUT_EVENTS, Fungies}`) —
+  실체는 `window.Fungies.Fungies.Checkout` (`resolveFungiesApi` 흡수).
+  `lib/fungies.ts` prod 여지 추가 (prod element 맵 빈칸 + `FUNGIES_FIRST_ORDER_DISCOUNT_CODE=null`,
+  `NEXT_PUBLIC_FUNGIES_ENV` 전환). tsc·lint 깨끗.
+- **FLUX 3 Image 통일** (10-04, develop — 미배포):
+  `black-forest-labs/flux-3-image`로 base 단일화. `selectImageModel` 항상 FLUX 3 반환
+  (base·persona·base재시도 자동 전환, ratios BRIA 유지).
+  input: `{prompt, images, aspect_ratio, resolution 2k, grounding true, safety 2, png}`.
+  `image_input[n]` → `reference image n` 번역 (가정, PoC로 검증됨).
+  Seedream enum·case 삭제 (잔재 0, tsc 깨끗). `ReplicateClient` 기본값 교체.
+  base PoC 통과 (`/Users/jaeho/Downloads/261004`, 향수 b1·스니커즈 b2, C2×1:1·4:5, 킬 0 —
+  정체성 유지·텍스트 사고 0). ratios는 BRIA 확정 (비교 PoC 생략, 사장님 판단).
+  1.5k 블라인드는 보류.
+  한국 PIPA 가입 차단이 풀려 구 블로커 해소. Dodo 정책상 AI 이미지 생성은 환영 목록,
+  한국 merchant 허용, 개인 가능, 테스트 키 즉시 발급 (문서 확인済み).
+  상품 3종 생성됨 (Starter `pdt_0Nosm2WcXVkbgV28ndUWo` $19 / Growth `pdt_0Nosm2aXoSAV82rXZPcdo` $49 /
+  Pro `pdt_0Nosm2d0QRwiOjT9Cp3mb` $99, test mode). gotcha: TimeInterval 대문자 (`Month`).
+  SDK 3종 설치 (`dodopayments` 2.52.0 + `@dodopayments/nextjs` 0.3.9 +
+  `dodopayments-checkout` 1.9.9) + 공식 MCP 연결됨 (OAuth, test 키).
+  웹훅 API 직접 생성 (`ep_3K9LeOAyUjWubC1FXxaBMRPSa7z`, 구독·결제 8종,
+  secret → `.env.local`).
+  `lib/dodo.ts` (매핑·가격·장수·플랜명 — paddle/polar 참조 0) + `lib/dodoClient.ts` +
+  `/api/dodo/*` 7종 (checkouts·products·orders·subscriptions·change·cancel·revert) +
+  `/api/webhook/dodo` (standardwebhooks 검증→전달) + `dodoClientAPI` 확장 +
+  Pricing 오버레이 교체 (`useDodo` + `DodoInlineModal`, embed) + Profile 5종 교체 +
+  gateway 등록. Paddle/Polar 코드 전량 삭제 (DB 컬럼명·Fungies 코드 유지).
+  테마는 세션 `customization.theme`에 (최상위 무시됨). single_page는 폼 합치기 아님 (원복).
+  USD 고정 (`billing_currency`, Adaptive Currency 무관). return_url은 Origin 우선 (ngrok 귀환 방지).
+  전화번호 자동 기입은 Dodo 몫 (우리 코드 무관).
+  첫주문 할인 코드 `FIRSTORDER50` 생성됨 (50%·Starter·신규, 1주기 제한 ON) → 세션 `discount_codes` 배선됨.
+  Pricing Settings 지시 (10-04): Adaptive 통화 OFF (코드 USD 고정과 중복이라 혼란 방지) ·
+  PPP OFF (145원 같은 이상 금액 원인, $19 균일가 정책) · 매력 가격 OFF · 3D Secure OFF (전환율).
+  잔량: E2E 1건 (USD 확인) + Profile 5종 실측.
+- **브랜드 로고 확정·배치** (10-09/10, develop — 미배포):
+  Recraft `recraft-v4.1-svg`로 생성 (3번안: 조리개+크롭프레임, 타일형 `#EF2B70`+흰 glyph).
+  Ideogram v3-quality는 탈락 (`app icon` 프롬프트가 장면 목업을 유도, 배경 제거 불가).
+  gotcha 2개: (1) `style_type: Design`+`style_preset` 병용 금지 (프리셋은 AUTO/GENERAL만).
+  (2) `resolution`은 `None`+`aspect_ratio` 조합 (Flux식 `2K` 넣으면 invalid).
+  SVG 후처리: 흰 모서리 4조각 삭제 + 핑크 정사각→둥근 사각형(rx 460) + `#EF2B70` 통일 +
+  c2pa 메타 삭제 → `logo.svg` (5.6KB) + PNG 32/64/180/512 (rsvg-convert,
+  RGBA·모서리 alpha 0·중앙 #EF2B70 실측). dark 변형 없음 (타일형이라 공용).
+  `components/public/BrandMark.tsx` 신설 (16px 초과는 64파일 — 레티나 뭉개짐 수정) +
+  AdHeader·AppHeader 24px + AdFooter 22px + AuthForm 기존 유지 +
+  `layout.tsx` icons (파비콘 32·애플터치 180). tsc 깨끗 (`.next` stale 제외).
+- **ThemeToggle hydration 수정** (10-10, develop):
+  `useState` initializer가 localStorage를 읽어 dark 보유 시 서버 HTML과 불일치 → 크래시.
+  초기값 라이트 고정 + 마운트 후 effect 반영으로 이관.
 - [ ] **결제사 확정 후 코드 이식**: Polar 구조 복사 (체크아웃·웹훅·grant 3점, 수일 규모).
   Paddle 심사 결과 보고 결정 (LS 대기·Creem 탈락). 지금이 제일 쌀 때 (고객 생기면 마이그레이션 지옥).
 - [x] 프롬프트 컴포지션 1순위 (구조만 — 바이트 동일 검증, 푸시됨)
@@ -503,6 +646,9 @@
 - [x] ratios route 재설계 1차 (고정 문구·폴백 삭제·base-only·매퍼 분리 — 완료)
 - [x] 파이프라인 정합 1차 (prompt 항상 base · process 분기 · 함수改名 · RPC error 제거 — 완료)
 - [ ] **Bria 테스트 돌리기** (다음 1순위 — ratios 확장 실측, 가격 확인, Sync/webhook 정합)
+- [x] **FLUX 3 전환** (10-04 — base PoC 통과·매퍼 교체·Seedream 삭제, develop. ratios BRIA 유지).
+- [x] 브랜드 로고 배치 (10-10 — 생성·투명화·4사이즈·헤더/푸터/파비콘, develop. eyeball 대기).
+- [x] ThemeToggle hydration 수정 (10-10 — effect 이관, develop).
 - [ ] **HeroWall 잘림·저화질 체감** (09-22 신규 — 원인 1차 특정):
   `public/` hero 6종이 1:1 구버전이라 4:5 프레임에서 좌우 크롭 ("om Noise", "till Fighting").
   `landing-final/`에 4:5 WebP 준비됨 → `public/preview/` 덮어쓰기 대기 (사장님 작업).
@@ -551,16 +697,13 @@ npm run deploy   # opennext build + deploy (master에서)
 ## 9. 대시보드 작업 메모
 
 - Cloudflare Variables/Secrets: `NEXT_PUBLIC_*` 3개는 Variable, 나머지 전부 Secret
-  (`SUPABASE_SERVICE_ROLE_KEY`, `REPLICATE_API_TOKEN`, `OPENROUTER_API_KEY`,
+  (`NEON_DATABASE_URL`, `REPLICATE_API_TOKEN`, `OPENROUTER_API_KEY`,
   `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` 등).
 - `NEXT_PUBLIC_*`은 빌드타임에 박히므로 변수 변경 후 리빌드 필수.
-- Supabase Redirect URLs에 workers.dev + 실도메인 등록 (구글 로그인용).
+- Neon Auth trusted domains: localhost 기본 허용. ngrok·prod 도메인은 배포 시 등록 (대시보드 Auth).
+- Google OAuth: dev는 shared 자격으로 통과. prod·GitHub는 자체 앱 필요 (기존 GitHub 앱 재사용可 — 콜백 URL 추가).
 - Upstash: `tailored-ad-ratelimit` (AWS 도쿄, Free, eviction ON). 월 명령어 40만 전후로 PAYG 전환 + budget cap.
 - dev `BASE_URL`은 ngrok 주소 경유 (ngrok 꺼지면 self-fetch DOCTYPE 500 — ngrok 켜둘 것).
-- Polar: OAT는 생성 시 1회만 표시 (분실 시 폐기 후 재생성). PC·환경별 토큰 분리 권장.
-  웹훅 endpoint는 대시보드 등록 (dev는 ngrok URL + `/api/webhook/polar`, raw, 2026-04).
-  `.env.local` 필요 키: `POLAR_API_KEY` + `POLAR_WEBHOOK_SECRET` +
-  `POLAR_FIRST_ORDER_DISCOUNT_ID` (사장님이 직접 입력, 채팅 금지).
 
 ## 10. 랜딩 실생성 배치 기록 (09-18, 41장 수령)
 
@@ -611,5 +754,61 @@ npm run deploy   # opennext build + deploy (master에서)
   변환: `ffmpeg -i in.png -c:v libwebp -quality 85 -preset photo out.webp` (장당 24~115KB).
   원본 PNG군은 `/home/jaeho/다운로드/tailored-portfolio/landing-final/` 보관.
 - 커밋 완료 (09-23): `public/preview` 19종 + HeroWall/HeroSection/PortfolioSection + finals.zip 개명 — `3dd11eb` 푸시됨.
+
+## 12. Supabase → Neon + R2 마이그레이션 세션 (10-09/11, develop — Auth까지 완료, 잔량만 남음)
+
+> 상세 계획: `MIGRATION_SUPABASE_TO_NEON.md` (상태·인수인계 포함). 이 섹션은 요약만.
+
+- **확정 스코프**: DB→Neon, Auth→Neon Auth(ON済み), Storage→R2, Realtime→Upstash pub/sub+SSE.
+  cli R2 전환은 별도 탭 (여기 범위 밖).
+- **Neon**: Singapore `divine-sea-22567219`, production + development 브랜치.
+  `neon` CLI 전역 설치·login·link(production)·`neon.ts`(auth:true)·deploy 완료.
+- **DB 이관 완료** (development 브랜치): 테이블 4종 + 함수 3종 + 데이터 2/65/14/278 대조됨.
+  `db/neon/01_schema.sql`·`02_functions.sql`·`03_verify.sql`.
+  데드 제외 2종: `increment_user_credit` (DB에 없음+호출자 없음),
+  `update_creative_reframe_outputs` (호출자 없음).
+  중복 유니크는 1개씩만 생성. FK 없음. `user_id` 인덱스 원본부터 없음 (미러 유지).
+- **Storage 코드 R2 이식 완료** (`ad4e55d` 푸시됨): `src/lib/r2.ts` 신규 (S3 규격, private+presign 24h).
+  키 규칙 그대로라 호출부 변경 0. Replicate가 서명 URL 직접 읽어서 presign 유지 (버킷 공개 불필요).
+  `@aws-sdk/client-s3 ^3.1128.0` + `@aws-sdk/s3-request-presigner ^3.1128.0`
+  (실설치 3.984.0/3.1148.0 — 동작 무영향).
+  transform은 이미 꺼져 있어서(쿼터 고갈) 동등 작업 없음. R2+Transformations는 후순위 enhancement.
+- **기존 파일 459건(754MB) R2 업로드 완료** (실패 0, 카운트 대조됨).
+- **R2 읽기 검증됨**: Projects 썸네일 정상 (DB Supabase + 이미지 R2 혼합).
+- **DB 코드 교체 완료** (10-10, develop — tsc 깨끗, E2E 대기):
+  `src/lib/db/neon.ts` (neon-http 싱글톤, `NEON_DATABASE_URL`) +
+  `src/lib/db/schema.ts` (`01_schema.sql` 1:1 미러, timestamptz는 ISO 문자열 계약 유지) +
+  3모듈 내부 교체 (users·usage·batches, 시그니처·에러문·duplicate 판정 유지, RPC 3종 `sql` 호출).
+  `patchUserCreditCountByUserId` 삭제 (호출자 0 + DB 함수 없음).
+  `proxy.ts`는 손대지 않음 (plan 조회 없음 — 계획서 기재는 stale).
+  패키지 `drizzle-orm ^0.45.3` + `@neondatabase/serverless ^1.2.0` (사장님 설치済み).
+  데이터 실측 일치 (2/65/14/278). 잔재: Supabase Auth + Realtime 5곳
+  (쓰기가 Neon으로 가서 실시간 갱신 안 옴 — 수동 Refresh·폴백만 동작, Upstash 이관까지).
+- **Realtime Upstash 이관 완료** (10-10, develop — 파이프 검증済み, 테스트 UI 제거済み):
+  Supabase channel() 5곳 → `useBatchEvents` 훅 + `GET /api/events`(SSE) + Upstash Streams.
+  REST는 SUBSCRIBE 불가라 Streams+XADD/XRANGE(1.5초 폴링, ~30초 후 재연결) 조합.
+  발행점은 서버 API 내부 (grant→grants, batch post/patch→batches+batch, user patch→user, fail-soft).
+  gotcha 2개: (1) Upstash REST는 `data`를 객체로 파싱해서 줌 (문자열 가정 파서 전량 스킵 — 양쪽 흡수).
+  (2) XRANGE 시작 커서는 inclusive라 커서 자신 제외 (아니면 매 틱 중복 배달).
+  검증은 dev 전용 `RealtimeTestPanel`+`/api/events/test`로 1클릭 1줄 확인 후 둘 다 삭제.
+  tsc·eslint 깨끗. 잔재: Supabase Auth만.
+- **Auth Neon 이관 완료** (10-10/11, develop — E2E 통과):
+  Supabase Auth → Managed Better Auth (`@neondatabase/auth@0.5.0-beta` exact).
+  설계: 세션→email→우리 users 행 (`getIsValidRequestC2S`가 profile 반환 → 게이트웨이 주입 UUID 불변,
+  하류 15 route 무수정). 클라 8곳 `supabaseUser`→`user`, `session` 필드 삭제.
+  콜백은 email find-or-create (기존 행 재사용 — 잔액·이력·trial 유지, E2E 실측 2행 그대로).
+  gotcha 3개: (1) proxy.ts는 `src/`에 있어야 동작 (root 것은 미실행 — app이 src/라 같은 레벨 규칙).
+  (2) 게이트웨이 고정 경로가 `:userId`보다 먼저 와야 함 (by-email이 userId='by-email'로 매칭돼 403).
+  (3) `SupabaseAuthAdapter` 안 씀 (default client, `signIn.social`).
+  Supabase 잔재 전량 삭제 (lib/supabase 4종·src/proxy.ts·deps·webhook/polar·wrangler 잔재값).
+  E2E: Google 로그인→행 재사용→잔액 표시→proxy 리다이렉트 전부 정상.
+  잔량: GitHub provider 미설정 (OAuth 앱 재사용可 — 콜백 URL 추가 + 대시보드 키),
+  trusted domains (localhost만, ngrok·prod는 배포 시).
+- **미커밋 주의**: 릴리즈 묶음 (아래 3커밋 후 master 머지·배포).
+- **릴리즈 준비** (10-13, develop):
+  R2 분리·이사 (459건 일치, base 빈깡통) + Neon prod 테이블·함수·도메인 +
+  OAuth prod 양쪽 설정 + Cloudflare Secrets 등록(사장님) + 비례환불 코드 +
+  Dodo live 상품 ID·FIRSTORDER50(live·신규·횟수제한) 확인.
+  gotcha: OAuth 콜백은 verifier 클라 교환 필수 (서버 직행 시 세션 없음).
 
 (End of file)

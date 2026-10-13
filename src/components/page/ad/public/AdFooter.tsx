@@ -2,6 +2,7 @@
 
 import { memo } from 'react';
 import Link from 'next/link';
+import BrandMark from "@/components/public/BrandMark";
 
 const FOOTER_LINKS = [
     { label: 'Portfolio', href: '#portfolio' },
@@ -16,6 +17,7 @@ function AdFooter() {
             <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-10 md:flex-row md:items-center">
                 <div>
                     <div className="flex items-center gap-2.5">
+                        <BrandMark size={22} />
                         <span className="text-[15px] font-bold tracking-tight text-text1">TailoredAd</span>
                     </div>
                     <p className="mt-3 max-w-xs text-[13px] leading-relaxed text-text2">

@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
 import { useAuth } from "@/context/AuthContext";
+import { useBatchEvents } from "@/components/public/useBatchEvents";
 import { usersClientAPI, type UserUsageSummary } from "@/lib/api/client/usersClientAPI";
-import { supabase } from "@/lib/supabase/supabaseClient";
 
 type SuccessStatus = 'checking' | 'ready' | 'timeout';
 
@@ -16,8 +16,8 @@ const CONFIRM_TIMEOUT_MS = 30000;
  * Realtime primary (내 grants INSERT 감지) + 30초 타임아웃 폴백 (수동 새로고침).
  */
 function CheckoutSuccessClient() {
-    const { supabaseUser, isInitializingAuthContext } = useAuth();
-    const userId = supabaseUser?.id;
+    const { user, isInitializingAuthContext } = useAuth();
+    const userId = user?.id;
     const [status, setStatus] = useState<SuccessStatus>('checking');
     const [usage, setUsage] = useState<UserUsageSummary | null>(null);
 
@@ -38,28 +38,11 @@ function CheckoutSuccessClient() {
 
         let cancelled = false;
         const isCancelled = () => cancelled;
-        let channel: ReturnType<typeof supabase.channel> | null = null;
 
         // 동기 setState는 lint(react-hooks/set-state-in-effect) 위반이라 마이크로태스크로 지연
         void Promise.resolve().then(() => {
             if (cancelled) return;
-            void fetchUsage(isCancelled).then((done) => {
-                if (cancelled || done) return;
-                // Realtime 구독 — 내 grants 행 INSERT 시 즉시 재조회
-                void supabase.auth.getUser().then(({ data: { user } }) => {
-                    if (cancelled || !user) return;
-                    channel = supabase
-                        .channel(`checkout-grants-${user.id}-${Math.random().toString(36).slice(2, 6)}`)
-                        .on(
-                            'postgres_changes',
-                            { event: 'INSERT', schema: 'public', table: 'subscription_grants', filter: `user_id=eq.${user.id}` },
-                            () => {
-                                void fetchUsage(isCancelled);
-                            },
-                        )
-                        .subscribe();
-                });
-            });
+            void fetchUsage(isCancelled);
         });
 
         const timer = setTimeout(() => {
@@ -72,9 +55,16 @@ function CheckoutSuccessClient() {
         return () => {
             cancelled = true;
             clearTimeout(timer);
-            if (channel) supabase.removeChannel(channel);
         };
     }, [fetchUsage, userId]);
+
+    // 적립 알림 — 내 grants INSERT 시 즉시 재조회 (Realtime 대체)
+    useBatchEvents({
+        userId,
+        onEvent: (event) => {
+            if (event.type === 'grants') void fetchUsage(() => false);
+        },
+    });
 
     const onClickRefresh = useCallback(() => {
         setStatus('checking');
@@ -96,7 +86,7 @@ function CheckoutSuccessClient() {
         );
     }
 
-    if (!supabaseUser) {
+    if (!user) {
         return (
             <main className="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center px-4 text-center">
                 <h1 className="text-2xl font-bold tracking-tight text-text1">Payment received</h1>

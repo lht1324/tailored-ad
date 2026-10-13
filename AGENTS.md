@@ -25,6 +25,11 @@
     * [Refactor] [기존 결제 로직 수정]
     * [Update] [결제사 변경 계획안 업데이트]
 * 사장은 master, develop, sub-branch 형태로 이어지는 Git Flow 방식을 사용합니다.
+* 작업은 develop에서 합니다 (큰 작업은 sub-branch). master에 직접 커밋하지 마십시오.
+* master 머지는 사장이 릴리즈 판단을 내릴 때만 하며, 반드시 `--no-ff`로 합류 커밋을 남깁니다
+  (fast-forward 병합 금지 — 그래프 추적용).
+* push는 평소 develop만, master push는 릴리즈 머지 때만 합니다.
+* 머지·푸시는 배포가 아닙니다. prod 반영은 별도 배포 명령으로 하며 사장 컨펌 후 실행합니다.
 
 ## 스킬 관리 (온보딩)
 * 세션 시작 시 `/SKILLS.md`를 읽어 프로젝트의 스킬 관리 체계와 설치된 스킬 목록을 파악하십시오.
@@ -71,3 +76,13 @@ MultiEdit(file_path: "D:/repos/project/file.tsx", ...)
 ✅ CORRECT - 작동함:
 Edit(file_path: "D:\repos\project\file.tsx", ...)
 MultiEdit(file_path: "D:\repos\project\file.tsx", ...)
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

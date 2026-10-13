@@ -41,6 +41,11 @@
 | ponytail-audit / review / gain / debt / help | dietrichgebert/ponytail | ponytail 부가 도구 (코드 감사·리뷰·이득/부채 분석) |
 | find-skills | (글로벌) | 스킬 탐색/설치 안내 |
 
+### Neon (Neon 제어 — 프로젝트 로컬)
+| 스킬 | 출처 | 용도 |
+|---|---|---|
+| neon, neon-postgres, neon-postgres-branches, neon-postgres-egress-optimizer, neon-auth, neon-object-storage, neon-functions, neon-ai-gateway | neon CLI | DB·브랜치·Auth·Storage 제어. `neon skills` 설치, `.agents/skills/` 로컬, Git 추적 제외 |
+
 ### Paddle (결제 연동)
 | 스킬 | 출처 | 용도 |
 |---|---|---|

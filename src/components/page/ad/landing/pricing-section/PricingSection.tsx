@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import { Check } from 'lucide-react';
 import Reveal from "@/components/page/ad/Reveal";
 import { useAuth } from "@/context/AuthContext";
-import { paddleClientAPI } from "@/lib/api/client/paddleClientAPI";
 import { usersClientAPI } from "@/lib/api/client/usersClientAPI";
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
-import { PLAN_PRICE_USD, type PaidPlan } from "@/lib/paddle";
-import PaddleInlineModal from "@/components/page/ad/paddle/PaddleInlineModal";
-import { usePaddle } from "@/components/page/ad/paddle/usePaddle";
+import { PLAN_PRICE_USD, type DodoPaidPlan as PaidPlan } from "@/lib/dodo";
+import { dodoClientAPI } from "@/lib/api/client/dodoClientAPI";
+import DodoInlineModal from "@/components/page/ad/dodo/DodoInlineModal";
+import { useDodo } from "@/components/page/ad/dodo/useDodo";
 
 interface Plan {
     planId: PaidPlan;
@@ -149,13 +149,13 @@ function PricingCard({ plan, busy, showDiscountNote, onClickCheckout }: {
 }
 
 export default function PricingSection() {
-    const { user, supabaseUser } = useAuth();
+    const { user } = useAuth();
     const router = useRouter();
-    const { paddle, envError } = usePaddle();
+    const { ready: dodoReady, envError } = useDodo();
     const [busyPlan, setBusyPlan] = useState<PaidPlan | null>(null);
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
     const [discountEligible, setDiscountEligible] = useState(false);
-    const [activeTx, setActiveTx] = useState<{ transactionId: string; plan: Plan; firstCharge: number | null } | null>(null);
+    const [activeTx, setActiveTx] = useState<{ checkoutUrl: string; plan: Plan; firstCharge: number | null } | null>(null);
 
     // 첫주문 할인 표시 — 로그아웃·무료는 표시, 유료 이력만 숨김 (서버는 유료 이력 기준 부과)
     useEffect(() => {
@@ -163,27 +163,27 @@ export default function PricingSection() {
         // 동기 setState는 lint(react-hooks/set-state-in-effect) 위반이라 마이크로태스크로 지연
         void Promise.resolve().then(() => {
             if (!live) return;
-            if (!supabaseUser) {
+            if (!user) {
                 setDiscountEligible(true);
                 return;
             }
-            void usersClientAPI.getUserUsageSummary(supabaseUser.id).then((summary) => {
+            void usersClientAPI.getUserUsageSummary(user.id).then((summary) => {
                 if (live) setDiscountEligible(!!summary && !summary.hasPaid);
             });
         });
         return () => {
             live = false;
         };
-    }, [supabaseUser?.id]);
+    }, [user?.id]);
 
     const onClickCheckout = useCallback(async (plan: Plan) => {
-        if (!supabaseUser) {
+        if (!user) {
             router.push('/sign-in?redirectTo=/#pricing');
             return;
         }
         // 구독 중이면 체크아웃 대신 Projects로 (이중 구독 방지)
         try {
-            const summary = await usersClientAPI.getUserUsageSummary(supabaseUser.id);
+            const summary = await usersClientAPI.getUserUsageSummary(user.id);
             const activePlan = (summary as unknown as { plan?: string | null } | null)?.plan;
             if (activePlan && activePlan !== 'none') {
                 router.push('/projects');
@@ -194,21 +194,27 @@ export default function PricingSection() {
         }
         setCheckoutError(null);
         setBusyPlan(plan.planId);
-        const created = await paddleClientAPI.createTransaction(plan.planId);
-        setBusyPlan(null);
-        if (!created) {
+        // Dodo는 서버 체크아웃 세션 생성 → 세션 URL로 열기 (첫달 할인은 메커니즘 확정 후).
+        // 테마는 앱 토글(.theme-light 유무)과 맞춤 — 미지정 시 비즈니스 기본값.
+        try {
+            const theme = typeof document !== 'undefined' && document.documentElement.classList.contains('theme-light')
+                ? 'light'
+                : 'dark';
+            const created = await dodoClientAPI.createCheckoutSession(plan.planId, theme as 'light' | 'dark');
+            if (!created) {
+                throw new Error('Could not start checkout.');
+            }
+            setActiveTx({ checkoutUrl: created.checkoutUrl, plan, firstCharge: created.firstCharge });
+        } catch {
             setCheckoutError('Could not start checkout. Please try again.');
-            return;
+        } finally {
+            setBusyPlan(null);
         }
-        // 인라인 모달로 표시 — 트랜잭션은 서버 생성 (metadata 확정), firstCharge도 서버 판정값
-        setActiveTx({ transactionId: created.transactionId, plan, firstCharge: created.discountApplied ? created.firstCharge : null });
-    }, [supabaseUser, router]);
+    }, [user, router]);
 
     const onCloseInlineModal = useCallback(() => {
         setActiveTx(null);
     }, []);
-
-    const userEmail = user?.email ?? supabaseUser?.email ?? null;
 
     return (
         <section id="pricing" className="scroll-mt-24 border-t border-hairline bg-surface/40 px-4 py-24 md:py-32">
@@ -253,11 +259,9 @@ export default function PricingSection() {
                     </ul>
                 </Reveal>
             </div>
-            {paddle && activeTx && (
-                <PaddleInlineModal
-                    paddle={paddle}
-                    transactionId={activeTx.transactionId}
-                    userEmail={userEmail}
+            {dodoReady && activeTx && (
+                <DodoInlineModal
+                    checkoutUrl={activeTx.checkoutUrl}
                     planName={activeTx.plan.name}
                     basePrice={PLAN_PRICE_USD[activeTx.plan.planId]}
                     imagesLabel={activeTx.plan.images}
