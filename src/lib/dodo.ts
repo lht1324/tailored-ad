@@ -15,11 +15,11 @@ export const DODO_PRODUCT_BY_PLAN: Record<DodoPaidPlan, string> = {
     [SubscriptionPlan.PLAN_4]: "",
 };
 
-/** 플랜 → Dodo product ID (live — 카탈로그 생성 후 기입) */
+/** 플랜 → Dodo product ID (live — 10-13 카탈로그 실측 기입) */
 export const DODO_PRODUCT_BY_PLAN_LIVE: Record<DodoPaidPlan, string> = {
-    [SubscriptionPlan.PLAN_1]: "",
-    [SubscriptionPlan.PLAN_2]: "",
-    [SubscriptionPlan.PLAN_3]: "",
+    [SubscriptionPlan.PLAN_1]: "pdt_0NpF9VQjYvFLc5jA9DFin", // Starter $19
+    [SubscriptionPlan.PLAN_2]: "pdt_0NpF9VKMSYntkd0OciAJb", // Growth $49
+    [SubscriptionPlan.PLAN_3]: "pdt_0NpF9VDKXhtpkIC6RHyfU", // Pro $99
     [SubscriptionPlan.PLAN_4]: "",
 };
 
