@@ -61,7 +61,7 @@
   - 이미지 동등성 육안 확인.
   - Realtime 진행 표시 확인.
 
-  ## 진행 상태 (2026-10-10, develop — Realtime 이관 완료)
+  ## 진행 상태 (2026-10-13, develop — prod 준비 중)
 
   - [x] Neon 프로젝트 (Singapore) + production/development 브랜치 + Neon Auth ON.
   - [x] `neon` CLI 전역 설치 + login + skills/MCP + link (production) + `neon.ts` (auth:true) + deploy.
@@ -80,9 +80,16 @@
   - [x] Auth → Managed Better Auth (`@neondatabase/auth@0.5.0-beta`,
     세션→email 매핑, callback find-or-create, proxy는 `src/`에).
     E2E 통과 (Google 로그인·행 재사용·잔액·리다이렉트). Supabase 잔재 전량 삭제.
+    verifier 미교환 gotcha — 서버 콜백 전 `/callback/session` 클라 교환 페이지 경유.
+  - [x] R2 dev-prod 분리: 459건 `-dev`로 이사(바이트 일치), base는 빈 깡통.
+    `r2.ts`에서 dev만 `-dev` 접미 (prod는 base). 토큰에 양쪽 권한.
+  - [x] Neon prod: 테이블 4종+함수 3종 적용, trusted domains에 tailoredad.com.
+    데이터는 비움 (클린 시작). Auth prod에 Google 자체앱+GitHub 설정済み.
+  - [x] 비례환불: `refund.succeeded` 수신 시 환불액→회수 장수 역산, 미사용 상한,
+    `refund:{id}` 멱등. USD 전제.
   - [ ] R2 쓰기 검증: Create 1건 생성 → 표시 (미실시).
   - [ ] Transformations (미착수).
-  - [ ] prod 컷오버 (GitHub provider + trusted domains + Secrets 정리 후).
+  - [ ] prod 컷오버: Cloudflare Secrets 등록 후 master 머지·배포 → live E2E.
 
   ## 인수인계 — DB 코드 교체 (supabase-js → drizzle/Neon)
 

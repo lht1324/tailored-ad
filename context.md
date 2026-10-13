@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-10-11 01:46)
+# TailoredAd — 작업 기록 (Last Updated: 2026-10-14 01:55)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -804,7 +804,11 @@ npm run deploy   # opennext build + deploy (master에서)
   E2E: Google 로그인→행 재사용→잔액 표시→proxy 리다이렉트 전부 정상.
   잔량: GitHub provider 미설정 (OAuth 앱 재사용可 — 콜백 URL 추가 + 대시보드 키),
   trusted domains (localhost만, ngrok·prod는 배포 시).
-- **미커밋 주의**: Auth 이관 전건 (E2E 통과, 푸시 대기).
-  `package-lock.json`은 사장 `npm install` 결과물이라 이번 커밋에 포함.
+- **미커밋 주의**: 릴리즈 묶음 (아래 3커밋 후 master 머지·배포).
+- **릴리즈 준비** (10-13, develop):
+  R2 분리·이사 (459건 일치, base 빈깡통) + Neon prod 테이블·함수·도메인 +
+  OAuth prod 양쪽 설정 + Cloudflare Secrets 등록(사장님) + 비례환불 코드 +
+  Dodo live 상품 ID·FIRSTORDER50(live·신규·횟수제한) 확인.
+  gotcha: OAuth 콜백은 verifier 클라 교환 필수 (서버 직행 시 세션 없음).
 
 (End of file)
