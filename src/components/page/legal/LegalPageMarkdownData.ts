@@ -6,7 +6,7 @@ You are responsible for activity under your account and for keeping your credent
 ## 2. Acceptable Use
 You agree to use the Service only for lawful purposes. You will not:
 - Generate or attempt to generate sexually explicit content, hate speech, or violent extremist material.
-- Create face swaps, deepfakes, or any likeness of a real person other than yourself.
+- Create face swaps, deepfakes, or any likeness of a real person. Our Service generates fictional personas and does not accept face photos — do not attempt to circumvent this.
 - Upload photos you do not own or do not have the rights to use for AI generation.
 - Infringe intellectual property, privacy, or publicity rights of others.
 - Reverse engineer, scrape, resell, or abuse our APIs, or circumvent usage limits.
@@ -14,9 +14,7 @@ You agree to use the Service only for lawful purposes. You will not:
 We may suspend or terminate accounts that violate these rules, without prior notice.
 
 ## 3. Your Content & Generated Images
-**Your inputs:** You retain ownership of the photos and notes you upload. You represent that you
-own them or hold the rights to use them for AI ad generation, and that no other person's likeness,
-trademark, or copyrighted work is included without permission.
+**Your inputs:** You retain ownership of the product photos, logos, and notes you upload. You represent that you own them or hold the rights to use them for AI ad generation, and that no other person's likeness, trademark, or copyrighted work is included without permission.
 **Generated images:** You own the finished ad images generated for your account and may use them
 commercially, including in paid advertising.
 **Our license:** You grant us a non-exclusive, worldwide license to store and process your content
@@ -28,7 +26,7 @@ solely to operate, improve, debug, and protect the Service (including abuse and 
 - **Free trial:** 10 images, once per user, no card required. Trial images carry no cash value.
 - **Subscriptions:** Plans renew monthly. You may cancel anytime; cancellation takes effect at the end
   of the current billing cycle and your remaining images stay usable.
-- **Prices:** Shown at checkout in USD. Payments are processed by our merchant of record, named at checkout.
+- **Prices:** Shown at checkout in USD. Payments are processed by Dodo Payments.
 - **Refunds:** See our [Refund Policy](/legal/refunds). Refunded images are revoked from your balance.
 
 ## 5. Disclaimer of Warranties
@@ -67,10 +65,8 @@ export const PRIVACY_POLICY = `
 TailoredAd ("we", "us", or "our") respects your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our website and AI ad-generation service.
 
 ## 2. Information We Collect
-- **Account Data:** Email address, name, and profile picture (via OAuth providers).
-- **Uploaded Photos & Notes:** Product and portrait photos you upload, plus the text notes you attach to them.
-  These are processed to generate your ad images. Do not upload photos of other people, and avoid entering
-  sensitive personal information (financial data, health records, ID numbers) into note fields.
+- **Account Data:** Email address, name, and profile picture (via Google or GitHub OAuth).
+- **Uploaded Photos & Notes:** Product photos and brand logos you upload, plus the text notes you attach to them. These are processed to generate your ad images. People appearing in scenes are AI-generated fictional personas — we do not accept face photos. Do not upload photos you do not own, and avoid entering sensitive personal information (financial data, health records, ID numbers) into note fields.
 - **Usage Data:** Generation history, interaction logs, and image counts. Technical data such as IP address
   and browser type is collected automatically by our infrastructure for security purposes.
 - **Payment Data:** We do not store credit card details. All payments are processed by our merchant of record,
@@ -87,8 +83,9 @@ TailoredAd ("we", "us", or "our") respects your privacy. This Privacy Policy exp
   are sent to Replicate-hosted models. OAuth account data (email, name, profile picture) is never sent there.
 - **Text AI:** [OpenRouter LLC](https://openrouter.ai/) (USA) — creative copy and prompt text only. No photos,
   no account data.
-- **Hosting & database:** [Cloudflare](https://www.cloudflare.com/), [Supabase](https://supabase.com/).
-- **Payments:** our merchant of record, named at checkout. Card data never touches our servers.
+- **Hosting & database:** [Cloudflare](https://www.cloudflare.com/) (hosting, file storage), [Neon](https://neon.com/) (database and login sessions).
+- **Login:** Google or GitHub OAuth (account email, name, and profile picture).
+- **Payments:** Dodo Payments (name and email for checkout). Card data never touches our servers.
 
 **International Transfers:** By using the Service, you acknowledge that your data may be transferred to and
 processed in the **United States**. We rely on standard contractual clauses (SCCs) or adequacy decisions
