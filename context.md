@@ -804,10 +804,13 @@ npm run deploy   # opennext build + deploy (master에서)
   E2E: Google 로그인→행 재사용→잔액 표시→proxy 리다이렉트 전부 정상.
   잔량: GitHub provider 미설정 (OAuth 앱 재사용可 — 콜백 URL 추가 + 대시보드 키),
   trusted domains (localhost만, ngrok·prod는 배포 시).
-- **미커밋 주의**: 릴리즈 묶음 (아래 3커밋 후 master 머지·배포).
-- **릴리즈 준비** (10-13, develop):
+- **병합 사고** (10-14 — master fast-forward됨, `--no-ff` 누락):
+  약관 릴리즈 때 merge 커밋 없이 master가 직진. 내용물은 정상, 그래프만 평탄.
+  수습: develop을 master로 ff 동기화. 원인 미확정. 다음 릴리즈 때 머지 출력 확인할 것.
+- **릴리즈 준비** (10-13/14, develop):
   R2 분리·이사 (459건 일치, base 빈깡통) + Neon prod 테이블·함수·도메인 +
-  OAuth prod 양쪽 설정 + Cloudflare Secrets 등록(사장님) + 비례환불 코드 +
+  OAuth prod 양쪽 설정 (Google 자체앱 게시·로고 심사 30초 통과, GitHub 콜백 dev·prod) +
+  Cloudflare Secrets 등록(사장님) + 비례환불 코드 +
   Dodo live 상품 ID·FIRSTORDER50(live·신규·횟수제한) 확인.
   gotcha: OAuth 콜백은 verifier 클라 교환 필수 (서버 직행 시 세션 없음).
 
