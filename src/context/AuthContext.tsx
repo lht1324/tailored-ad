@@ -22,6 +22,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Better Auth 세션 (auth 테이블 신원) — 우리 users 행과 분리. 매칭은 email로.
+    // Better Auth 세션 (auth 테이블 신원) — 우리 users 행과 분리. 매칭은 email로.
     const { data: session, isPending: isSessionPending } = authClient.useSession();
     const [user, setUser] = useState<User | null>(null)
     const [profileKnown, setProfileKnown] = useState(false)
@@ -70,13 +71,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // 빌드타임 NEXT_PUBLIC_BASE_URL 금지 — prod 번들에 localhost가 박혀 OAuth가 localhost로 튐.
             // 클라 런타임 origin이 항상 정답 (dev localhost·ngrok·prod 실도메인 전부).
             // callbackURL은 trusted domains에 등록돼 있어야 함 (localhost 기본 허용).
+            const callbackURL = `${window.location.origin}/callback/auth${redirectTo ? `?redirectTo=${redirectTo}` : ""}`;
             const { error } = await authClient.signIn.social({
                 provider,
-                callbackURL: `${window.location.origin}/callback/auth${redirectTo ? `?redirectTo=${redirectTo}` : ""}`,
+                callbackURL,
             });
             if (error) {
                 throw error;
             }
+            // 팝업 모드: 세션 확정 후 콜백으로 이동 (행 생성).
+            // 성공 후 이동을 안 하면 행 만드는 곳을 영원히 안 거쳐서 prod 빈 DB에서 터진다.
+            // 리다이렉트 모드에선 페이지가 언로드돼 이 코드가 실행 안 됨 (문제없음).
+            for (let i = 0; i < 20; i++) {
+                try {
+                    const { data } = await authClient.getSession();
+                    if (data?.session) break;
+                } catch {
+                    /* 재시도 */
+                }
+                await new Promise((resolve) => setTimeout(resolve, 500));
+            }
+            // 전체 로드 고의 사용 — 콜백 route 핸들러 실행 + 쿠키 확정이 필요해서
+            // router 내비게이션(route 핸들러행 미지원 가능) 대신 쓴다.
+            // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+            window.location.href = callbackURL;
             return {}
         } catch (error) {
             return { error: `An error occurred during ${provider} sign in: ${error instanceof Error ? error.message : 'Unknown error'}` }
