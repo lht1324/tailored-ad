@@ -10,96 +10,50 @@ type RouteHandler = (
 
 // self-fetch 금지: 워커 안에서 자기 도메인으로 fetch하면 edge에서 non-JSON으로 죽는다
 // (inner invocation 0건 실측). 같은 프로세스 핸들러를 직접 호출한다.
-async function loadHandlers(): Promise<Array<{ method: string; pattern: string[]; handler: RouteHandler }>> {
-    const [
-        adBatches,
-        adBatchById,
-        userById,
-        userByEmail,
-        profileLogo,
-        image,
-        imageGenBase,
-        imageGenRatios,
-        imageProcessBase,
-        imageProcessRatios,
-        creativeSpecs,
-        creativePrompt,
-        creativeAnalysis,
-        creativeDesign,
-        dodoCheckouts,
-        dodoProducts,
-        dodoOrders,
-        dodoSubscriptions,
-        dodoChange,
-        dodoCancel,
-        dodoRevert,
-    ] = await Promise.all([
-        import("@/app/api/ad-generation-batches/route"),
-        import("@/app/api/ad-generation-batches/[batchId]/route"),
-        import("@/app/api/user/[userId]/route"),
-        import("@/app/api/user/by-email/route"),
-        import("@/app/api/profile/logo/route"),
-        import("@/app/api/image/route"),
-        import("@/app/api/image/generation/base/route"),
-        import("@/app/api/image/generation/ratios/route"),
-        import("@/app/api/image/process/base/route"),
-        import("@/app/api/image/process/ratios/route"),
-        import("@/app/api/creative/specs/route"),
-        import("@/app/api/creative/[creative-index]/prompt/route"),
-        import("@/app/api/creative/[creative-index]/analysis/route"),
-        import("@/app/api/creative/[creative-index]/design/route"),
-        import("@/app/api/dodo/checkouts/route"),
-        import("@/app/api/dodo/products/route"),
-        import("@/app/api/dodo/orders/route"),
-        import("@/app/api/dodo/subscriptions/route"),
-        import("@/app/api/dodo/subscriptions/change/route"),
-        import("@/app/api/dodo/subscriptions/cancel/route"),
-        import("@/app/api/dodo/subscriptions/revert/route"),
-    ]);
-    const at = (mod: Record<string, unknown>, key: string): RouteHandler | undefined =>
-        typeof mod[key] === 'function' ? (mod[key] as RouteHandler) : undefined;
-    const entries: Array<{ method: string; pattern: string[]; mod: Record<string, unknown> }> = [
-        { method: 'GET', pattern: ['api', 'ad-generation-batches'], mod: adBatches as unknown as Record<string, unknown> },
-        { method: 'GET', pattern: ['api', 'ad-generation-batches', ':batchId'], mod: adBatchById as unknown as Record<string, unknown> },
-        // 고정 경로는 파라미터(:userId)보다 먼저 — 먼저 매칭된 쪽이 이긴다
-        { method: 'GET', pattern: ['api', 'user', 'by-email'], mod: userByEmail as unknown as Record<string, unknown> },
-        { method: 'GET', pattern: ['api', 'user', ':userId'], mod: userById as unknown as Record<string, unknown> },
-        { method: 'PATCH', pattern: ['api', 'user', ':userId'], mod: userById as unknown as Record<string, unknown> },
-        { method: 'GET', pattern: ['api', 'profile', 'logo'], mod: profileLogo as unknown as Record<string, unknown> },
-        { method: 'POST', pattern: ['api', 'profile', 'logo'], mod: profileLogo as unknown as Record<string, unknown> },
-        { method: 'DELETE', pattern: ['api', 'profile', 'logo'], mod: profileLogo as unknown as Record<string, unknown> },
-        { method: 'POST', pattern: ['api', 'image'], mod: image as unknown as Record<string, unknown> },
-        { method: 'POST', pattern: ['api', 'image', 'generation', 'base'], mod: imageGenBase as unknown as Record<string, unknown> },
-        { method: 'POST', pattern: ['api', 'image', 'generation', 'ratios'], mod: imageGenRatios as unknown as Record<string, unknown> },
-        { method: 'POST', pattern: ['api', 'image', 'process', 'base'], mod: imageProcessBase as unknown as Record<string, unknown> },
-        { method: 'POST', pattern: ['api', 'image', 'process', 'ratios'], mod: imageProcessRatios as unknown as Record<string, unknown> },
-        { method: 'POST', pattern: ['api', 'creative', 'specs'], mod: creativeSpecs as unknown as Record<string, unknown> },
-        { method: 'POST', pattern: ['api', 'creative', ':creative-index', 'prompt'], mod: creativePrompt as unknown as Record<string, unknown> },
-        { method: 'POST', pattern: ['api', 'creative', ':creative-index', 'analysis'], mod: creativeAnalysis as unknown as Record<string, unknown> },
-        { method: 'PATCH', pattern: ['api', 'creative', ':creative-index', 'design'], mod: creativeDesign as unknown as Record<string, unknown> },
-        { method: 'POST', pattern: ['api', 'dodo', 'checkouts'], mod: dodoCheckouts as unknown as Record<string, unknown> },
-        { method: 'GET', pattern: ['api', 'dodo', 'products'], mod: dodoProducts as unknown as Record<string, unknown> },
-        { method: 'GET', pattern: ['api', 'dodo', 'orders'], mod: dodoOrders as unknown as Record<string, unknown> },
-        { method: 'GET', pattern: ['api', 'dodo', 'subscriptions'], mod: dodoSubscriptions as unknown as Record<string, unknown> },
-        { method: 'POST', pattern: ['api', 'dodo', 'subscriptions', 'change'], mod: dodoChange as unknown as Record<string, unknown> },
-        { method: 'DELETE', pattern: ['api', 'dodo', 'subscriptions', 'cancel'], mod: dodoCancel as unknown as Record<string, unknown> },
-        { method: 'POST', pattern: ['api', 'dodo', 'subscriptions', 'revert'], mod: dodoRevert as unknown as Record<string, unknown> },
-    ];
-    const out: Array<{ method: string; pattern: string[]; handler: RouteHandler }> = [];
-    for (const e of entries) {
-        const handler = at(e.mod, e.method);
-        if (handler) out.push({ method: e.method, pattern: e.pattern, handler });
-    }
-    return out;
+// cold isolate에서 필요한 route 1개만 파싱한다 (Free 10ms 대응).
+// 예전엔 Promise.all로 20개를 전부 올렸고, openai·drizzle 파싱 폭풍에 cold 스타트가 죽었다.
+// self-fetch 금지는 그대로라 핸들러 직접 호출은 유지, 로드 시점만 매칭 뒤로 미룬다.
+type RouteModule = Record<string, unknown>;
+interface RouteEntry {
+    method: string;
+    pattern: string[];
+    load: () => Promise<RouteModule>;
 }
 
+const ROUTE_ENTRIES: RouteEntry[] = [
+    { method: 'GET', pattern: ['api', 'ad-generation-batches'], load: () => import("@/app/api/ad-generation-batches/route") },
+    { method: 'GET', pattern: ['api', 'ad-generation-batches', ':batchId'], load: () => import("@/app/api/ad-generation-batches/[batchId]/route") },
+    // 고정 경로는 파라미터(:userId)보다 먼저 — 먼저 매칭된 쪽이 이긴다
+    { method: 'GET', pattern: ['api', 'user', 'by-email'], load: () => import("@/app/api/user/by-email/route") },
+    { method: 'GET', pattern: ['api', 'user', ':userId'], load: () => import("@/app/api/user/[userId]/route") },
+    { method: 'PATCH', pattern: ['api', 'user', ':userId'], load: () => import("@/app/api/user/[userId]/route") },
+    { method: 'GET', pattern: ['api', 'profile', 'logo'], load: () => import("@/app/api/profile/logo/route") },
+    { method: 'POST', pattern: ['api', 'profile', 'logo'], load: () => import("@/app/api/profile/logo/route") },
+    { method: 'DELETE', pattern: ['api', 'profile', 'logo'], load: () => import("@/app/api/profile/logo/route") },
+    { method: 'POST', pattern: ['api', 'image'], load: () => import("@/app/api/image/route") },
+    { method: 'POST', pattern: ['api', 'image', 'generation', 'base'], load: () => import("@/app/api/image/generation/base/route") },
+    { method: 'POST', pattern: ['api', 'image', 'generation', 'ratios'], load: () => import("@/app/api/image/generation/ratios/route") },
+    { method: 'POST', pattern: ['api', 'image', 'process', 'base'], load: () => import("@/app/api/image/process/base/route") },
+    { method: 'POST', pattern: ['api', 'image', 'process', 'ratios'], load: () => import("@/app/api/image/process/ratios/route") },
+    { method: 'POST', pattern: ['api', 'creative', 'specs'], load: () => import("@/app/api/creative/specs/route") },
+    { method: 'POST', pattern: ['api', 'creative', ':creative-index', 'prompt'], load: () => import("@/app/api/creative/[creative-index]/prompt/route") },
+    { method: 'POST', pattern: ['api', 'creative', ':creative-index', 'analysis'], load: () => import("@/app/api/creative/[creative-index]/analysis/route") },
+    { method: 'PATCH', pattern: ['api', 'creative', ':creative-index', 'design'], load: () => import("@/app/api/creative/[creative-index]/design/route") },
+    { method: 'POST', pattern: ['api', 'dodo', 'checkouts'], load: () => import("@/app/api/dodo/checkouts/route") },
+    { method: 'GET', pattern: ['api', 'dodo', 'products'], load: () => import("@/app/api/dodo/products/route") },
+    { method: 'GET', pattern: ['api', 'dodo', 'orders'], load: () => import("@/app/api/dodo/orders/route") },
+    { method: 'GET', pattern: ['api', 'dodo', 'subscriptions'], load: () => import("@/app/api/dodo/subscriptions/route") },
+    { method: 'POST', pattern: ['api', 'dodo', 'subscriptions', 'change'], load: () => import("@/app/api/dodo/subscriptions/change/route") },
+    { method: 'DELETE', pattern: ['api', 'dodo', 'subscriptions', 'cancel'], load: () => import("@/app/api/dodo/subscriptions/cancel/route") },
+    { method: 'POST', pattern: ['api', 'dodo', 'subscriptions', 'revert'], load: () => import("@/app/api/dodo/subscriptions/revert/route") },
+];
+
 function matchRoute(
-    routes: Array<{ method: string; pattern: string[]; handler: RouteHandler }>,
     method: string,
     targetPath: string,
-): { handler: RouteHandler; params: Record<string, string> } | null {
+): { entry: RouteEntry; params: Record<string, string> } | null {
     const segs = targetPath.split('/').filter((s) => s.length > 0);
-    for (const r of routes) {
+    for (const r of ROUTE_ENTRIES) {
         if (r.method !== method || r.pattern.length !== segs.length) continue;
         const params: Record<string, string> = {};
         let ok = true;
@@ -112,7 +66,7 @@ function matchRoute(
                 break;
             }
         }
-        if (ok) return { handler: r.handler, params };
+        if (ok) return { entry: r, params };
     }
     return null;
 }
@@ -168,11 +122,22 @@ async function handleGatewayRequest(request: NextRequest) {
     const queryString = internalParams.toString();
 
     // 4. 내부 디스패치 — userId 주입된 쿼리 그대로 같은 프로세스 핸들러 호출 (self-fetch 금지:
-    // 워커 안에서 자기 도메인으로 fetch하면 edge에서 non-JSON으로 죽는다. inner invocation 0건 실측)
-    const routes = await loadHandlers();
-    const matched = matchRoute(routes, method, targetPath);
+    // 워커 안에서 자기 도메인으로 fetch하면 edge에서 non-JSON으로 죽는다. inner invocation 0건 실측).
+    // 매칭된 1개만 로드한다 (cold isolate CPU 절약 — 전부 올리면 Free 10ms 초과로 503).
+    const matched = matchRoute(method, targetPath);
 
     if (!matched) {
+        return getNextBaseResponse({
+            success: false,
+            status: 404,
+            error: `No internal route for ${method} ${targetPath}.`,
+        });
+    }
+
+    const at = (mod: RouteModule, key: string): RouteHandler | undefined =>
+        typeof mod[key] === 'function' ? (mod[key] as RouteHandler) : undefined;
+    const handler = at(await matched.entry.load(), method);
+    if (!handler) {
         return getNextBaseResponse({
             success: false,
             status: 404,
@@ -197,7 +162,7 @@ async function handleGatewayRequest(request: NextRequest) {
             },
         );
         // 핸들러 응답(기존 success/status envelope 그대로)을 바로 반환
-        return await matched.handler(internalReq, { params: Promise.resolve(matched.params) });
+        return await handler(internalReq, { params: Promise.resolve(matched.params) });
     } catch (error) {
         console.error(`[Gateway Error] ${method} ${targetPath}:`, error);
         return getNextBaseResponse({
