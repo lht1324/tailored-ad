@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-10-14 01:55)
+# TailoredAd — 작업 기록 (Last Updated: 2026-10-15 02:28)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -11,7 +11,9 @@
 - **스택**: Next.js 16 + Tailwind v4 + Neon(DB+Auth) + R2 + Upstash SSE + Replicate/OpenRouter + Dodo, Cloudflare Workers 배포(OpenNext)
   (Supabase는 Auth·DB·Realtime 전부 제거됨 — 10-11 이관 완료)
 - **Git**: Git Flow (`master` 프로덕션 / `develop` 작업). develop 푸시됨 (origin/develop).
-- **포트**: 클라 `3000` (`npm run dev`) / 서버 `3001` (`docker compose up`, 컨테이너 `3000` 매핑). short_real과 동일.
+- **포트**: 클라 `3000` (`npm run dev`) / 서버 `3001` (원칙 `docker compose up`이나
+  브릿지 veth 고장으로 기동 불가 — 당분간 `DOCKER=true npx next dev --webpack -p 3001` 네이티브로 대체.
+  `distDir` 분리되어 `.next` 충돌 없음. short_real과 동일).
 - **테마**: 라이트가 기본 (`theme-light`), 다크는 토글.
 
 ## 2. 분리 인벤토리 (short_real → 이 레포) + 이후 추가분
@@ -252,7 +254,13 @@
 - **에디터 저장**: `PATCH /api/creative/[i]/design` — S2S + 본인소유 + 완성 후만(409 가드). running 배치 경합 방지.
 - **headlineColor 자유 hex**: LLM은 white/black 그대로 출력, 저장 시 hex 통일, 렌더 시 정규화. scrim 방향은 휘도로 판정. popover 대신 인라인 펼침 + 브랜드 팔레트 스워치.
 - **scrim**: 글자 뒤 밴드 (하단 고정 폐기, 박스폭 + 좌우 페이드). 농도 Bright 40 / Dark 65 (에디터 슬라이더로 변경 가능). 에디터 진입 시 LLM값 그대로 시작 (off 시작안 폐기).
-- **Cloudflare Free로 시작, Paid($5/월)는 트래픽 보고 전환**: Free 제한 실측 정리 — CPU 10ms(홀딩은 CPU 안 먹어서 무관), 서브리퀘스트 50/요청(가장 먼저 걸릴 후보), waitUntil 응답 후 30초, 요청 10만/일.
+- **Cloudflare Workers Paid($5/월) 전환** (10-14/15 — Free 10ms CPU 초과로 체크아웃 503):
+  원인 = 게이트웨이가 cold isolate마다 route 20개 전부 import (openai 23MB·drizzle 17MB 파싱 폭풍).
+  공식 한도 실측 (docs 26-10-12): Free CPU 10ms / Paid 기본 30초·최대 5분 (`limits.cpu_ms`),
+  벽시계 무제한(HTTP), Vercel은 초 단위라 같은 코드가 통과. Free엔 설정 노브 없음.
+  대응 2종: (1) 게이트웨이 lazy 로드 (매칭 1개만 import, `ROUTE_ENTRIES`) — 커밋済み,
+  (2) Paid 구매 (사장님). 평균 워커 2.2ms, 무거운 부하 10-20ms라 Paid 여유 큼.
+  잔량 한도: 서브리퀘스트 50/요청(Free), waitUntil 응답 후 30초, 요청 10만/일.
 - **Replicate 계정**: auto-reload 설정됨. 잔액·결제수단은 사장님 관리.
 - **폰트 셀프호스팅 보류**: public 레포 + GitKraken 무료 제약. Google 34종은 OFL로 가능하나 Satoshi(ITF)가 public 재배포 금지. B안(Google만)도 대기 중 — 폰트 이슈 재발 시 재개. link 이전으로 우선 해결.
 - **이미지 모델 Seedream 하이브리드** (09-18/19): FLUX.2 Dev 교체 — MP 과금 실측
@@ -467,13 +475,13 @@
 - [x] Supabase SQL (불필요 — Neon 스키마에 reason 체크제약 없음. top-up 정상)
 - [x] OAT 정리 (불필요 — Polar/Paddle 사망)
 - [x] Supabase 대시보드 확인 (불필요 — Realtime 제거됨)
-- [ ] 약관 실체 검토 (한국 조항 유지 여부 포함)
+- [ ] 약관 실체 검토 (한국 조항 유지 여부 포함 — 10-14 실체 4건 수정됨: likeness 전면 금지·portrait 삭제·수탁자 명시·Dodo 확정. 환불은 비례 유지로 코드 일치)
 - [ ] `tailorad.com` 구매 + 리다이렉트
 - [ ] `shortreal.ai/ad` → 301 (런칭 당일)
 - [ ] `tailoredad.com` DNS 연결 (이미지 준비됨 — 연결 가능)
-- [ ] Search Console 등록 (런칭 후)
-- [ ] Supabase 대시보드 확인 (사장님): realtime publication에 `ad_generation_batches` 포함 여부 + RLS SELECT 자가행 허용 여부 (REST는 service_role이라 되고 live만 안 올 수 있음)
-- [ ] Cloudflare Secrets에 `UPSTASH_REDIS_REST_URL`/`TOKEN` 등록 (프로덕션)
+- [ ] Search Console 등록 (런칭 후 — Google OAuth 소유권 인증에 필요시 선행)
+- [x] Supabase 대시보드 확인 (불필요 — Realtime 제거됨. 프로젝트 삭제는 prod E2E 통과 후)
+- [x] Cloudflare Secrets 등록 (사장님 — 10-14 값 확인済み. prod 호스트 대조법: DB `falling-butterfly`+`-pooler`, Auth `falling-butterfly`+`neonauth`, R2 `-dev` 없음)
 - [ ] 카피 품질: LLM 헤드라인 문법 어색 건 ("dress for it") — 프롬프트에 원어민 검수 지시 추가 예정
   - [ ] `npm run lint` 재확인 (최신 묶음 푸시 후).
     참고: AppHeader setState-in-effect error 1건 pre-existing
@@ -649,6 +657,15 @@
 - [x] **FLUX 3 전환** (10-04 — base PoC 통과·매퍼 교체·Seedream 삭제, develop. ratios BRIA 유지).
 - [x] 브랜드 로고 배치 (10-10 — 생성·투명화·4사이즈·헤더/푸터/파비콘, develop. eyeball 대기).
 - [x] ThemeToggle hydration 수정 (10-10 — effect 이관, develop).
+- [x] 게이트웨이 lazy 로드 (10-14/15 — cold isolate 20모듈 import 폭풍이 Free 10ms 초과해 체크아웃 503.
+  `ROUTE_ENTRIES` 매칭 후 1개만 로드. `f9849f0` 배포됨).
+- [x] 약관 실체 수정 4건 (10-14 — likeness 전면 금지·portrait 삭제·수탁자 Neon/R2/Dodo/OAuth·Dodo 확정. 배포됨).
+- [x] 브랜드 로고 SVG 전환 (10-14 — 헤더 28px+17px. PNG 리샘플(q75) 뭉개짐 → `logo.svg` 직접 사용. 파비콘 PNG 유지).
+- [ ] **Dodo live 401** (10-14/15 진행 중 — 지원 문의 필요):
+  live 키로 live `/checkouts` 직접 호출해도 401. 대조 실험: test 키×test 엔드포인트는 422(인증 통과).
+  결론 live 자격·계정 문제, 코드 무관. SDK 경로는 `/checkouts` 확인済み.
+  live 상품 ID 3종 코드 기입済み, FIRSTORDER50 live(신규·횟수제한) 확인済み.
+  잔량: live E2E (로그인→잔액→실결제→적립→환불) + R2 쓰기 첫 생성 시 확인.
 - [ ] **HeroWall 잘림·저화질 체감** (09-22 신규 — 원인 1차 특정):
   `public/` hero 6종이 1:1 구버전이라 4:5 프레임에서 좌우 크롭 ("om Noise", "till Fighting").
   `landing-final/`에 4:5 WebP 준비됨 → `public/preview/` 덮어쓰기 대기 (사장님 작업).
@@ -813,5 +830,11 @@ npm run deploy   # opennext build + deploy (master에서)
   Cloudflare Secrets 등록(사장님) + 비례환불 코드 +
   Dodo live 상품 ID·FIRSTORDER50(live·신규·횟수제한) 확인.
   gotcha: OAuth 콜백은 verifier 클라 교환 필수 (서버 직행 시 세션 없음).
+- **prod 배포 2건** (10-14, master — f46c77a Neon·Dodo 릴리즈, f9849f0 lazy 로드):
+  prod 실측: 약관 신규 문구·`/api/auth` 200·logo.svg 304. 첫 찌름 429는 일시적.
+  NEON_AUTH_COOKIE_SECRET은 브랜치 무관 공용키라 재사용 (유출 때만 교체).
+- **Dodo live 401 블로킹** (10-14/15 — 지원 문의 대기):
+  live 키 직접 호출도 401, test 대조는 422. SDK 경로 `/checkouts`·Bearer 방식 정상.
+  결론: live 자격·계정 문제. 지원 전달 사항: live 키명·발급일·401 시각·test 대조 결과.
 
 (End of file)
