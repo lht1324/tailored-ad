@@ -229,7 +229,7 @@ export default function PricingSection() {
                         </p>
                     </div>
                 </Reveal>
-                <div className="mt-16 grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="mt-16 mb-12 grid grid-cols-1 gap-6 lg:grid-cols-3">
                     {PLANS.map((plan, index) => (
                         <Reveal key={plan.name} delay={index * 0.08} className={plan.className}>
                             <PricingCard
@@ -242,7 +242,7 @@ export default function PricingSection() {
                     ))}
                 </div>
                 {/* 에러 공간 상시 예약 — 발생 시 레이아웃 점프 방지 (동일 문구 투명 표시) */}
-                <p className="mx-auto mt-6 max-w-2xl text-center text-[13px] font-medium text-red-500" aria-live="polite">
+                <p className="relative mx-auto mt-6 max-w-2xl text-center text-[13px] font-medium text-red-500" aria-live="polite">
                     <span className={checkoutError || envError ? '' : 'invisible'}>
                         {checkoutError ?? envError ?? 'Could not start checkout. Please try again.'}
                     </span>
