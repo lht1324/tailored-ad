@@ -241,16 +241,12 @@ export default function PricingSection() {
                         </Reveal>
                     ))}
                 </div>
-                {checkoutError && (
-                    <p className="mx-auto mt-6 max-w-2xl text-center text-[13px] font-medium text-red-500">
-                        {checkoutError}
-                    </p>
-                )}
-                {envError && (
-                    <p className="mx-auto mt-6 max-w-2xl text-center text-[13px] font-medium text-red-500">
-                        {envError}
-                    </p>
-                )}
+                {/* 에러 공간 상시 예약 — 발생 시 레이아웃 점프 방지 (동일 문구 투명 표시) */}
+                <p className="mx-auto mt-6 max-w-2xl text-center text-[13px] font-medium text-red-500" aria-live="polite">
+                    <span className={checkoutError || envError ? '' : 'invisible'}>
+                        {checkoutError ?? envError ?? 'Could not start checkout. Please try again.'}
+                    </span>
+                </p>
                 <Reveal delay={0.1}>
                     <ul className="mx-auto mt-16 max-w-2xl space-y-1.5 text-center text-[13px] leading-relaxed text-text2">
                         <li>Start with 10 free images.</li>
