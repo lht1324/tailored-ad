@@ -229,7 +229,13 @@ export default function PricingSection() {
                         </p>
                     </div>
                 </Reveal>
-                <div className="mt-16 mb-12 grid grid-cols-1 gap-6 lg:grid-cols-3">
+                {/* 에러 공간 상시 예약 — 헤더 아래, 그리드 위 (카드와 겹쳐 보이지 않게) */}
+                <p className="relative mx-auto mt-8 max-w-2xl text-center text-[13px] font-medium text-red-500" aria-live="polite">
+                    <span className={checkoutError || envError ? '' : 'invisible'}>
+                        {checkoutError ?? envError ?? 'Could not start checkout. Please try again.'}
+                    </span>
+                </p>
+                <div className="mt-12 mb-12 grid grid-cols-1 gap-6 lg:grid-cols-3">
                     {PLANS.map((plan, index) => (
                         <Reveal key={plan.name} delay={index * 0.08} className={plan.className}>
                             <PricingCard
@@ -241,12 +247,6 @@ export default function PricingSection() {
                         </Reveal>
                     ))}
                 </div>
-                {/* 에러 공간 상시 예약 — 발생 시 레이아웃 점프 방지 (동일 문구 투명 표시) */}
-                <p className="relative mx-auto mt-6 max-w-2xl text-center text-[13px] font-medium text-red-500" aria-live="polite">
-                    <span className={checkoutError || envError ? '' : 'invisible'}>
-                        {checkoutError ?? envError ?? 'Could not start checkout. Please try again.'}
-                    </span>
-                </p>
                 <Reveal delay={0.1}>
                     <ul className="mx-auto mt-16 max-w-2xl space-y-1.5 text-center text-[13px] leading-relaxed text-text2">
                         <li>Start with 10 free images.</li>
