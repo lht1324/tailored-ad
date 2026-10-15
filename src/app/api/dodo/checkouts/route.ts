@@ -4,7 +4,7 @@ import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { usersServerAPI } from "@/lib/api/server/usersServerAPI";
 import { getDodoClient } from "@/lib/dodoClient";
-import { getDodoProductId, DODO_FIRST_ORDER_DISCOUNT_CODE, type DodoPaidPlan } from "@/lib/dodo";
+import { getDodoProductId, resolveDodoEnv, DODO_FIRST_ORDER_DISCOUNT_CODE, type DodoPaidPlan } from "@/lib/dodo";
 import { PLAN_PRICE_USD } from "@/lib/dodo";
 import { usageServerAPI } from "@/lib/api/server/usageServerAPI";
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
@@ -120,6 +120,7 @@ export async function POST(request: NextRequest) {
                 sessionId: session.session_id,
                 discountApplied: discountCode != null,
                 firstCharge,
+                env: await resolveDodoEnv(),
             },
             message: "Dodo checkout session created.",
         });

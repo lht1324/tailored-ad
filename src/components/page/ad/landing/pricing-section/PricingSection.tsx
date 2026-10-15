@@ -10,7 +10,6 @@ import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
 import { PLAN_PRICE_USD, type DodoPaidPlan as PaidPlan } from "@/lib/dodo";
 import { dodoClientAPI } from "@/lib/api/client/dodoClientAPI";
 import DodoInlineModal from "@/components/page/ad/dodo/DodoInlineModal";
-import { useDodo } from "@/components/page/ad/dodo/useDodo";
 
 interface Plan {
     planId: PaidPlan;
@@ -151,11 +150,10 @@ function PricingCard({ plan, busy, showDiscountNote, onClickCheckout }: {
 export default function PricingSection() {
     const { user } = useAuth();
     const router = useRouter();
-    const { ready: dodoReady, envError } = useDodo();
     const [busyPlan, setBusyPlan] = useState<PaidPlan | null>(null);
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
     const [discountEligible, setDiscountEligible] = useState(false);
-    const [activeTx, setActiveTx] = useState<{ checkoutUrl: string; plan: Plan; firstCharge: number | null } | null>(null);
+    const [activeTx, setActiveTx] = useState<{ checkoutUrl: string; plan: Plan; firstCharge: number | null; env: 'test' | 'live' } | null>(null);
 
     // 첫주문 할인 표시 — 로그아웃·무료는 표시, 유료 이력만 숨김 (서버는 유료 이력 기준 부과)
     useEffect(() => {
@@ -204,7 +202,7 @@ export default function PricingSection() {
             if (!created) {
                 throw new Error('Could not start checkout.');
             }
-            setActiveTx({ checkoutUrl: created.checkoutUrl, plan, firstCharge: created.firstCharge });
+            setActiveTx({ checkoutUrl: created.checkoutUrl, plan, firstCharge: created.firstCharge, env: created.env });
         } catch {
             setCheckoutError('Could not start checkout. Please try again.');
         } finally {
@@ -231,8 +229,8 @@ export default function PricingSection() {
                 </Reveal>
                 {/* 에러 공간 상시 예약 — 헤더 아래, 그리드 위 (카드와 겹쳐 보이지 않게) */}
                 <p className="relative mx-auto mt-8 max-w-2xl text-center text-[13px] font-medium text-red-500" aria-live="polite">
-                    <span className={checkoutError || envError ? '' : 'invisible'}>
-                        {checkoutError ?? envError ?? 'Could not start checkout. Please try again.'}
+                    <span className={checkoutError ? '' : 'invisible'}>
+                        {checkoutError ?? 'Could not start checkout. Please try again.'}
                     </span>
                 </p>
                 <div className="mt-12 mb-12 grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -255,13 +253,14 @@ export default function PricingSection() {
                     </ul>
                 </Reveal>
             </div>
-            {dodoReady && activeTx && (
+            {activeTx && (
                 <DodoInlineModal
                     checkoutUrl={activeTx.checkoutUrl}
                     planName={activeTx.plan.name}
                     basePrice={PLAN_PRICE_USD[activeTx.plan.planId]}
                     imagesLabel={activeTx.plan.images}
                     firstCharge={activeTx.firstCharge}
+                    env={activeTx.env}
                     onClose={onCloseInlineModal}
                 />
             )}
