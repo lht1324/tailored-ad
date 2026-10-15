@@ -5,6 +5,21 @@ import type { OrderData } from "@/lib/api/types/api/dodo/orders/OrderData";
 import type { SubscriptionData } from "@/lib/api/types/api/dodo/subscriptions/SubscriptionData";
 
 export const dodoClientAPI = {
+    /** 서버 판정 Dodo 환경 (SDK 초기화용 — 빌드타임 env 대신 런타임 값) */
+    async getEnv(): Promise<'test' | 'live' | null> {
+        try {
+            const response = await getFetch(`/api/dodo/env`);
+            const result = await response.json();
+            if (!result.success || (result.data?.env !== 'test' && result.data?.env !== 'live')) {
+                throw new Error(result.error ?? 'Failed to fetch Dodo env');
+            }
+            return result.data.env as 'test' | 'live';
+        } catch (error) {
+            console.error('Error fetching Dodo env:', error);
+            return null;
+        }
+    },
+
     /** 서버 생성 체크아웃 세션 (오버레이 표시용 URL + 서버 판정 첫달가) */
     async createCheckoutSession(plan: DodoPaidPlan, theme?: 'light' | 'dark'): Promise<{ checkoutUrl: string; sessionId: string; discountApplied: boolean; firstCharge: number | null } | null> {
         try {

@@ -40,6 +40,7 @@ const ROUTE_ENTRIES: RouteEntry[] = [
     { method: 'POST', pattern: ['api', 'creative', ':creative-index', 'analysis'], load: () => import("@/app/api/creative/[creative-index]/analysis/route") },
     { method: 'PATCH', pattern: ['api', 'creative', ':creative-index', 'design'], load: () => import("@/app/api/creative/[creative-index]/design/route") },
     { method: 'POST', pattern: ['api', 'dodo', 'checkouts'], load: () => import("@/app/api/dodo/checkouts/route") },
+    { method: 'GET', pattern: ['api', 'dodo', 'env'], load: () => import("@/app/api/dodo/env/route") },
     { method: 'GET', pattern: ['api', 'dodo', 'products'], load: () => import("@/app/api/dodo/products/route") },
     { method: 'GET', pattern: ['api', 'dodo', 'orders'], load: () => import("@/app/api/dodo/orders/route") },
     { method: 'GET', pattern: ['api', 'dodo', 'subscriptions'], load: () => import("@/app/api/dodo/subscriptions/route") },
