@@ -5,19 +5,23 @@ import type { OrderData } from "@/lib/api/types/api/dodo/orders/OrderData";
 import type { SubscriptionData } from "@/lib/api/types/api/dodo/subscriptions/SubscriptionData";
 
 export const dodoClientAPI = {
-    /** 서버 생성 체크아웃 세션 (오버레이 표시용 URL + 서버 판정 첫달가) */
-    async createCheckoutSession(plan: DodoPaidPlan, theme?: 'light' | 'dark'): Promise<{ checkoutUrl: string; sessionId: string; discountApplied: boolean; firstCharge: number | null } | null> {
+    /** 서버 생성 체크아웃 세션 (오버레이 표시용 URL + 서버 판정 첫달가 + SDK용 env) */
+    async createCheckoutSession(plan: DodoPaidPlan, theme?: 'light' | 'dark'): Promise<{ checkoutUrl: string; sessionId: string; discountApplied: boolean; firstCharge: number | null; env: 'test' | 'live' } | null> {
         try {
             const response = await postFetch(`/api/dodo/checkouts`, { plan, ...(theme ? { theme } : {}) });
             const result = await response.json();
             if (!result.success || !result.data?.checkoutUrl) {
                 throw new Error(result.error ?? 'Failed to create checkout session');
             }
+            if (result.data.env !== 'test' && result.data.env !== 'live') {
+                throw new Error('Failed to create checkout session');
+            }
             return {
                 checkoutUrl: result.data.checkoutUrl as string,
                 sessionId: result.data.sessionId as string,
                 discountApplied: Boolean(result.data.discountApplied),
                 firstCharge: typeof result.data.firstCharge === 'number' ? result.data.firstCharge : null,
+                env: result.data.env as 'test' | 'live',
             };
         } catch (error) {
             console.error('Error creating Dodo checkout session:', error);

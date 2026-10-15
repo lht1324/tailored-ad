@@ -1,6 +1,7 @@
 'use client'
 
 import { memo, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { DodoPayments } from "dodopayments-checkout";
 
@@ -12,6 +13,8 @@ interface DodoInlineModalProps {
     imagesLabel: string;
     /** 서버 판정 첫달가 — 있을 때만 할인 표시 (Pricing 카드와 동일 문법) */
     firstCharge?: number | null;
+    /** 서버 판정 환경 — SDK 초기화용 (빌드타임 env 대신 세션과 함께 온 런타임 값) */
+    env: 'test' | 'live';
     onClose: () => void;
 }
 
@@ -21,13 +24,28 @@ const FRAME_TARGET = "dodo-inline-frame";
  * Dodo 인라인 체크아웃 모달 — 껍데기는 우리 디자인, 폼만 Dodo(embed).
  * MoR 푸터 가시성 규정에 따라 프레임 하단을 자르지 않는다 (스크롤 허용).
  */
-function DodoInlineModal({ checkoutUrl, planName, basePrice, imagesLabel, firstCharge, onClose }: DodoInlineModalProps) {
+function DodoInlineModal({ checkoutUrl, planName, basePrice, imagesLabel, firstCharge, env, onClose }: DodoInlineModalProps) {
+    const router = useRouter();
     useEffect(() => {
+        DodoPayments.Initialize({
+            mode: env,
+            displayType: 'inline',
+            onEvent: (event) => {
+                if (event?.event_type === 'checkout.redirect') {
+                    try {
+                        DodoPayments.Checkout.close();
+                    } catch {
+                        /* 이미 닫힘 — 무시 */
+                    }
+                    router.push('/checkout/success');
+                }
+            },
+        });
         DodoPayments.Checkout.open({
             checkoutUrl,
             elementId: FRAME_TARGET,
         });
-    }, [checkoutUrl]);
+    }, [checkoutUrl, env, router]);
 
     const onClickClose = useCallback(() => {
         try {
