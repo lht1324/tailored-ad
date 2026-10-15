@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useEffect } from "react";
+import { memo, useCallback, useEffect } from "react";
 import { X } from "lucide-react";
 import { DodoPayments } from "dodopayments-checkout";
 
@@ -29,17 +29,26 @@ function DodoInlineModal({ checkoutUrl, planName, basePrice, imagesLabel, firstC
         });
     }, [checkoutUrl]);
 
-    const onClickClose = () => {
+    const onClickClose = useCallback(() => {
         try {
             DodoPayments.Checkout.close();
         } catch {
             /* 이미 닫힘 — 무시 */
         }
         onClose();
-    };
+    }, [onClose]);
+
+    const onClickBackdrop = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+        if (event.target === event.currentTarget) {
+            onClickClose();
+        }
+    }, [onClickClose]);
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+            onClick={onClickBackdrop}
+        >
             <div className="relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-hairline bg-surface shadow-2xl">
                 <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
                     <p className="text-[15px] font-bold tracking-tight text-text1">
