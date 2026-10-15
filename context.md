@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-10-15 02:28)
+# TailoredAd — 작업 기록 (Last Updated: 2026-10-16 05:06)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -836,5 +836,26 @@ npm run deploy   # opennext build + deploy (master에서)
 - **Dodo live 401 블로킹** (10-14/15 — 지원 문의 대기):
   live 키 직접 호출도 401, test 대조는 422. SDK 경로 `/checkouts`·Bearer 방식 정상.
   결론: live 자격·계정 문제. 지원 전달 사항: live 키명·발급일·401 시각·test 대조 결과.
+- **Dodo env 런타임 판정** (10-15/16, develop — `a1ffed4` 푸시됨):
+  Workers `process.env`는 빌드타임이라 prod에서 test 고착 → live 키로 test 상품 ID 전송해 422.
+  `resolveDodoEnv()` 신설 (런타임 우선) + route 2곳 await. wrangler vars 추가는 무효였음 (판정 오류 인정).
+- **Dodo 모달 배경 클릭 닫기** (10-16 — `2813a9b` 푸시됨).
+- **Dodo SDK 모드 서버 판정** (10-16 — `00a15ce` 푸시됨, 이후 991ade2로 대체):
+  `GET /api/dodo/env` + useDodo 조회. test 모드 SDK가 live 세션 열어 핸드셰이크 실패하던 건.
+- **useDodo 삭제·env 세션 동봉** (10-16 — `991ade2` 푸시됨, +34/-118):
+  세션 응답에 env 동봉, 모달 open 직전 Initialize. 비로그인 401 회귀 소멸.
+- **Dodo 상품 Products API 해석** (10-16 — `1b0ac6d` 푸시됨):
+  ID 하드코딩·test/live 맵·env 함수 전량 삭제 → `lib/dodoProducts.ts` (이름+가격 매칭, 1h 캐시).
+  SDK 모드는 checkoutUrl 호스트 판정. test/live 문자열은 `dodoClient.ts` 1곳에만 남음 (SDK 스펙상 필수).
+- **가격 오름차순 매핑** (10-16 — `a5c30fa` 푸시됨): 이름 매칭 폐기, recurring 가격 asc → plan-1/2/3.
+  3건 아니면 loudly 실패. 대시보드 가격 변경 시 표시가와 실청구 갈림 주의.
+- **Dodo 크레딧 검토 → 기각** (10-16): 만료없음 옵션 확인済み이나, 핫패스 외부 의존·게이팅 이중화·
+  갈아엎기 규모로 기각. Neon 원장 교체안도 기각 (읽기 전부 외부 API화 = architecture downgrade,
+  플랜 상태 이중화). 초과 과금 도입 시 재검토.
+- **NEXT_PUBLIC 빌드타임 정리** (10-16): Vercel은 서버 빌드라 대시보드 값이 박히고,
+  현 구조는 로컬 빌드라 `.env.local`이 박힘. isProd·BASE_URL 추론안 모두 기각 (preview 함정·ngrok 오판).
+- [ ] **Dodo 상품 metadata 매칭** (다음 작업 — 사장님 선행):
+  사장님: test·live 상품 6곳에 metadata `plan: plan-1/2/3` 기입.
+  다음: `dodoProducts.ts`를 metadata 기반으로 교체 (가격 변경·순서 무적).
 
 (End of file)
