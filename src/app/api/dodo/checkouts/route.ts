@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     }
     let productId: string;
     try {
-        productId = getDodoProductId(plan as DodoPaidPlan);
+        productId = await getDodoProductId(plan as DodoPaidPlan);
     } catch (err) {
         return getNextBaseResponse({
             success: false,
