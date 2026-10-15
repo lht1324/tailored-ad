@@ -3,12 +3,13 @@ import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { usersServerAPI } from "@/lib/api/server/usersServerAPI";
 import { getDodoClient } from "@/lib/dodoClient";
-import { getDodoProductId, getPlanByDodoProduct, PLAN_IMAGE_LIMIT, type DodoPaidPlan } from "@/lib/dodo";
+import { resolveDodoProductId, resolveDodoPlan } from "@/lib/dodoProducts";
+import { PLAN_IMAGE_LIMIT, type DodoPaidPlan } from "@/lib/dodo";
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
 
 /**
  * Dodo 플랜 변경 — POST /api/dodo/subscriptions/change
- * body는 {newPlan}만 받는다. product 매핑은 서버 상수(getDodoProductId)가 진실원천.
+ * body는 {newPlan}만 받는다. product 매핑은 서버 해석(resolveDodoProductId)이 진실원천.
  *
  * 업그레이드: 즉시 적용 + 차액 즉시 청구 (prorated_immediately).
  *   잔액 차액 부여는 웹훅(subscription.updated)이 담당 — 여기서 직접 찍지 않는다 (멱등).
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     let newProductId: string;
     try {
-        newProductId = await getDodoProductId(newPlan as DodoPaidPlan);
+        newProductId = await resolveDodoProductId(newPlan as DodoPaidPlan);
     } catch (err) {
         return getNextBaseResponse({
             success: false,
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
             && user.plan !== SubscriptionPlan.NONE
             ? (user.plan as DodoPaidPlan)
             : null;
-        const baselinePlan = dbPlan ?? (currentProductId ? getPlanByDodoProduct(currentProductId) : null);
+        const baselinePlan = dbPlan ?? (currentProductId ? await resolveDodoPlan(currentProductId) : null);
         if (!baselinePlan) {
             return getNextBaseResponse({
                 success: false,

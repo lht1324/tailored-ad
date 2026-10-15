@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { getDodoClient } from "@/lib/dodoClient";
-import { getPlanByDodoProduct } from "@/lib/dodo";
+import { resolveDodoPlan } from "@/lib/dodoProducts";
 import type { ProductData } from "@/lib/api/types/api/dodo/products/ProductData";
 
 /**
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
                 currency: p.currency ?? 'USD',
                 interval: 'month',
                 description: p.description ?? '',
-                planId: getPlanByDodoProduct(id) ?? '',
+                planId: (await resolveDodoPlan(id)) ?? '',
                 isPopular: false,
             });
         }

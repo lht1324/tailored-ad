@@ -153,7 +153,7 @@ export default function PricingSection() {
     const [busyPlan, setBusyPlan] = useState<PaidPlan | null>(null);
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
     const [discountEligible, setDiscountEligible] = useState(false);
-    const [activeTx, setActiveTx] = useState<{ checkoutUrl: string; plan: Plan; firstCharge: number | null; env: 'test' | 'live' } | null>(null);
+    const [activeTx, setActiveTx] = useState<{ checkoutUrl: string; plan: Plan; firstCharge: number | null } | null>(null);
 
     // 첫주문 할인 표시 — 로그아웃·무료는 표시, 유료 이력만 숨김 (서버는 유료 이력 기준 부과)
     useEffect(() => {
@@ -202,7 +202,7 @@ export default function PricingSection() {
             if (!created) {
                 throw new Error('Could not start checkout.');
             }
-            setActiveTx({ checkoutUrl: created.checkoutUrl, plan, firstCharge: created.firstCharge, env: created.env });
+            setActiveTx({ checkoutUrl: created.checkoutUrl, plan, firstCharge: created.firstCharge });
         } catch {
             setCheckoutError('Could not start checkout. Please try again.');
         } finally {
@@ -260,7 +260,6 @@ export default function PricingSection() {
                     basePrice={PLAN_PRICE_USD[activeTx.plan.planId]}
                     imagesLabel={activeTx.plan.images}
                     firstCharge={activeTx.firstCharge}
-                    env={activeTx.env}
                     onClose={onCloseInlineModal}
                 />
             )}

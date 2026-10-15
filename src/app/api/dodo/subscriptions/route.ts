@@ -3,7 +3,8 @@ import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { usersServerAPI } from "@/lib/api/server/usersServerAPI";
 import { getDodoClient } from "@/lib/dodoClient";
-import { getPlanByDodoProduct, PLAN_DISPLAY_NAME } from "@/lib/dodo";
+import { resolveDodoPlan } from "@/lib/dodoProducts";
+import { PLAN_DISPLAY_NAME } from "@/lib/dodo";
 import type { SubscriptionData } from "@/lib/api/types/api/dodo/subscriptions/SubscriptionData";
 
 /**
@@ -85,11 +86,11 @@ export async function GET(request: NextRequest) {
         }
 
         const productId = latest.product_id ?? '';
-        const plan = productId ? getPlanByDodoProduct(productId) : null;
+        const plan = productId ? await resolveDodoPlan(productId) : null;
         const user = await usersServerAPI.getUserByUserId(userId);
         const rawScheduled = user?.downgrade_target_plan_id ?? null;
         const scheduledPlan = rawScheduled
-            ? (PLAN_DISPLAY_NAME[rawScheduled] ? rawScheduled : (getPlanByDodoProduct(rawScheduled) ?? rawScheduled))
+            ? (PLAN_DISPLAY_NAME[rawScheduled] ? rawScheduled : ((await resolveDodoPlan(rawScheduled)) ?? rawScheduled))
             : null;
 
         const subscriptionData: SubscriptionData = {

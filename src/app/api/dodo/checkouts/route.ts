@@ -4,7 +4,8 @@ import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { usersServerAPI } from "@/lib/api/server/usersServerAPI";
 import { getDodoClient } from "@/lib/dodoClient";
-import { getDodoProductId, resolveDodoEnv, DODO_FIRST_ORDER_DISCOUNT_CODE, type DodoPaidPlan } from "@/lib/dodo";
+import { DODO_FIRST_ORDER_DISCOUNT_CODE, type DodoPaidPlan } from "@/lib/dodo";
+import { resolveDodoProductId } from "@/lib/dodoProducts";
 import { PLAN_PRICE_USD } from "@/lib/dodo";
 import { usageServerAPI } from "@/lib/api/server/usageServerAPI";
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
@@ -18,7 +19,7 @@ const VALID_PLANS: DodoPaidPlan[] = [
 /**
  * Dodo 체크아웃 세션 생성 — POST /api/dodo/checkouts
  * C2S 진입은 client-gateway 경유 (gateway가 세션 검증 + userId 주입).
- * body는 {plan}만 받는다. product 매핑은 서버 상수(getDodoProductId)가 진실원천.
+ * body는 {plan}만 받는다. product 매핑은 서버 해석(resolveDodoProductId)이 진실원천.
  * 오버레이는 이 세션의 checkout_url을 표시만 한다 — 생성 주체는 서버.
  * 유저 매핑은 metadata {userId, plan} (웹훅 매칭용, 웹훅에서 금액-플랜 교차검증).
  */
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
     }
     let productId: string;
     try {
-        productId = await getDodoProductId(plan as DodoPaidPlan);
+        productId = await resolveDodoProductId(plan as DodoPaidPlan);
     } catch (err) {
         return getNextBaseResponse({
             success: false,
@@ -120,7 +121,6 @@ export async function POST(request: NextRequest) {
                 sessionId: session.session_id,
                 discountApplied: discountCode != null,
                 firstCharge,
-                env: await resolveDodoEnv(),
             },
             message: "Dodo checkout session created.",
         });
