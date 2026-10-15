@@ -1,4 +1,5 @@
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
+import { getServerEnv } from "@/lib/serverEnv";
 
 export type DodoPaidPlan = Exclude<SubscriptionPlan, SubscriptionPlan.NONE>;
 
@@ -50,7 +51,9 @@ export const PLAN_DISPLAY_NAME: Record<string, string> = {
 /** 첫주문 할인 코드 (Starter 한정·1주기·신규고객 — 대시보드 설정과 일치해야 함) */
 export const DODO_FIRST_ORDER_DISCOUNT_CODE = "FIRSTORDER50";
 
-/** Dodo 환경 — NEXT_PUBLIC 한 개로 통일 (클라·서버 공용). 조용히 기본값 추론 금지 */
+/** Dodo 환경 — NEXT_PUBLIC 한 개로 통일 (클라·서버 공용). 조용히 기본값 추론 금지.
+ *  주의: Workers에서 process.env는 빌드타임 값이라 prod 판정에 쓰면 안 됨.
+ *  서버는 resolveDodoEnv() (런타임 우선)를 쓸 것. */
 export function getDodoEnv(): 'test_mode' | 'live_mode' {
     const raw = process.env.NEXT_PUBLIC_DODO_ENV;
     if (raw === 'live') return 'live_mode';
@@ -58,23 +61,35 @@ export function getDodoEnv(): 'test_mode' | 'live_mode' {
     throw new Error("NEXT_PUBLIC_DODO_ENV is not set (expected 'test' or 'live').");
 }
 
-function activeProductMap(): Record<DodoPaidPlan, string> {
-    return getDodoEnv() === 'live_mode' ? DODO_PRODUCT_BY_PLAN_LIVE : DODO_PRODUCT_BY_PLAN;
+/** 서버용 env 판정 — 런타임(대시보드/wrangler vars) 우선, 빌드타임 폴백 */
+export async function resolveDodoEnv(): Promise<'test_mode' | 'live_mode'> {
+    const raw = await getServerEnv('NEXT_PUBLIC_DODO_ENV');
+    if (raw === 'live') return 'live_mode';
+    if (raw === 'test') return 'test_mode';
+    throw new Error("NEXT_PUBLIC_DODO_ENV is not set (expected 'test' or 'live').");
+}
+
+function activeProductMap(env: 'test_mode' | 'live_mode'): Record<DodoPaidPlan, string> {
+    return env === 'live_mode' ? DODO_PRODUCT_BY_PLAN_LIVE : DODO_PRODUCT_BY_PLAN;
 }
 
 /** 환경에 맞는 product ID (미기입이면 throw — 400으로 변환) */
-export function getDodoProductId(plan: DodoPaidPlan): string {
-    const id = activeProductMap()[plan];
+export async function getDodoProductId(plan: DodoPaidPlan): Promise<string> {
+    const id = activeProductMap(await resolveDodoEnv())[plan];
     if (!id) {
-        throw new Error(`Dodo product ID is not configured (plan=${plan}, env=${getDodoEnv()}).`);
+        throw new Error(`Dodo product ID is not configured (plan=${plan}).`);
     }
     return id;
 }
 
-/** product ID → 플랜 (미등록이면 null) */
+/** product ID → 플랜 (미등록이면 null) — test·live 양쪽 맵 조회 (환경 무관) */
 export function getPlanByDodoProduct(productId: string): DodoPaidPlan | null {
-    const found = (Object.entries(activeProductMap()) as [DodoPaidPlan, string][]).find(
-        ([, id]) => id !== "" && id === productId,
-    );
-    return found?.[0] ?? null;
+    const all = [DODO_PRODUCT_BY_PLAN, DODO_PRODUCT_BY_PLAN_LIVE] as const;
+    for (const map of all) {
+        const found = (Object.entries(map) as [DodoPaidPlan, string][]).find(
+            ([, id]) => id !== "" && id === productId,
+        );
+        if (found) return found[0];
+    }
+    return null;
 }
