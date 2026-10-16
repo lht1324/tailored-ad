@@ -65,6 +65,8 @@ export async function POST(request: NextRequest) {
     try {
         productId = await resolveDodoProductId(plan as DodoPaidPlan);
     } catch (err) {
+        // 조용한 400이 원인 추적을 며칠 잡아먹었음 — 매핑 실패는 무조건 로그
+        console.error(`[dodo/checkouts] product unmapped (plan=${plan}):`, err instanceof Error ? err.message : err);
         return getNextBaseResponse({
             success: false,
             status: 400,

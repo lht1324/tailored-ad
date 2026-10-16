@@ -6,7 +6,8 @@ let client: DodoPayments | null = null;
 
 /** 조용히 기본값 추론 금지 — 미설정이면 throw (잘못된 계정 과금 방지) */
 export async function getDodoClient(): Promise<DodoPayments> {
-    const rawEnv = await getServerEnv("DODO_ENV");
+    // 대시보드 표시가 "Live"로 대문자화될 수 있어 소문자로 정규화 (실측 호환)
+    const rawEnv = (await getServerEnv("DODO_ENV") ?? '').toLowerCase();
     if (rawEnv !== 'test' && rawEnv !== 'live') {
         throw new Error("DODO_ENV is not set (expected 'test' or 'live').");
     }
