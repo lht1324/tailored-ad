@@ -6,8 +6,10 @@
   "compatibility_flags": ["nodejs_compat"],
   // 비밀이 아닌 값만 여기에 둠 (git 추적됨). 키·토큰류는 대시보드 Secrets 전용 — deploy가 Secrets는 건드리지 않음.
   // 주의: 로컬 deploy가 대시보드 plain Variables를 이 값으로 덮어씀. 대시보드 수정 후 여기에도 반영할 것.
+  // DODO_ENV는 반드시 파일에 둘 것 — 빠지면 deploy 때 대시보드 값이 날아가 test 고착 → live 키 401.
   "vars": {
     "BASE_URL": "https://tailoredad.com",
+    "DODO_ENV": "live",
     "NEXT_PUBLIC_BASE_URL": "https://tailoredad.com",
     "NEXT_PUBLIC_DODO_ENV": "live"
   },
