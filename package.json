@@ -26,7 +26,6 @@
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.4",
     "dodopayments": "^2.52.0",
-    "dodopayments-checkout": "^1.9.9",
     "drizzle-orm": "^0.45.3",
     "framer-motion": "^13.2.0",
     "html-to-image": "^1.11.13",
