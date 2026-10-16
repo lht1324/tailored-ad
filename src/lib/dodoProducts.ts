@@ -4,20 +4,24 @@ import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
 
 /**
  * Dodo 상품 해석 — 서버 전용. ID 하드코딩 없음.
- * 키가 고른 환경의 recurring 상품을 가격 오름차순으로 Starter/Growth/Pro에 매핑.
- * 3건이 아니면 loudly 실패 (상품 추가·삭제·가격 변경 시 오결제 방지).
+ * 상품 metadata의 planId(plan-1/2/3)로 매핑. plan 키도 예비로 인정.
+ * 3 플랜이 정확히 1개씩이어야 통과 (누락·중복은 loudly 실패 — 오결제 방지).
+ * metadata 없는 상품은 무시 (향후 티어 추가돼도 안 깨짐).
  */
-
-interface DodoProductLite {
-    id: string;
-    price: number; // cents
-}
 
 const MANAGED_PLANS: DodoPaidPlan[] = [
     SubscriptionPlan.PLAN_1,
     SubscriptionPlan.PLAN_2,
     SubscriptionPlan.PLAN_3,
 ];
+
+function readPlanKey(product: unknown): string {
+    const meta = (product as { metadata?: unknown }).metadata;
+    if (!meta || typeof meta !== 'object') return '';
+    const m = meta as Record<string, unknown>;
+    const v = m.planId ?? m.plan;
+    return typeof v === 'string' ? v.trim() : '';
+}
 
 let cached: { at: number; byPlan: Record<DodoPaidPlan, string> } | null = null;
 const CACHE_TTL_MS = 60 * 60 * 1000;
@@ -28,24 +32,25 @@ async function resolveMapping(): Promise<Record<DodoPaidPlan, string>> {
     }
     const dodo = await getDodoClient();
     const products = await dodo.products.list({ recurring: true });
-    const items: DodoProductLite[] = [];
+    const byPlan = {} as Record<DodoPaidPlan, string>;
+    const seen = new Set<string>();
     for await (const product of products) {
         const p = product as unknown as {
-            product_id?: string; id?: string; price?: number;
+            product_id?: string; id?: string;
         };
         const id = p.product_id ?? p.id ?? '';
-        if (id) {
-            items.push({ id, price: Number(p.price ?? 0) || 0 });
+        const plan = readPlanKey(product);
+        if (!id || !MANAGED_PLANS.includes(plan as DodoPaidPlan)) continue;
+        if (seen.has(plan)) {
+            throw new Error(`Dodo product duplicated (plan=${plan}).`);
         }
+        seen.add(plan);
+        byPlan[plan as DodoPaidPlan] = id;
     }
-    items.sort((a, b) => a.price - b.price);
-    if (items.length !== MANAGED_PLANS.length) {
-        throw new Error(`Dodo product count mismatch (expected=${MANAGED_PLANS.length}, got=${items.length}).`);
+    const missing = MANAGED_PLANS.filter((plan) => !byPlan[plan]);
+    if (missing.length > 0) {
+        throw new Error(`Dodo product missing metadata (plan=${missing.join(',')}).`);
     }
-    const byPlan = {} as Record<DodoPaidPlan, string>;
-    MANAGED_PLANS.forEach((plan, index) => {
-        byPlan[plan] = items[index].id;
-    });
     cached = { at: Date.now(), byPlan };
     return byPlan;
 }

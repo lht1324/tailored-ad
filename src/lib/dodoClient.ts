@@ -6,16 +6,19 @@ let client: DodoPayments | null = null;
 
 /** 조용히 기본값 추론 금지 — 미설정이면 throw (잘못된 계정 과금 방지) */
 export async function getDodoClient(): Promise<DodoPayments> {
+    const rawEnv = await getServerEnv("DODO_ENV");
+    if (rawEnv !== 'test' && rawEnv !== 'live') {
+        throw new Error("DODO_ENV is not set (expected 'test' or 'live').");
+    }
+    const isLive = rawEnv === 'live';
+    const environment = isLive ? 'live_mode' : 'test_mode'
+
     if (!client) {
         const apiKey = await getServerEnv('DODO_PAYMENTS_API_KEY');
         if (!apiKey) {
             throw new Error("DODO_PAYMENTS_API_KEY is not configured.");
         }
-        const rawEnv = (await getServerEnv('NEXT_PUBLIC_DODO_ENV')) ?? process.env.NEXT_PUBLIC_DODO_ENV;
-        if (rawEnv !== 'test' && rawEnv !== 'live') {
-            throw new Error("NEXT_PUBLIC_DODO_ENV is not set (expected 'test' or 'live').");
-        }
-        client = new DodoPayments({ bearerToken: apiKey, environment: rawEnv === 'live' ? 'live_mode' : 'test_mode' });
+        client = new DodoPayments({ bearerToken: apiKey, environment: environment });
     }
     return client;
 }

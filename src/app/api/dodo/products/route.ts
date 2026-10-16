@@ -27,8 +27,11 @@ export async function GET(request: NextRequest) {
             const p = product as unknown as {
                 product_id?: string; id?: string; name?: string;
                 price?: number; currency?: string; description?: string | null;
+                metadata?: Record<string, unknown> | null;
             };
             const id = p.product_id ?? p.id ?? '';
+            const meta = p.metadata ?? {};
+            const imagePerMonth = Number(meta.imagePerMonth ?? 0) || 0;
             productList.push({
                 id,
                 name: p.name ?? '',
@@ -38,6 +41,7 @@ export async function GET(request: NextRequest) {
                 description: p.description ?? '',
                 planId: (await resolveDodoPlan(id)) ?? '',
                 isPopular: false,
+                imagePerMonth,
             });
         }
 
