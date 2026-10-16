@@ -4,7 +4,7 @@ import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { usersServerAPI } from "@/lib/api/server/usersServerAPI";
 import { usageServerAPI } from "@/lib/api/server/usageServerAPI";
 import { resolveDodoPlan } from "@/lib/dodoProducts";
-import { PLAN_IMAGE_LIMIT, PLAN_PRICE_USD } from "@/lib/dodo";
+import { PLAN_IMAGE_LIMIT, PLAN_PRICE_USD, type DodoPaidPlan } from "@/lib/dodo";
 import { getDodoClient } from "@/lib/dodoClient";
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
 
@@ -43,6 +43,43 @@ function resolvePeriod(data: DodoSubscriptionData): { start?: string; end?: stri
         start: data.current_period_start ?? data.currentBillingPeriod?.startsAt,
         end: data.current_period_end ?? data.currentBillingPeriod?.endsAt,
     };
+}
+
+// 페이로드 부족 시 Dodo 구독 직접 조회 (lazy, 이벤트당 최대 1회). API 응답이 진실원천.
+// retrieve 응답에 metadata·customer.email·product_id·과금일(previous/next)이 전부 있다.
+interface DodoSubscriptionLookup {
+    metadata?: { userId?: unknown; plan?: unknown } | null;
+    product_id?: string;
+    customer?: { email?: unknown } | null;
+    previous_billing_date?: string;
+    next_billing_date?: string;
+}
+
+async function lookupSubscription(subId: string): Promise<DodoSubscriptionLookup | null> {
+    try {
+        const dodo = await getDodoClient();
+        const sub = await dodo.subscriptions.retrieve(subId) as unknown as DodoSubscriptionLookup;
+        return sub ?? null;
+    } catch (error) {
+        console.warn(`[dodo/process] subscription lookup failed (subscription=${subId}):`, error);
+        return null;
+    }
+}
+
+// 부여량 진실원천 — 상품 metadata.imagePerMonth. 코드 상수는 폴백 (누락 시 warn).
+async function resolveGrantImages(productId: string, plan: DodoPaidPlan, subId: string): Promise<number> {
+    if (productId !== '') {
+        try {
+            const dodo = await getDodoClient();
+            const product = await dodo.products.retrieve(productId) as unknown as { metadata?: Record<string, unknown> | null };
+            const n = Number(product.metadata?.imagePerMonth);
+            if (Number.isFinite(n) && n > 0) return Math.floor(n);
+            console.warn(`[dodo/process] product imagePerMonth invalid (subscription=${subId}, product=${productId}) — code fallback`);
+        } catch (error) {
+            console.warn(`[dodo/process] product lookup failed (subscription=${subId}, product=${productId}):`, error);
+        }
+    }
+    return PLAN_IMAGE_LIMIT[plan];
 }
 
 // 비례환불 — refund.succeeded 1건당 해당 사이클 미사용분만 회수 (약관 §2).
@@ -119,12 +156,32 @@ async function handleRefundSucceeded(data: DodoRefundData) {
 
 async function handleSubscriptionEvent(type: string, data: DodoSubscriptionData) {
     const subId = resolveSubId(data);
-    const userId = resolveUserId(data);
+    // 1차: 페이로드 metadata → 부족하면 구독 직접 조회로 보정 (metadata·이메일·상품·과금일).
+    let userId = resolveUserId(data);
+    let productId = data.product_id ?? '';
+    let { start: periodStart, end: periodEnd } = resolvePeriod(data);
+    if ((!userId || !productId || !periodStart || !periodEnd) && subId !== '') {
+        const sub = await lookupSubscription(subId);
+        if (sub) {
+            if (!userId) {
+                userId = resolveUserId(sub);
+            }
+            if (!userId && typeof sub.customer?.email === 'string' && sub.customer.email !== '') {
+                const user = await usersServerAPI.getUserByEmail(sub.customer.email);
+                if (user) {
+                    userId = user.id;
+                    console.log(`[dodo/process] ${type}: user resolved by email (subscription=${subId})`);
+                }
+            }
+            if (!productId && typeof sub.product_id === 'string') productId = sub.product_id;
+            if (!periodStart && typeof sub.previous_billing_date === 'string') periodStart = sub.previous_billing_date;
+            if (!periodEnd && typeof sub.next_billing_date === 'string') periodEnd = sub.next_billing_date;
+        }
+    }
     if (!userId) {
         console.warn(`[dodo/process] ${type}: user unmapped (subscription=${subId})`);
         return;
     }
-    const productId = data.product_id ?? '';
     const plan = await resolveDodoPlan(productId);
     if (!plan) {
         console.warn(`[dodo/process] ${type}: unknown product (subscription=${subId}, product=${productId})`);
@@ -137,7 +194,7 @@ async function handleSubscriptionEvent(type: string, data: DodoSubscriptionData)
         console.warn(`[dodo/process] ${type}: plan mismatch custom=${claimedPlan} product-derived=${plan} (subscription=${subId})`);
     }
 
-    const { start: periodStart, end: periodEnd } = resolvePeriod(data);
+    // periodStart/periodEnd는 상단 페이로드+조회 보정값 사용.
 
     // 해지계 — 잔액은 유지(돈 낸 권리), 플랜 표시만 해제 (Paddle과 동일 정책)
     if (type === 'subscription.cancelled' || type === 'subscription.expired' || data.status === 'cancelled') {
@@ -156,7 +213,7 @@ async function handleSubscriptionEvent(type: string, data: DodoSubscriptionData)
     const currentLimit = currentPlan && (Object.values(SubscriptionPlan) as string[]).includes(currentPlan)
         ? (IMAGE_LIMIT[currentPlan as keyof typeof IMAGE_LIMIT] ?? 0)
         : 0;
-    const target = IMAGE_LIMIT[plan];
+    const target = await resolveGrantImages(productId, plan, subId);
 
     // updated + target <= DB 플랜 → 다운그레이드 예약 순간 (적용은 다음 사이클)
     if (type === 'subscription.updated' && target <= currentLimit && currentLimit > 0) {
@@ -190,7 +247,7 @@ async function handleSubscriptionEvent(type: string, data: DodoSubscriptionData)
     await usersServerAPI.patchUserByUserId(userId, {
         plan,
         subscription_id: subId,
-        image_limit: IMAGE_LIMIT[plan],
+        image_limit: target,
         subscription_current_period_start: periodStart ?? null,
         subscription_current_period_end: periodEnd ?? null,
     });

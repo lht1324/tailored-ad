@@ -105,7 +105,10 @@ export async function POST(request: NextRequest) {
         }
         const session = await dodo.checkoutSessions.create({
             product_cart: [{ product_id: productId, quantity: 1 }],
+            // 로그인 계정 값으로 prefill — 이메일은 고정(웹훅 귀속 기준), 이름만 수정 허용.
+            // 적립·할인 귀속은 metadata.userId 기준이라 이름 수정과 무관 (process route 참조).
             customer: { email: user.email, name: user.name ?? undefined },
+            feature_flags: { allow_customer_editing_email: false, allow_customer_editing_name: true },
             metadata: { userId, plan },
             return_url: `${clientOrigin}/checkout/success`,
             // USD 고정 — Adaptive Currency 토글과 무관 (대시보드 설정 무시).
