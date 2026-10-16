@@ -13,8 +13,6 @@ interface DodoInlineModalProps {
     imagesLabel: string;
     /** 서버 판정 첫달가 — 있을 때만 할인 표시 (Pricing 카드와 동일 문법) */
     firstCharge?: number | null;
-    /** 서버 판정 환경 — SDK 초기화용 (빌드타임 env 대신 세션과 함께 온 런타임 값) */
-    env: 'test' | 'live';
     onClose: () => void;
 }
 
@@ -24,11 +22,20 @@ const FRAME_TARGET = "dodo-inline-frame";
  * Dodo 인라인 체크아웃 모달 — 껍데기는 우리 디자인, 폼만 Dodo(embed).
  * MoR 푸터 가시성 규정에 따라 프레임 하단을 자르지 않는다 (스크롤 허용).
  */
-function DodoInlineModal({ checkoutUrl, planName, basePrice, imagesLabel, firstCharge, env, onClose }: DodoInlineModalProps) {
+function DodoInlineModal({ checkoutUrl, planName, basePrice, imagesLabel, firstCharge, onClose }: DodoInlineModalProps) {
     const router = useRouter();
     useEffect(() => {
+        // SDK 모드는 checkoutUrl 호스트에서 판정 — test.checkout.*면 test, 아니면 live
+        let mode: 'test' | 'live' = 'live';
+        try {
+            if (new URL(checkoutUrl).hostname.startsWith('test.')) {
+                mode = 'test';
+            }
+        } catch {
+            /* URL 파싱 실패 시 live 유지 — open() 검증이 걸러냄 */
+        }
         DodoPayments.Initialize({
-            mode: env,
+            mode,
             displayType: 'inline',
             onEvent: (event) => {
                 if (event?.event_type === 'checkout.redirect') {
@@ -45,7 +52,7 @@ function DodoInlineModal({ checkoutUrl, planName, basePrice, imagesLabel, firstC
             checkoutUrl,
             elementId: FRAME_TARGET,
         });
-    }, [checkoutUrl, env, router]);
+    }, [checkoutUrl, router]);
 
     const onClickClose = useCallback(() => {
         try {

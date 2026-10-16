@@ -7,7 +7,7 @@ import Reveal from "@/components/page/ad/Reveal";
 import { useAuth } from "@/context/AuthContext";
 import { usersClientAPI } from "@/lib/api/client/usersClientAPI";
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
-import { PLAN_PRICE_USD, type DodoPaidPlan as PaidPlan } from "@/lib/dodo";
+import type { DodoPaidPlan as PaidPlan } from "@/lib/dodo";
 import { dodoClientAPI } from "@/lib/api/client/dodoClientAPI";
 import DodoInlineModal from "@/components/page/ad/dodo/DodoInlineModal";
 
@@ -21,13 +21,10 @@ interface Plan {
     features: string[];
 }
 
-const PLANS: Plan[] = [
+/** 스태틱 최소값 — 순서·스타일·features만. 이름·가격·장수는 카탈로그에서 온다. */
+const PLAN_CONFIGS: Array<{ planId: PaidPlan; className?: string; features: string[] }> = [
     {
         planId: SubscriptionPlan.PLAN_1,
-        name: 'Starter',
-        price: 19,
-        images: '100 images / month',
-        perImage: 0.190,
         className: 'md:translate-y-6',
         features: [
             'Quality-gated batches',
@@ -40,10 +37,6 @@ const PLANS: Plan[] = [
     },
     {
         planId: SubscriptionPlan.PLAN_2,
-        name: 'Growth',
-        price: 49,
-        images: '500 images / month',
-        perImage: 0.098,
         className: '-rotate-[0.5deg] md:translate-y-10',
         features: [
             'Everything in Starter',
@@ -52,10 +45,6 @@ const PLANS: Plan[] = [
     },
     {
         planId: SubscriptionPlan.PLAN_3,
-        name: 'Pro',
-        price: 99,
-        images: '1,000 images / month',
-        perImage: 0.099,
         className: 'rotate-[0.5deg] md:translate-y-8',
         features: [
             'Everything in Growth',
@@ -153,7 +142,44 @@ export default function PricingSection() {
     const [busyPlan, setBusyPlan] = useState<PaidPlan | null>(null);
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
     const [discountEligible, setDiscountEligible] = useState(false);
-    const [activeTx, setActiveTx] = useState<{ checkoutUrl: string; plan: Plan; firstCharge: number | null; env: 'test' | 'live' } | null>(null);
+    const [activeTx, setActiveTx] = useState<{ checkoutUrl: string; plan: Plan; firstCharge: number | null } | null>(null);
+    // 상품명·가격·장수는 Dodo 카탈로그가 진실. 폴백 없음 — 실패하면 섹션 에러.
+    // (로그아웃 상태도 표시됨 — products는 공개 route)
+    const [plans, setPlans] = useState<Plan[] | null>(null);
+    const [catalogFailed, setCatalogFailed] = useState(false);
+
+    useEffect(() => {
+        let live = true;
+        void dodoClientAPI.getProducts().then((list) => {
+            if (!live) return;
+            try {
+                if (!list) throw new Error('Empty product list.');
+                const built: Plan[] = PLAN_CONFIGS.map((config) => {
+                    const match = list.find((p) => p.planId === config.planId);
+                    if (!match || !match.name || !match.price || !match.imagePerMonth) {
+                        throw new Error(`Unmapped plan: ${config.planId}.`);
+                    }
+                    const dollars = match.price / 100;
+                    return {
+                        planId: config.planId,
+                        className: config.className,
+                        features: config.features,
+                        name: match.name,
+                        price: dollars,
+                        images: `${match.imagePerMonth.toLocaleString('en-US')} images / month`,
+                        perImage: Number((dollars / match.imagePerMonth).toFixed(3)),
+                    };
+                });
+                setPlans(built);
+            } catch (error) {
+                console.error('Error building pricing plans:', error);
+                setCatalogFailed(true);
+            }
+        });
+        return () => {
+            live = false;
+        };
+    }, []);
 
     // 첫주문 할인 표시 — 로그아웃·무료는 표시, 유료 이력만 숨김 (서버는 유료 이력 기준 부과)
     useEffect(() => {
@@ -202,7 +228,7 @@ export default function PricingSection() {
             if (!created) {
                 throw new Error('Could not start checkout.');
             }
-            setActiveTx({ checkoutUrl: created.checkoutUrl, plan, firstCharge: created.firstCharge, env: created.env });
+            setActiveTx({ checkoutUrl: created.checkoutUrl, plan, firstCharge: created.firstCharge });
         } catch {
             setCheckoutError('Could not start checkout. Please try again.');
         } finally {
@@ -234,7 +260,21 @@ export default function PricingSection() {
                     </span>
                 </p>
                 <div className="mt-12 mb-12 grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    {PLANS.map((plan, index) => (
+                    {plans === null && !catalogFailed && (
+                        [0, 1, 2].map((index) => (
+                            <div
+                                key={index}
+                                className="h-96 animate-pulse rounded-[1.5rem] border border-hairline bg-surface"
+                                aria-hidden="true"
+                            />
+                        ))
+                    )}
+                    {catalogFailed && (
+                        <p className="col-span-full text-center text-[13px] font-medium text-red-500">
+                            Pricing is unavailable right now. Please refresh the page.
+                        </p>
+                    )}
+                    {(plans ?? []).map((plan, index) => (
                         <Reveal key={plan.name} delay={index * 0.08} className={plan.className}>
                             <PricingCard
                                 plan={plan}
@@ -257,10 +297,9 @@ export default function PricingSection() {
                 <DodoInlineModal
                     checkoutUrl={activeTx.checkoutUrl}
                     planName={activeTx.plan.name}
-                    basePrice={PLAN_PRICE_USD[activeTx.plan.planId]}
+                    basePrice={activeTx.plan.price}
                     imagesLabel={activeTx.plan.images}
                     firstCharge={activeTx.firstCharge}
-                    env={activeTx.env}
                     onClose={onCloseInlineModal}
                 />
             )}

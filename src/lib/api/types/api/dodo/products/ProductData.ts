@@ -11,4 +11,5 @@ export interface ProductData {
     description: string;
     planId: string;
     isPopular: boolean;
+    imagePerMonth: number; // metadata imagePerMonth (월 부여 장수)
 }

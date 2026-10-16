@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { getDodoClient } from "@/lib/dodoClient";
-import { getPlanByDodoProduct, PLAN_DISPLAY_NAME } from "@/lib/dodo";
+import { resolveDodoPlan } from "@/lib/dodoProducts";
+import { PLAN_DISPLAY_NAME } from "@/lib/dodo";
 import type { OrderData } from "@/lib/api/types/api/dodo/orders/OrderData";
 
 /**
@@ -72,7 +73,7 @@ export async function GET(request: NextRequest) {
             if (subId) {
                 try {
                     const sub = await dodo.subscriptions.retrieve(subId) as unknown as { product_id?: string };
-                    const plan = sub.product_id ? getPlanByDodoProduct(sub.product_id) : null;
+                    const plan = sub.product_id ? await resolveDodoPlan(sub.product_id) : null;
                     if (plan) productName = PLAN_DISPLAY_NAME[plan] ?? plan;
                 } catch {
                     /* 구독 조회 실패 — 기본 표시 유지 */

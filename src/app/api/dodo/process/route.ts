@@ -3,7 +3,8 @@ import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { usersServerAPI } from "@/lib/api/server/usersServerAPI";
 import { usageServerAPI } from "@/lib/api/server/usageServerAPI";
-import { getPlanByDodoProduct, PLAN_IMAGE_LIMIT, PLAN_PRICE_USD } from "@/lib/dodo";
+import { resolveDodoPlan } from "@/lib/dodoProducts";
+import { PLAN_IMAGE_LIMIT, PLAN_PRICE_USD } from "@/lib/dodo";
 import { getDodoClient } from "@/lib/dodoClient";
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
 
@@ -124,7 +125,7 @@ async function handleSubscriptionEvent(type: string, data: DodoSubscriptionData)
         return;
     }
     const productId = data.product_id ?? '';
-    const plan = getPlanByDodoProduct(productId);
+    const plan = await resolveDodoPlan(productId);
     if (!plan) {
         console.warn(`[dodo/process] ${type}: unknown product (subscription=${subId}, product=${productId})`);
         return;

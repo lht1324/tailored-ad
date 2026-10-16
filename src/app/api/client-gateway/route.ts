@@ -80,6 +80,8 @@ function matchRoute(
 // Whitelist for public routes (No authentication required)
 // TailoredAd에는 아직 비로그인 공개 API가 없음 — 필요해지면 여기에 추가.
 const PUBLIC_ROUTES: { method: string; path: string }[] = [
+    // 상품 카탈로그 (가격·이름 공개 마케팅 정보 — 비로그인 랜딩 표시용)
+    { method: 'GET', path: '/api/dodo/products' },
 ];
 
 async function handleGatewayRequest(request: NextRequest) {
