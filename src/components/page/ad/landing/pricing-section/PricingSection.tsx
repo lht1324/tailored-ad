@@ -9,7 +9,6 @@ import { usersClientAPI } from "@/lib/api/client/usersClientAPI";
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
 import type { DodoPaidPlan as PaidPlan } from "@/lib/dodo";
 import { dodoClientAPI } from "@/lib/api/client/dodoClientAPI";
-import DodoInlineModal from "@/components/page/ad/dodo/DodoInlineModal";
 
 interface Plan {
     planId: PaidPlan;
@@ -142,7 +141,6 @@ export default function PricingSection() {
     const [busyPlan, setBusyPlan] = useState<PaidPlan | null>(null);
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
     const [discountEligible, setDiscountEligible] = useState(false);
-    const [activeTx, setActiveTx] = useState<{ checkoutUrl: string; plan: Plan; firstCharge: number | null } | null>(null);
     // 상품명·가격·장수는 Dodo 카탈로그가 진실. 폴백 없음 — 실패하면 섹션 에러.
     // (로그아웃 상태도 표시됨 — products는 공개 route)
     const [plans, setPlans] = useState<Plan[] | null>(null);
@@ -228,17 +226,15 @@ export default function PricingSection() {
             if (!created) {
                 throw new Error('Could not start checkout.');
             }
-            setActiveTx({ checkoutUrl: created.checkoutUrl, plan, firstCharge: created.firstCharge });
+            // 리다이렉트 방식 — Dodo 호스티드 페이지로 이동 (iframe 3DS 호환 문제 회피).
+            // 복귀는 세션 return_url → /checkout/success, 적립은 웹훅.
+            window.location.href = created.checkoutUrl;
         } catch {
             setCheckoutError('Could not start checkout. Please try again.');
         } finally {
             setBusyPlan(null);
         }
     }, [user, router]);
-
-    const onCloseInlineModal = useCallback(() => {
-        setActiveTx(null);
-    }, []);
 
     return (
         <section id="pricing" className="scroll-mt-24 border-t border-hairline bg-surface/40 px-4 py-24 md:py-32">
@@ -293,16 +289,6 @@ export default function PricingSection() {
                     </ul>
                 </Reveal>
             </div>
-            {activeTx && (
-                <DodoInlineModal
-                    checkoutUrl={activeTx.checkoutUrl}
-                    planName={activeTx.plan.name}
-                    basePrice={activeTx.plan.price}
-                    imagesLabel={activeTx.plan.images}
-                    firstCharge={activeTx.firstCharge}
-                    onClose={onCloseInlineModal}
-                />
-            )}
         </section>
     );
 }
