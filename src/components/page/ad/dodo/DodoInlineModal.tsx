@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useCallback, useEffect } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { DodoPayments } from "dodopayments-checkout";
@@ -24,6 +24,13 @@ const FRAME_TARGET = "dodo-inline-frame";
  */
 function DodoInlineModal({ checkoutUrl, planName, basePrice, imagesLabel, firstCharge, onClose }: DodoInlineModalProps) {
     const router = useRouter();
+    // 프레임은 form_ready 때 공개 — Dodo가 세션 테마 적용 전 기본(다크)으로 칠하는 플래시 가림.
+    // form_ready 미발화 대비 8초 폴백 (영원히 안 보이면 결제가 막힘).
+    const [frameReady, setFrameReady] = useState(false);
+    useEffect(() => {
+        const timer = setTimeout(() => setFrameReady(true), 8000);
+        return () => clearTimeout(timer);
+    }, [checkoutUrl]);
     useEffect(() => {
         // SDK 모드는 checkoutUrl 호스트에서 판정 — test.checkout.*면 test, 아니면 live
         let mode: 'test' | 'live' = 'live';
@@ -38,6 +45,9 @@ function DodoInlineModal({ checkoutUrl, planName, basePrice, imagesLabel, firstC
             mode,
             displayType: 'inline',
             onEvent: (event) => {
+                if (event?.event_type === 'checkout.form_ready') {
+                    setFrameReady(true);
+                }
                 if (event?.event_type === 'checkout.redirect') {
                     try {
                         DodoPayments.Checkout.close();
@@ -123,7 +133,7 @@ function DodoInlineModal({ checkoutUrl, planName, basePrice, imagesLabel, firstC
                             </p>
                         )}
                     </div>
-                    <div id={FRAME_TARGET} />
+                    <div id={FRAME_TARGET} className={frameReady ? 'min-h-[120px]' : 'invisible min-h-[420px]'} />
                 </div>
             </div>
         </div>
