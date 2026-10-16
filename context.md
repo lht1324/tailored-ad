@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-10-16 05:06)
+# TailoredAd — 작업 기록 (Last Updated: 2026-10-17 02:12)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -857,5 +857,15 @@ npm run deploy   # opennext build + deploy (master에서)
 - [ ] **Dodo 상품 metadata 매칭** (다음 작업 — 사장님 선행):
   사장님: test·live 상품 6곳에 metadata `plan: plan-1/2/3` 기입.
   다음: `dodoProducts.ts`를 metadata 기반으로 교체 (가격 변경·순서 무적).
+- **Dodo 웹훅 적립 복구 + 체크아웃 이메일 고정** (10-16/17, develop — `f7e7c87` 커밋됨, E2E 통과):
+  테스트 결제($10.45 = $9.50 FIRSTORDER50 + VAT 10%)는 성공했으나 적립 누락.
+  원인: 체크아웃 `metadata.userId`가 구독 이벤트 payload에 안 실려옴 → `user unmapped` 조기 리턴.
+  수정 3점 (`process/route.ts`): userId 폴백 체인 (payload metadata → 구독 직접 조회 metadata →
+  고객 이메일 `getUserByEmail`, 이메일 고정이니 매칭 안정) + 부여량 `metadata.imagePerMonth` 기준
+  (코드 상수는 폴백+warn, `image_limit` 패치도 동일값) + period 조회 보정.
+  체크아웃은 이메일 고정·이름만 수정 허용 (`allow_customer_editing_email: false`).
+  재테스트 전 test DB gachon 정리 (행 2 + trial grant 1 삭제, ledger·배치 0건).
+  E2E 통과: 이메일 잠금 실측 + 110장 적립 (trial 10 + Starter 100), period 11-16 동기화됨.
+  교훈: 로그인 콜백·게이트웨이가 이메일 find-or-create라 Auth만 지우면 구 행 재사용됨 (DB도 같이 정리할 것).
 
 (End of file)
