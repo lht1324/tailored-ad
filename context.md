@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-10-17 02:12)
+# TailoredAd — 작업 기록 (Last Updated: 2026-10-18 01:46)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -867,5 +867,24 @@ npm run deploy   # opennext build + deploy (master에서)
   재테스트 전 test DB gachon 정리 (행 2 + trial grant 1 삭제, ledger·배치 0건).
   E2E 통과: 이메일 잠금 실측 + 110장 적립 (trial 10 + Starter 100), period 11-16 동기화됨.
   교훈: 로그인 콜백·게이트웨이가 이메일 find-or-create라 Auth만 지우면 구 행 재사용됨 (DB도 같이 정리할 것).
+- **Dodo 상품 목록 캐시 + 정적 청크 캐시** (10-17, develop — `435dd56`, master `c126de6`, 배포됨):
+  `dodoProducts.ts`에 상품 목록 캐시 신설 (매핑 조회가 이미 부르던 products.list() 응답을 함께 보관, 1시간) +
+  products 응답에 `private, max-age=180` 부착 + `_headers`에 `/_next/static/*` 1년 immutable 추가.
+  prod 실측: JS 청크 `max-age=31536000, immutable` 확인.
+- **랜딩 이미지 경량화 + 캐시 + 라벨 정리** (10-17, develop — `406eac7`, master `ed4a8e1`, 배포됨):
+  `public/preview` 무손실 webp 19장(20MB) → q85 손실 + 출력 2배 해상도로 재변환 (724KB, 28배 절감).
+  치수: 4:5 576×720 / 1:1 720×720 / 16:9 1440×810. `_headers` 신설 (preview 30일 캐시).
+  `logo.svg` width="1024" 속성 제거 (디코딩 4MB→~50KB. viewBox 유지라 무영향 확인).
+  랜딩 eyebrow 3건 삭제 (Portfolio·Features·FAQ — skill 기준 섹션 3개당 1개 이하. Hero·Workflow만 유지).
+  탭 메모리 192MB 분석: 이미지 디코딩 ~105MB(prod 옛 상태)가 주범 → 작업 후 ~50MB 예상.
+  JS 힙 19.2MB 표준, DOM 541 노드, 페이지 코드 쪽 이상 없음 확인.
+  미해결: 랜딩 모바일 햄버거 메뉴 없음 (7번 — 나머지 개선 후 논의 예정).
+- **메모리·비효율 전수 점검 완료** (10-17/18 — 계획서만 작성, 미착수):
+  하위 에이전트 전수 스캔 (use client 43개 파일·API 라우트 30개·lib 전체).
+  낭비 대 7건·중 4건·소 다수 — **계획서: `OPTIMIZATION_PLAN.md` (우선순위·수정안·소요 포함)**.
+  정상 확인: DB 싱글톤·게이트웨이 lazy 로드·SSE cleanup·setInterval·key=index·Remotion dynamic import.
+  다음 작업 후보 (사장님 승인 시 순서): 죽은 import 삭제(5분) → jszip/html-to-image 동적 로드 →
+  memo 복구 묶음 → 목록 프로젝션 → presign lazy → 게이트웨이 스트림 → 이미지 프록시 캐시 →
+  썸네일 파이프라인(큰 작업 2~3일, 사용자 붙기 전 착수 검토).
 
 (End of file)
