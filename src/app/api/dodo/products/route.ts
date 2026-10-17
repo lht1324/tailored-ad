@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { getDodoClient } from "@/lib/dodoClient";
-import { resolveDodoPlan } from "@/lib/dodoProducts";
+import { getDodoProductList } from "@/lib/dodoProducts";
 import type { ProductData } from "@/lib/api/types/api/dodo/products/ProductData";
 
 /**
@@ -20,37 +20,16 @@ export async function GET(request: NextRequest) {
 
     try {
         const dodo = await getDodoClient();
-        const products = await dodo.products.list({ recurring: true });
-
-        const productList: ProductData[] = [];
-        for await (const product of products) {
-            const p = product as unknown as {
-                product_id?: string; id?: string; name?: string;
-                price?: number; currency?: string; description?: string | null;
-                metadata?: Record<string, unknown> | null;
-            };
-            const id = p.product_id ?? p.id ?? '';
-            const meta = p.metadata ?? {};
-            const imagePerMonth = Number(meta.imagePerMonth ?? 0) || 0;
-            productList.push({
-                id,
-                name: p.name ?? '',
-                price: Number(p.price ?? 0) || 0,
-                currency: p.currency ?? 'USD',
-                interval: 'month',
-                description: p.description ?? '',
-                planId: (await resolveDodoPlan(id)) ?? '',
-                isPopular: false,
-                imagePerMonth,
-            });
-        }
-
-        return getNextBaseResponse({
+        const productList = await getDodoProductList();
+        // 브라우저 캐시 3분 — 랜딩 재방문 시 네트워크 왕복 생략. 카탈로그 변경은 최대 3분 지연 허용.
+        const response = getNextBaseResponse({
             success: true,
             status: 200,
             data: { productList },
             message: "Successfully fetched products.",
         });
+        response.headers.set('Cache-Control', 'private, max-age=180');
+        return response;
     } catch (error) {
         console.error("Error in GET /api/dodo/products:", error);
         return getNextBaseResponse({
