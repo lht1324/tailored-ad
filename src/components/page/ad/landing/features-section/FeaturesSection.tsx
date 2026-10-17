@@ -64,9 +64,6 @@ export default function FeaturesSection() {
                                 Image generation is cheap. We spend it where it counts: quality, not shortcuts.
                             </p>
                         </div>
-                        <span className="-rotate-[3deg] rounded-[8px] border-2 border-hairline px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-text2">
-                            Feature set / 6 items
-                        </span>
                     </div>
                 </Reveal>
                 <div className="mt-16 grid grid-cols-1 gap-6 md:grid-cols-6">

@@ -94,9 +94,6 @@ export default function FAQSection() {
                         <h2 className="text-4xl font-bold leading-tight tracking-tight text-text1 md:text-5xl">
                             Questions, answered.
                         </h2>
-                        <span className="mt-6 inline-block -rotate-[3deg] rounded-[8px] border-2 border-hairline px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-text2">
-                            Common questions
-                        </span>
                     </div>
                 </Reveal>
                 <Reveal delay={0.08}>

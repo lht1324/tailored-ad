@@ -99,10 +99,7 @@ export default function PortfolioSection() {
                 <Reveal>
                     <div className="flex flex-wrap items-end justify-between gap-6">
                         <div className="max-w-2xl">
-                            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-accent">
-                                Portfolio
-                            </p>
-                            <h2 className="mt-3 text-4xl font-bold leading-tight tracking-tight text-text1 md:text-5xl">
+                            <h2 className="text-4xl font-bold leading-tight tracking-tight text-text1 md:text-5xl">
                                 Ads worth a second look.
                             </h2>
                             <p className="mt-5 text-[17px] leading-relaxed text-text2">
