@@ -79,10 +79,11 @@ export default function OgCardPageClient() {
             await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
             // toJpeg는 data URL을 반환 — 다운로드용 Blob으로 변환
+            // backgroundColor 옵션 넣지 말 것 — html-to-image가 캡처 루트 배경을 이 값으로 덮어써서
+            // 카드 자체 배경(bg-text1·bg-canvas)이 흰색으로 바뀌는 사고 (10-19 실측). 카드가 불투명하게 채우므로 불필요.
             const dataUrl = await toJpeg(node, {
                 quality: 0.92,
                 pixelRatio: 2,
-                backgroundColor: '#ffffff',
             });
             const blob = await (await fetch(dataUrl)).blob();
             const url = URL.createObjectURL(blob);
