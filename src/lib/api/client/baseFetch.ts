@@ -1,9 +1,12 @@
 const isProd = process.env.NODE_ENV === 'production';
 
 function getRootPath(route: string) {
-    return isProd || route.includes("http") || route.includes("https")
-        ? ""
-        : `${process.env.NEXT_PUBLIC_BASE_URL!}`
+    if (isProd || route.includes("http")) {
+        return "";
+    }
+    // dev 전용 — 클라(3000) → API 서버(3001) 직행 베이스. NEXT_PUBLIC_*는 빌드타임 주입.
+    // 누락 시 문자열 "undefined" URL이 되지 않게 동일 출처(빈 값)로 폴백.
+    return process.env.NEXT_PUBLIC_BASE_URL || "";
 }
 
 /**
@@ -21,6 +24,21 @@ function getGatewayRoute(route: string) {
 const FETCH_TIMEOUT_MS = 30_000;
 const FORM_TIMEOUT_MS = 60_000;
 
+// !ok 응답 — 서버가 내려주는 {error} 본문을 보존해 throw (호출부가 원인을 알 수 있게).
+// JSON이 아닌 응답(프록시 오류 페이지 등)은 상태 텍스트로 폴백.
+async function ensureOk(response: Response): Promise<Response> {
+    if (response.ok) return response;
+    let message = response.statusText;
+    try {
+        const body = await response.json() as { error?: string };
+        if (body.error) message = body.error;
+    } catch {
+        // 본문 파싱 실패 — 상태 텍스트 유지
+    }
+    console.error(`HTTP error: [${response.status}] ${message}`);
+    throw Error(`[${response.status}] ${message}`);
+}
+
 export async function getFetch(route: string) {
     const rootPath = getRootPath(route);
     const gatewayRoute = getGatewayRoute(route);
@@ -36,18 +54,12 @@ export async function getFetch(route: string) {
         credentials: 'include',
     });
 
-    if (!response.ok) {
-        console.error('HTTP error:', response.status, response.statusText);
-        throw Error(`[${response.status}] ${response.statusText}`);
-    }
-
-    return response;
+    return ensureOk(response);
 }
 
 export async function postFetch(route: string, body?: unknown) {
     const rootPath = getRootPath(route);
     const gatewayRoute = getGatewayRoute(route);
-    console.log(`[${route}]: ${rootPath}${gatewayRoute}`);
     const response = await fetch(`${rootPath}${gatewayRoute}`, {
         signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         method: 'POST',
@@ -61,18 +73,12 @@ export async function postFetch(route: string, body?: unknown) {
         credentials: 'include',
     });
 
-    if (!response.ok) {
-        console.error('HTTP error:', response.status, response.statusText);
-        throw Error(`[${response.status}] ${response.statusText}`);
-    }
-
-    return response;
+    return ensureOk(response);
 }
 
 export async function postFormFetch(route: string, formData: FormData) {
     const rootPath = getRootPath(route);
     const gatewayRoute = getGatewayRoute(route);
-    console.log(`[${route}][form]: ${rootPath}${gatewayRoute}`);
     const response = await fetch(`${rootPath}${gatewayRoute}`, {
         signal: AbortSignal.timeout(FORM_TIMEOUT_MS),
         method: 'POST',
@@ -86,12 +92,7 @@ export async function postFormFetch(route: string, formData: FormData) {
         credentials: 'include',
     });
 
-    if (!response.ok) {
-        console.error('HTTP error:', response.status, response.statusText);
-        throw Error(`[${response.status}] ${response.statusText}`);
-    }
-
-    return response;
+    return ensureOk(response);
 }
 
 export async function patchFetch(route: string, body?: unknown) {
@@ -110,12 +111,7 @@ export async function patchFetch(route: string, body?: unknown) {
         credentials: 'include',
     });
 
-    if (!response.ok) {
-        console.error('HTTP error:', response.status, response.statusText);
-        throw Error(`[${response.status}] ${response.statusText}`);
-    }
-
-    return response;
+    return ensureOk(response);
 }
 
 export async function deleteFetch(route: string) {
@@ -133,10 +129,5 @@ export async function deleteFetch(route: string) {
         credentials: 'include',
     });
 
-    if (!response.ok) {
-        console.error('HTTP error:', response.status, response.statusText);
-        throw Error(`[${response.status}] ${response.statusText}`);
-    }
-
-    return response;
+    return ensureOk(response);
 }
