@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-10-17 02:12)
+# TailoredAd — 작업 기록 (Last Updated: 2026-10-19 02:27)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -71,7 +71,8 @@
    `preferred_ai_model_config`는 로컬 `AdModelConfig`로 대체 (ad 트리에서 미사용 확인).
 4. **URL 정리**: 페이지·API·웹훅의 `/ad` prefix 전부 제거. 구경로는 404.
 5. **리브랜드**: 메타·헤더·푸터·지원메일(`support@tailoredad.com`)·다운로드명·LLM 프롬프트까지
-   ShortReal 잔재 제거. OG 이미지는 shortreal.ai URL 그대로 (own 버킷으로 이전 예정).
+   ShortReal 잔재 제거. OG 이미지는 shortreal.ai URL 그대로였으나 **10-19 own 도메인(`public/og/og.jpg`)로 교체 완료**.
+   텍스트 메타는 전부 TailoredAd였고 잔재는 OG 이미지 URL 2곳뿐이었다 (grep 실측).
 6. **린트 전멸**: 복사해온 코드의 에러 18개 수정 (진짜 버그 1개 포함: PortfolioSection hooks).
    이후 재측정 반복. 최신 묶음은 푸시 후 `npm run lint` 재확인 필요.
 7. **약관**: ShortReal 문서를 복사 후 브랜드명·URL·지원메일만 교체. **실체 조항 미검토**
@@ -479,7 +480,8 @@
 - [ ] `tailorad.com` 구매 + 리다이렉트
 - [ ] `shortreal.ai/ad` → 301 (런칭 당일)
 - [ ] `tailoredad.com` DNS 연결 (이미지 준비됨 — 연결 가능)
-- [ ] Search Console 등록 (런칭 후 — Google OAuth 소유권 인증에 필요시 선행)
+- [ ] Search Console 등록 (런칭 후 — Google OAuth 소유권 인증에 필요시 선행.
+  sitemap.xml 10-19 신설 완료 — 등록 시 제출 대상)
 - [x] Supabase 대시보드 확인 (불필요 — Realtime 제거됨. 프로젝트 삭제는 prod E2E 통과 후)
 - [x] Cloudflare Secrets 등록 (사장님 — 10-14 값 확인済み. prod 호스트 대조법: DB `falling-butterfly`+`-pooler`, Auth `falling-butterfly`+`neonauth`, R2 `-dev` 없음)
 - [ ] 카피 품질: LLM 헤드라인 문법 어색 건 ("dress for it") — 프롬프트에 원어민 검수 지시 추가 예정
@@ -867,5 +869,55 @@ npm run deploy   # opennext build + deploy (master에서)
   재테스트 전 test DB gachon 정리 (행 2 + trial grant 1 삭제, ledger·배치 0건).
   E2E 통과: 이메일 잠금 실측 + 110장 적립 (trial 10 + Starter 100), period 11-16 동기화됨.
   교훈: 로그인 콜백·게이트웨이가 이메일 find-or-create라 Auth만 지우면 구 행 재사용됨 (DB도 같이 정리할 것).
+- **Dodo 상품 목록 캐시 + 정적 청크 캐시** (10-17, develop — `435dd56`, master `c126de6`, 배포됨):
+  `dodoProducts.ts`에 상품 목록 캐시 신설 (매핑 조회가 이미 부르던 products.list() 응답을 함께 보관, 1시간) +
+  products 응답에 `private, max-age=180` 부착 + `_headers`에 `/_next/static/*` 1년 immutable 추가.
+  prod 실측: JS 청크 `max-age=31536000, immutable` 확인.
+- **랜딩 이미지 경량화 + 캐시 + 라벨 정리** (10-17, develop — `406eac7`, master `ed4a8e1`, 배포됨):
+  `public/preview` 무손실 webp 19장(20MB) → q85 손실 + 출력 2배 해상도로 재변환 (724KB, 28배 절감).
+  치수: 4:5 576×720 / 1:1 720×720 / 16:9 1440×810. `_headers` 신설 (preview 30일 캐시).
+  `logo.svg` width="1024" 속성 제거 (디코딩 4MB→~50KB. viewBox 유지라 무영향 확인).
+  랜딩 eyebrow 3건 삭제 (Portfolio·Features·FAQ — skill 기준 섹션 3개당 1개 이하. Hero·Workflow만 유지).
+  탭 메모리 192MB 분석: 이미지 디코딩 ~105MB(prod 옛 상태)가 주범 → 작업 후 ~50MB 예상.
+  JS 힙 19.2MB 표준, DOM 541 노드, 페이지 코드 쪽 이상 없음 확인.
+  미해결: 랜딩 모바일 햄버거 메뉴 없음 (7번 — 나머지 개선 후 논의 예정).
+- **메모리·비효율 전수 점검 완료** (10-17/18 — 계획서만 작성, 미착수):
+  하위 에이전트 전수 스캔 (use client 43개 파일·API 라우트 30개·lib 전체).
+  낭비 대 7건·중 4건·소 다수 — **계획서: `OPTIMIZATION_PLAN.md` (우선순위·수정안·소요 포함)**.
+  정상 확인: DB 싱글톤·게이트웨이 lazy 로드·SSE cleanup·setInterval·key=index·Remotion dynamic import.
+  다음 작업 후보 (사장님 승인 시 순서): 죽은 import 삭제(5분) → jszip/html-to-image 동적 로드 →
+  memo 복구 묶음 → 목록 프로젝션 → presign lazy → 게이트웨이 스트림 → 이미지 프록시 캐시 →
+  썸네일 파이프라인(큰 작업 2~3일, 사용자 붙기 전 착수 검토).
+- **baseFetch 품질 개선** (10-19, develop — `0704e2f`):
+  `ensureOk()` 신설로 5개 함수 전부 서버 `error` 본문 보존 (전엔 `[500] Internal Server Error` 껍데기만 →
+  제네릭 에러 UX의 근본 원인) + prod 콘솔 요청 로그 2건 제거 (이메일 PII 노출) +
+  `getRootPath` 죽은 조건(`includes("https")`)·non-null assertion 정리(미설정 시 동일 출처 폴백).
+  `isProd`(NODE_ENV) 판단은 클라 전용이라 안전 — Workers 런타임 판정 이슈(§4 Dodo env)와 다른 케이스.
+- **SEO 1차 정리** (10-19, develop — `6788179`, prod 미배포):
+  `/checkout/success` proxy 가드 명시 (결제 복귀 후 세션 끊기면 sign-in 경유 복귀) +
+  성공 화면 표시 조건 `hasPaid` 강화 (결제 안 한 trial 유저가 "You're subscribed" 오탐 본 버그).
+  `public/robots.txt` 신설(Allow / · Disallow /api/ /callback/ /dev/ + sitemap 선언),
+  `public/sitemap.xml` 신설(랜딩+약관 3종). `callback/session`·`checkout/success` noindex —
+  callback은 가드 미적용이 원칙 (OAuth 중간 경유라 비로그인 접근이 정상, 가드 걸면 플로우 파손).
+  공개 경로 8개(랜딩·약관3·sign-in·callback/session·checkout/success) 전수 확인 —
+  약관은 index 유지(신뢰·결제사 요구), sign-in은 이미 noindex였음.
+- **메타데이터 전수 감사** (10-19, develop — `6788179`):
+  타이틀 더블브랜딩 결함 발견·수정 — create/profile/projects/project 상세/checkout success가
+  "X — TailoredAd" 형식인데 루트 layout template(`TailoredAd | %s`)과 겹쳐
+  prod에서 "TailoredAd | Checkout success — TailoredAd" 실측 확인 → 브랜드 접미사 제거.
+  callback/session은 메타 자체가 없어 noindex로 신설. 루트 layout(metadataBase·template·icons)은 정상.
+- **OG 이미지 제작·연결** (10-19, develop — `0f48bcf`~`cd59fca`):
+  개발 전용 캡처 페이지 `/dev/og` 신설 (`OgCardPageClient`) — 1200×630 카드 라이트/다크 2벌을
+  렌더하고 클릭으로 JPEG 저장(html-to-image `toJpeg`, pixelRatio 2 → 2400×1260).
+  신규 의존성 0 (html-to-image 이미 설치). 폴라로이드 3장(4:5 네이티브 — 프레임 비율 일치, 크롭 없음):
+  tumbler(남)·perfume(여)·suit(남) = 남-여-남 교대. 사장님 다운로드 → **라이트 채택**
+  (`public/og/og.jpg`, 220KB) — 브랜드 기본 테마 정합 + 카드→랜딩 연속성. 라이트/다크 교체는 파일 1행.
+  `page.tsx` OG·twitter → `https://tailoredad.com/og/og.jpg` (shortreal.ai 잔재 마지막 2곳 제거,
+  치수 378×672 틀린 값 → 1200×630 정정). **shortreal 참조 0건** (Users.ts 주석만 잔존).
+  gotcha 2개: (1) html-to-image의 `backgroundColor` 옵션이 캡처 루트 배경을 덮어써 카드 bg가 흰색 됨 —
+  옵션 넣지 말 것 (라이브 DOM computed style로 원인 확정). (2) `toJpeg`는 Blob 아닌 data URL 반환 —
+  `fetch(dataUrl).blob()` 변환 필요.
+  OG는 PNG 아닌 JPEG (페이스북 등 OG webp 파싱 호환 이슈). 배치·연결 완료, prod 반영은 릴리즈 대기.
+  개발 Gotcha: `npm run dev`가 세션 사이에 죽어 있음 (10-19 확인 — 재시작 필요).
 
 (End of file)

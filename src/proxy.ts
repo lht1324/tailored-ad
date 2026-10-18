@@ -21,8 +21,9 @@ export async function proxy(request: NextRequest) {
         return NextResponse.next();
     }
 
-    // /projects, /create, /profile은 로그인 필수 — 비로그인이면 원래 경로를 들고 /sign-in으로
-    if (path.startsWith('/projects') || path.startsWith('/create') || path.startsWith('/profile')) {
+    // /projects, /create, /profile, /checkout/success는 로그인 필수 — 비로그인이면 원래 경로를 들고 /sign-in으로
+    // (checkout/success: 결제 후 복귀 경로. 세션이 끊긴 채 돌아오면 sign-in 후 복귀시켜 성공 화면을 보게 한다)
+    if (path.startsWith('/projects') || path.startsWith('/create') || path.startsWith('/profile') || path.startsWith('/checkout/success')) {
         if (!user) {
             const signInUrl = new URL('/sign-in', request.url);
             signInUrl.searchParams.set('redirectTo', path);
@@ -39,5 +40,6 @@ export const config = {
         '/projects/:path*',
         '/create/:path*',
         '/profile/:path*',
+        '/checkout/success',
     ],
 };

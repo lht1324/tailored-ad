@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import CreatePageClient from "@/components/page/ad/create/CreatePageClient";
 
 export const metadata: Metadata = {
-    title: "Create — TailoredAd",
+    title: "Create",
     description: "Compose your ad creative — upload assets, choose format, and generate candidates.",
 };
 

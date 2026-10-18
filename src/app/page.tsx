@@ -16,10 +16,10 @@ export const metadata: Metadata = {
         siteName: 'TailoredAd',
         images: [
             {
-                url: 'https://shortreal.ai/preview/demo_main_center.webp',
-                width: 378,
-                height: 672,
-                alt: 'TailoredAd creative example',
+                url: 'https://tailoredad.com/og/og.jpg',
+                width: 1200,
+                height: 630,
+                alt: 'TailoredAd — AI ad creatives that do not look like AI stock',
             },
         ],
     },
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
         card: 'summary_large_image',
         title: "TailoredAd | AI Ad Creatives That Don't Look Like AI Stock",
         description: "Brand-consistent ad creatives for growth teams without a designer.",
-        images: ['https://shortreal.ai/preview/demo_main_center.webp'],
+        images: ['https://tailoredad.com/og/og.jpg'],
     },
 };
 
