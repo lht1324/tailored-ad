@@ -78,11 +78,13 @@ export default function OgCardPageClient() {
             );
             await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-            const blob = await toJpeg(node, {
+            // toJpeg는 data URL을 반환 — 다운로드용 Blob으로 변환
+            const dataUrl = await toJpeg(node, {
                 quality: 0.92,
                 pixelRatio: 2,
                 backgroundColor: '#ffffff',
             });
+            const blob = await (await fetch(dataUrl)).blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
