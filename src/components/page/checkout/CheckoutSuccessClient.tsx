@@ -26,7 +26,7 @@ function CheckoutSuccessClient() {
         const summary = await usersClientAPI.getUserUsageSummary(userId);
         if (isCancelled()) return false;
         setUsage(summary);
-        if (summary && summary.mode === 'balance' && (summary.granted ?? 0) > 0) {
+        if (summary && summary.mode === 'balance' && summary.hasPaid && (summary.granted ?? 0) > 0) {
             setStatus('ready');
             return true;
         }

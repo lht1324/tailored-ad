@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import ProjectsPageClient from "@/components/page/ad/projects/ProjectsPageClient";
 
 export const metadata: Metadata = {
-    title: "Projects — TailoredAd",
+    title: "Projects",
     description: "Browse all your ad generations — live progress and completed assets.",
 };
 

@@ -1,0 +1,11 @@
+# TailoredAd — 검색엔진 크롤링 규칙
+# 인덱스 대상: / (랜딩) + /legal/* (약관 — 신뢰·결제사 확인용)
+# noindex 페이지(sign-in, checkout/success)는 크롤 가능해야 noindex 메타가 읽힘 — robots로 차단하지 않음.
+# /callback/*는 OAuth 중간 경로(세션 검증 쿼리 포함)라 크롤 자체를 차단.
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /callback/
+
+Sitemap: https://tailoredad.com/sitemap.xml
