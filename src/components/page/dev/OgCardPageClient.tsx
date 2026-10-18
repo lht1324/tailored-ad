@@ -13,9 +13,9 @@ import BrandMark from "@/components/public/BrandMark";
  */
 
 const POLAROIDS = [
-    { src: '/preview/hero-perfume-dusk.webp', className: 'right-[46px] top-[54px] w-[228px] rotate-[3deg]' },
-    { src: '/preview/hero-suit-reading.webp', className: 'right-[220px] top-[210px] w-[204px] -rotate-[2.5deg]' },
-    { src: '/preview/hero-tumbler-locker.webp', className: 'right-[64px] top-[330px] w-[220px] rotate-[2deg]' },
+    { src: '/preview/hero-tumbler-locker.webp', className: 'right-[46px] top-[54px] w-[228px] rotate-[3deg]' },
+    { src: '/preview/hero-perfume-dusk.webp', className: 'right-[220px] top-[210px] w-[204px] -rotate-[2.5deg]' },
+    { src: '/preview/hero-suit-reading.webp', className: 'right-[64px] top-[330px] w-[220px] rotate-[2deg]' },
 ];
 
 function OgCard({ dark, innerRef }: { dark: boolean; innerRef: React.Ref<HTMLDivElement> }) {
