@@ -249,10 +249,12 @@ export default function PricingSection() {
                         </p>
                     </div>
                 </Reveal>
-                {/* 에러 공간 상시 예약 — 헤더 아래, 그리드 위 (카드와 겹쳐 보이지 않게) */}
+                {/* 에러 공간 상시 예약 — 헤더 아래, 그리드 위 (카드와 겹쳐 보이지 않게).
+                    텍스트 추출기(크롤러·AI)는 CSS를 무시하고 textContent를 읽어 hidden 문자열도
+                    본문에 섞어 넣으므로, 에러 없을 때는 문자열 대신 공백만 둔다 (10-19 실측). */}
                 <p className="relative mx-auto mt-8 max-w-2xl text-center text-[13px] font-medium text-red-500" aria-live="polite">
                     <span className={checkoutError ? '' : 'invisible'}>
-                        {checkoutError ?? 'Could not start checkout. Please try again.'}
+                        {checkoutError ?? '\u00A0'}
                     </span>
                 </p>
                 <div className="mt-12 mb-12 grid grid-cols-1 gap-6 lg:grid-cols-3">

@@ -1,7 +1,5 @@
 'use client'
 
-import { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
 import Reveal from "@/components/page/ad/Reveal";
 
@@ -41,51 +39,34 @@ const FAQ_ITEMS: { question: string; answer: string[] }[] = [
     },
 ];
 
-function FAQItem({ question, answer, isOpen, onToggle }: {
-    question: string;
-    answer: string[];
-    isOpen: boolean;
-    onToggle: () => void;
-}) {
+/**
+ * FAQ 아코디언 — 네이티브 `<details>/<summary>`.
+ * 이전엔 useState + AnimatePresence라 닫힌 항목의 답변이 DOM에 아예 없었고,
+ * 크롤러·AI 추출기는 질문을 읽되 답변 본문을 못 읽었다 (닫힌 항목 6개 전부 누락 실측).
+ * details는 닫혀 있어도 답변이 HTML에 남아 있어 검색·AI 인용에 그대로 먹히고,
+ * JS 없이 동작 + 스크린리더 접근성도 네이티브로 얻는다. (open: 변수로 아이콘 회전)
+ */
+function FAQItem({ question, answer, defaultOpen }: { question: string; answer: string[]; defaultOpen?: boolean }) {
     return (
-        <div className="border-b border-hairline">
-            <button
-                type="button"
-                onClick={onToggle}
-                aria-expanded={isOpen}
-                className="flex w-full items-center justify-between gap-6 py-6 text-left"
-            >
+        <details open={defaultOpen} className="group border-b border-hairline">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-6 text-left">
                 <span className="text-[17px] font-semibold tracking-tight text-text1">
                     {question}
                 </span>
-                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-hairline transition-transform duration-300 ${isOpen ? 'rotate-45 text-accent' : 'text-text2'}`}>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-hairline text-text2 transition-transform duration-300 group-open:rotate-45 group-open:text-accent">
                     <Plus size={14} strokeWidth={2} />
                 </span>
-            </button>
-            <AnimatePresence initial={false}>
-                {isOpen && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                        className="overflow-hidden"
-                    >
-                        <div className="max-w-2xl space-y-3 pb-6 text-[15px] leading-relaxed text-text2">
-                            {answer.map((paragraph, index) => (
-                                <p key={index}>{paragraph}</p>
-                            ))}
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </div>
+            </summary>
+            <div className="max-w-2xl space-y-3 pb-6 text-[15px] leading-relaxed text-text2">
+                {answer.map((paragraph, index) => (
+                    <p key={index}>{paragraph}</p>
+                ))}
+            </div>
+        </details>
     );
 }
 
 export default function FAQSection() {
-    const [openIndex, setOpenIndex] = useState<number | null>(0);
-
     return (
         <section id="faq" className="scroll-mt-24 px-4 py-24 md:py-32">
             <div className="mx-auto max-w-3xl">
@@ -103,8 +84,7 @@ export default function FAQSection() {
                                 key={item.question}
                                 question={item.question}
                                 answer={item.answer}
-                                isOpen={openIndex === index}
-                                onToggle={() => setOpenIndex(openIndex === index ? null : index)}
+                                defaultOpen={index === 0}
                             />
                         ))}
                     </div>
