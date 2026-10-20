@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-10-19 02:27)
+# TailoredAd — 작업 기록 (Last Updated: 2026-10-20 12:40)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -919,5 +919,25 @@ npm run deploy   # opennext build + deploy (master에서)
   `fetch(dataUrl).blob()` 변환 필요.
   OG는 PNG 아닌 JPEG (페이스북 등 OG webp 파싱 호환 이슈). 배치·연결 완료, prod 반영은 릴리즈 대기.
   개발 Gotcha: `npm run dev`가 세션 사이에 죽어 있음 (10-19 확인 — 재시작 필요).
+- **AI 검색 가시성 1차** (10-20, develop — `0c405d3`):
+  사장님이 Kimi K3로 검색 실측한 결과 기반. 결론: "사이트는 읽히는데 검색 생태계에 존재하지 않음"
+  (제3자 소스 0건). 그중 **코드로 고칠 수 있는 2건 + 추가 1건** 처리.
+  (1) **FAQ 답변 미노출** — 닫힌 아코디언(AnimatePresence)이라 답변이 DOM에 없어 크롤러·AI가
+  질문만 읽고 답변 못 봄(닫힌 6개 전부 누락 실측). → 네이티브 `<details>/<summary>`로 교체.
+  HTML에 답변이 남고 JS 없이 열림 + 스크린리더 접근성 확보 + 클라 JS 감소(usestate 제거).
+  아이콘 회전은 `group-open:` 변수로 유지. 첫 아이템만 `open` 유지(기존 UX 보존).
+  (2) **히든 에러 문자열 노출** — `PricingSection.tsx`의 `invisible` 에러 문구가 DOM에 남아
+  텍스트 추출기가 본문으로 섞음 → 에러 없을 땐 `&nbsp;`만 렌더(레이아웃 점프 유지, 문자열 0건).
+  (3) **JSON-LD 신설** (리포트에 없던 항목) — `src/lib/landingJsonLd.ts` + page.tsx 주입:
+  Organization / SoftwareApplication(가격 3종·featureList 8개) / FAQPage(7개 Q&A 쌍).
+  AI가 "무엇을 파는 서비스·얼마인지" 추론 없이 기계 파싱 가능.
+  gotcha: JSON-LD FAQ 카피는 `FAQSection.tsx`와 이중 관리 — 값 변경 시 양쪽 같이 고칠 것.
+  **남는 병목(오프사이트)**: 제3자 언급 0건 → Product Hunt 런치 → Reddit 1~2개(자연스러운 질문
+  형태, 스팸 티 역효과) → 비교글 1편 → 디렉터리. 브랜드명 시맨틱 충돌("tailored ad"는 영어 일반
+  명사구)은 지울 수 없어 외부 언급에서 "TailoredAd"(한 단어)+"AI ad studio" 고정 문자열로 대응.
+- **메타 제목 문장형 전환** (10-20, develop — `8961591`+`b1b221f`, master `1176aa2`, 배포됨):
+  ASCII 아포스트로피가 HTML 엔티티(`Don&#x27;t`)로 노출돼 크롤러 표시 사고 → U+2019(`’`)로 교체.
+  타이틀은 Title Case → sentence case(전부 소문자 + 브랜딩) 전환 — 검색결과 가독성·CTR 우위.
+  최종: "TailoredAd — AI ad creatives that don’t look like AI stock".
 
 (End of file)
