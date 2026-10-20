@@ -31,7 +31,6 @@ const ROUTE_ENTRIES: RouteEntry[] = [
     { method: 'POST', pattern: ['api', 'profile', 'logo'], load: () => import("@/app/api/profile/logo/route") },
     { method: 'DELETE', pattern: ['api', 'profile', 'logo'], load: () => import("@/app/api/profile/logo/route") },
     { method: 'POST', pattern: ['api', 'image'], load: () => import("@/app/api/image/route") },
-    { method: 'POST', pattern: ['api', 'subscribers'], load: () => import("@/app/api/subscribers/route") },
     { method: 'POST', pattern: ['api', 'image', 'generation', 'base'], load: () => import("@/app/api/image/generation/base/route") },
     { method: 'POST', pattern: ['api', 'image', 'generation', 'ratios'], load: () => import("@/app/api/image/generation/ratios/route") },
     { method: 'POST', pattern: ['api', 'image', 'process', 'base'], load: () => import("@/app/api/image/process/base/route") },
@@ -83,8 +82,6 @@ function matchRoute(
 const PUBLIC_ROUTES: { method: string; path: string }[] = [
     // 상품 카탈로그 (가격·이름 공개 마케팅 정보 — 비로그인 랜딩 표시용)
     { method: 'GET', path: '/api/dodo/products' },
-    // 이메일 수집 (로그인 전 트래픽 확보 — 공개 수집)
-    { method: 'POST', path: '/api/subscribers' },
 ];
 
 async function handleGatewayRequest(request: NextRequest) {

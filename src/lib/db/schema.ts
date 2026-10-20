@@ -65,17 +65,6 @@ export const users = pgTable("users", {
     utm_content: text("utm_content"),
 });
 
-/** 이메일 수집 (10-20) — 아직 로그인 안 한 트래픽 확보. 채널=U만 세면 되므로. */
-export const subscribers = pgTable("subscribers", {
-    id: uuid("id").primaryKey().defaultRandom(),
-    email: text("email").notNull().unique(),
-    source: text("source"),
-    utm_source: text("utm_source"),
-    utm_campaign: text("utm_campaign"),
-    created_at: createdAt,
-    updated_at: updatedAt,
-});
-
 export const adGenerationBatches = pgTable("ad_generation_batches", {
     id: uuid("id").primaryKey().defaultRandom(),
     user_id: uuid("user_id").notNull(),
