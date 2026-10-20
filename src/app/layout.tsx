@@ -50,6 +50,13 @@ export default function RootLayout({
         precedence="default"
         crossOrigin="anonymous"
       />
+      {/* Cloudflare Web Analytics (수동 설치) — Workers 정적 자산 경로라 자동 주입이 안 돼 직접 삽입.
+          무료·쿠키 없음(배너 불필요). 방문·referrer·실사용자 LCP/INP/CLS 수집. */}
+      <script
+        defer
+        src="https://static.cloudflareinsights.com/beacon.min.js"
+        data-cf-beacon='{"token": "3ad5622db88c4a81aa13ef65c25323ba"}'
+      />
       <body className="antialiased">
         <AuthProvider>
           <div className="min-h-screen bg-canvas text-text1 font-satoshi">
