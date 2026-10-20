@@ -58,6 +58,22 @@ export const users = pgTable("users", {
     preferred_ai_model_config: jsonb("preferred_ai_model_config").$type<AdModelConfig | null>(),
     fal_ai_api_key: text("fal_ai_api_key"),
     replicate_api_key: text("replicate_api_key"),
+    // UTM 귀속 (10-20) — 어느 채널에서 온 유저인지. landing에서 캡처해 가입 시 저장.
+    utm_source: text("utm_source"),
+    utm_medium: text("utm_medium"),
+    utm_campaign: text("utm_campaign"),
+    utm_content: text("utm_content"),
+});
+
+/** 이메일 수집 (10-20) — 아직 로그인 안 한 트래픽 확보. 채널=U만 세면 되므로. */
+export const subscribers = pgTable("subscribers", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: text("email").notNull().unique(),
+    source: text("source"),
+    utm_source: text("utm_source"),
+    utm_campaign: text("utm_campaign"),
+    created_at: createdAt,
+    updated_at: updatedAt,
 });
 
 export const adGenerationBatches = pgTable("ad_generation_batches", {

@@ -9,6 +9,7 @@ import { usersClientAPI } from "@/lib/api/client/usersClientAPI";
 import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
 import type { DodoPaidPlan as PaidPlan } from "@/lib/dodo";
 import { dodoClientAPI } from "@/lib/api/client/dodoClientAPI";
+import EmailCaptureForm from "@/components/page/ad/landing/pricing-section/EmailCaptureForm";
 
 interface Plan {
     planId: PaidPlan;
@@ -257,6 +258,20 @@ export default function PricingSection() {
                         {checkoutError ?? '\u00A0'}
                     </span>
                 </p>
+                {/* 이메일 수집 — 로그인 전 트래픽 확보 + 채널 귀속(utm) */}
+                <Reveal delay={0.06}>
+                    <div className="mx-auto mt-14 max-w-2xl text-center">
+                        <h3 className="text-[19px] font-semibold tracking-tight text-text1">
+                            Get launch updates and early access to new creative tools.
+                        </h3>
+                        <p className="mt-2 text-[14px] leading-relaxed text-text2">
+                            Ten free images, no card required. We only email when something new ships.
+                        </p>
+                        <div className="mt-6">
+                            <EmailCaptureForm />
+                        </div>
+                    </div>
+                </Reveal>
                 <div className="mt-12 mb-12 grid grid-cols-1 gap-6 lg:grid-cols-3">
                     {plans === null && !catalogFailed && (
                         [0, 1, 2].map((index) => (

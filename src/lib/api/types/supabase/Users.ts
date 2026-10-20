@@ -29,6 +29,12 @@ export interface User {
     // BYOK Keys
     fal_ai_api_key?: string | null;
     replicate_api_key?: string | null;
+
+    // UTM 귀속 (10-20) — 어느 채널에서 온 유저인지
+    utm_source?: string | null;
+    utm_medium?: string | null;
+    utm_campaign?: string | null;
+    utm_content?: string | null;
 }
 
 export enum SubscriptionPlan {
