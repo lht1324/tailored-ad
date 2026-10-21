@@ -98,15 +98,40 @@ AI 답변은 **RAG라 인덱싱된 제3자 소스에서만** 우리를 꺼낼 �
 
 ## 3. 1단계 — 디렉터리 등록 (지금 여기)
 
-### 3.1 대상 5곳 (조사 근거)
+### 3.1 대상 목록 (10-22 재조사 — 이전 목록 오류 정정)
 
-| 디렉터리 | 규모 | 비용 | 심사 | 링크 | 비고 |
-|---|---|---|---|---|---|
-| **AIToolsRecap** | DR 39~40 · 툴 1,143 · 비교글 259 · 리뷰 250 · 구글 노출 7.41M · **AI 인용 820+** · 월 12.5만 방문 · 2026-03 개척 | Basic **0원**(크레딧 10) / Growth $49/yr / Authority $99/yr | 3~5일 + 사람이 직접 써봄 | Growth에 dofollow | **AI 인용 특화**(스키마 markup·GSC 우선색인·비교글 포함) |
-| **SaaSHub** | DR 68~70 · 월 56.4만 PV | **0원** | 1~7일(큐 32일 说 있음) | dofollow 여부 출처마다 상충 | **"X 대안" 쿼리**에 뜸. 경쟁사 8종 등록 필수 |
-| **Dang AI** | DR 60 | **0원** | 1~3일 | dofollow | 무료 백링크 최고 DR |
-| **Toolify** | DR 64~65 · 툴 26,000 · 월 수백만 | **0원**(익스프레스 $100은 24~72h) | 2~4주 | dofollow | 롱테일 검색 트래픽 |
-| **There's An AI For That** | DR 72~77 · 툴 54,582 · 뉴스레터 250만 | **$49 1회**(심사비) | 1~2일 | 출처마다 상충 | 최대 오디언스·task 기반 검색. **무료 티어 없음**(X 월간 스레드 경로만) |
+> 이전 조사에서 "Toolify 무료(2~4주)", "Dang AI 무료(1~3일)"로 적었으나 **10-22 재확인 결과 무료 경로가 없거나 조건이 붙음.** 아래가 실측값.
+
+| 디렉터리 | 규모 | 비용 | 심사 | 비고 |
+|---|---|---|---|---|
+| **AIToolsRecap** | DR 39~40 · 툴 1,143 · 비교글 259 · **AI 인용 820+** · 월 12.5만 | Basic **0원**(크레딧 10) / Growth $49/yr | 3~5일 + 사람 손으로 써봄 | ✅ **제출 완료**. Growth는 비교글 부재로 보류 |
+| **SaaSHub** | DR 68~70 · 월 56.4만 PV | **0원** | 1~12주 | 🔄 **제출 진행 중**. 경쟁사 8종 등록 필수, "X 대안" 쿼리 타깃 |
+| **Bro Find AI** | 툴 840+ · llms.txt 보유 | **0원** | **즉시 게시** | ⬜ 3필드(URL·이름·태그라인). 주간 업보트 보드 + Discord + 자사 블로그에 launch story 발행. AI 인용 지향 |
+| **BAI.tools** | 1,038툴 · 40카테고리 | **0원** | 1~6개월 | ⬜ 2필드(이름·URL)만. 한국어 폼 있음(/ko). 유료는 dofollow |
+| **ToolScout.ai** | 1,000+ 리스트 · 사람 검수 | **0원** | 사람 검수 | ⬜ 계정 필요(구글 로그인) |
+| **Future Tools** | DR 69 · 편집자 직접 검수 | **0원** | 편집자 검토 | ⬜ Marketing·Design 카테고리 있음. 이름·URL·설명·카테고리·가격·이메일 |
+| **AIAI.Tools** | DR 40 | **0원** | 수동 | ⬜ 스크린샷을 URL로 입력해야 함(호스팅 필요) + 상대 링크 질문. 후순위 |
+| **There's An AI For That** | DR 72~77 · 툴 54,582 · 뉴스레터 250만 | **$49 1회** | 1~2일 | ❓ 사장님 결정. 무료 티어 없음(X 월간 스레드 경로만) |
+| **Dang.ai** | 월 27만 방문 | Basic **$49** / Free(backlink 필요+4주) | 4일(Basic) | ❓ Free는 backlink 조건이라 부적합 → Basic만 고려 |
+| **Add AI Directory** | — | **0원** | 편집자 | ⬜ 이메일 제출 방식(로고 첨부). 후순위 |
+| ~~Toolify~~ | DR 64~73 · 26,000툴 | **$99만** | 48시간 | ❌ **무료 경로 없음** → 예산 밖 |
+| ~~ToolDirectory.AI~~ | DR 47 | $9.99/**월** 반복 | 5일 | ❌ 반복 과금 |
+
+### 3.1.1 ⚠️ 선행 과제: 자체 도메인 이메일 (support@tailoredad.com)
+SaaSHub 소유권 검증 + 여러 디렉터리의 도메인 이메일 요구(일부는 gmail/yahoo를 거부) + 런칭 체크리스트 미해결 항목.
+**Cloudflare Email Routing 10분이면 끝.** §3의 절반 이상이 여기서 막힌다.
+
+### 3.1.2 공통 제출 키트 (한 벌 만들어 재사용)
+| 필드 | 값 |
+|---|---|
+| Product name | `TailoredAd` |
+| Website | `https://tailoredad.com` |
+| Tagline (≤80자) | `Turn a product photo into on-brand ad images` |
+| Category | `Marketing` (또는 `Advertising`·`Design`) |
+| Pricing | `Freemium` |
+| Email | `support@tailoredad.com` (도메인 이메일) |
+| Logo | `public/logo/logo-512.png` (정사각 512) |
+| Screenshots | 랜딩 히어로·Projects·Create 3장 (SaaSHub 업로드본 재사용) |
 
 > 후속 후보(0원): Futurepedia(DR 62, 무료~유료 확인 필요), AI Valley(DR 45), TopAI.tools(DR 58), AIxploria, OpenTools, Smol Launch, RankmyAI, AI Valley.
 
