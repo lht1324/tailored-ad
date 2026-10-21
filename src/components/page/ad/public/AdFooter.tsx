@@ -56,6 +56,25 @@ function AdFooter() {
                     <a href="/legal/refunds" className="font-mono text-[11px] uppercase tracking-[0.18em] text-text2 transition-colors duration-200 hover:text-text1">
                         Refunds
                     </a>
+                    {/* Bro Find AI 배지 — 검증기가 서버 렌더 HTML을 읽어서 링크를 확인함.
+                        JS로 나중에 주입되는 Live widget 방식은 검증이 안 되므로 HTML 이미지로 넣는다. */}
+                    <a
+                        href="https://brofindai.com/tools/tailoredad-355eab"
+                        target="_blank"
+                        rel="noopener"
+                        className="shrink-0 overflow-hidden rounded-[6px]"
+                        aria-label="TailoredAd on Bro Find AI"
+                    >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        {/* 배지 원본 SVG URL을 그대로 써야 검증기가 img src를 찾음 */}
+                        <img
+                            src="https://brofindai.com/api/badge/tailoredad-355eab.svg"
+                            alt="TailoredAd on Bro Find AI"
+                            width={250}
+                            height={54}
+                            className="h-[32px] w-[150px]"
+                        />
+                    </a>
                 </div>
             </div>
         </footer>
