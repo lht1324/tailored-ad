@@ -13,5 +13,3 @@ services:
         environment:
             # - WATCHPACK_POLLING=true  <-- 리눅스에선 이제 필요 없으니 주석 처리!
             - DOCKER=true
-            # dev 도구 인디케이터(N 배지) 숨김 — 스크린샷 촬영 세션용. 제거하면 배지 다시 뜸.
-            - HIDE_DEV_INDICATOR=1
