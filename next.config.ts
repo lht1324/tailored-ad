@@ -20,6 +20,11 @@ const nextConfig: NextConfig = {
   distDir: isDocker ? ".next-docker" : ".next",
   ...(isDev && ngrokHostname ? { allowedDevOrigins: [ngrokHostname] } : {}),
 
+  // dev 도구 인디케이터(N 배지) — 스크린샷 촬영 세션에서만 숨김.
+  // HIDE_DEV_INDICATOR=1 npm run dev  → 배지 사라짐(다시 켜려면 변수 없이 실행).
+  // prod 빌드엔 원래 없음(개발 전용). 왼쪽 아래는 마커를 못 쓰는 자리라 숨기는 게 정답.
+  ...(process.env.HIDE_DEV_INDICATOR === "1" ? { devIndicators: false as const } : {}),
+
   images: {
     qualities: [100, 75],
     remotePatterns: [
