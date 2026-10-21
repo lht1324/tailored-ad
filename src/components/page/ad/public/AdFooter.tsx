@@ -25,20 +25,6 @@ function AdFooter() {
                     </p>
                 </div>
                 <div className="flex flex-col items-start gap-5 md:items-end">
-                    <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
-                        {FOOTER_LINKS.map((link) => (
-                            <a
-                                key={link.href}
-                                href={link.href}
-                                className="text-[13px] font-medium text-text2 transition-colors duration-200 hover:text-text1"
-                            >
-                                {link.label}
-                            </a>
-                        ))}
-                        <Link href="/projects" className="text-[13px] font-medium text-text2 transition-colors duration-200 hover:text-text1">
-                            TailoredAd Studio
-                        </Link>
-                    </div>
                     {/* 디렉터리 배지 — 미래 증설 대비 별도 행. 검증기가 서버 렌더 HTML의 링크를 읽음. */}
                     <div className="flex flex-wrap items-center gap-3">
                         <a
@@ -59,6 +45,21 @@ function AdFooter() {
                             />
                         </a>
                     </div>
+<div className="flex flex-wrap items-center gap-x-8 gap-y-4">
+                        {FOOTER_LINKS.map((link) => (
+                            <a
+                                key={link.href}
+                                href={link.href}
+                                className="text-[13px] font-medium text-text2 transition-colors duration-200 hover:text-text1"
+                            >
+                                {link.label}
+                            </a>
+                        ))}
+                        <Link href="/projects" className="text-[13px] font-medium text-text2 transition-colors duration-200 hover:text-text1">
+                            TailoredAd Studio
+                        </Link>
+                    </div>
+
                 </div>
             </div>
             <div className="mx-auto mt-10 flex max-w-6xl flex-col justify-between gap-4 border-t border-hairline pt-8 md:flex-row md:items-center">
