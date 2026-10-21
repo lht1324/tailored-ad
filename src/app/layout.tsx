@@ -50,6 +50,19 @@ export default function RootLayout({
         precedence="default"
         crossOrigin="anonymous"
       />
+      {/* Cloudflare Web Analytics (수동 설치) — Workers 정적 자산 경로라 자동 주입이 안 돼 직접 삽입.
+          무료·쿠키 없음(배너 불필요). 방문·referrer·실사용자 LCP/INP/CLS 수집.
+          async 필수: React 19는 async 스크립트만 <head>로 호이스팅한다. defer/동기면 <html> 자식에 남아
+          "Cannot render a sync or defer <script>" + hydration 에러가 난다(10-21 실측).
+          prod 전용: NODE_ENV는 빌드타임 상수라 dev 빌드엔 아예 들어가지 않는다. dev에서 실행하면
+          토큰이 prod 도메인용이라 CORS로 차단되고(콘솔 에러), dev 세션이 prod 분석에 섞인다. */}
+      {process.env.NODE_ENV === 'production' && (
+        <script
+          async
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon='{"token": "3ad5622db88c4a81aa13ef65c25323ba"}'
+        />
+      )}
       <body className="antialiased">
         <AuthProvider>
           <div className="min-h-screen bg-canvas text-text1 font-satoshi">

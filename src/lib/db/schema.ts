@@ -58,6 +58,11 @@ export const users = pgTable("users", {
     preferred_ai_model_config: jsonb("preferred_ai_model_config").$type<AdModelConfig | null>(),
     fal_ai_api_key: text("fal_ai_api_key"),
     replicate_api_key: text("replicate_api_key"),
+    // UTM 귀속 (10-20) — 어느 채널에서 온 유저인지. landing에서 캡처해 가입 시 저장.
+    utm_source: text("utm_source"),
+    utm_medium: text("utm_medium"),
+    utm_campaign: text("utm_campaign"),
+    utm_content: text("utm_content"),
 });
 
 export const adGenerationBatches = pgTable("ad_generation_batches", {

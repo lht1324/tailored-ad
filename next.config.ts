@@ -1,8 +1,30 @@
 import type { NextConfig } from "next";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const isDev = process.env.NODE_ENV === "development";
 // docker-compose.yml 확인
 const isDocker = process.env.DOCKER === "true";
+
+/**
+ * .env 파일에서 플래그를 직접 읽는다.
+ * next.config.ts는 Next가 .env를 로드하기 *전에* 평가되므로 process.env로 .env 값이 안 보인다
+ * (쉘로 넘긴 값만 보인다). 그래서 이 파일만 .env.local → .env 순으로 직접 뒤진다.
+ * 쉘 환경변수가 우선(표준 동작과 동일).
+ */
+function readEnvFlag(key: string): string | undefined {
+    if (process.env[key]) return process.env[key];
+    for (const file of [".env.local", ".env"]) {
+        try {
+            const content = readFileSync(join(process.cwd(), file), "utf8");
+            const match = content.match(new RegExp(`^\\s*${key}\\s*=\\s*["']?([^"'\\s#]*)`, "m"));
+            if (match?.[1]) return match[1];
+        } catch {
+            /* 파일 없음 — 다음 후보로 */
+        }
+    }
+    return undefined;
+}
 
 // dev HMR 허용 호스트 — ngrok 경유 접속 시에만 (재시작마다 바뀌므로 env에서 파생, 하드코딩 금지)
 const ngrokHostname = (() => {
@@ -19,6 +41,11 @@ const ngrokHostname = (() => {
 const nextConfig: NextConfig = {
   distDir: isDocker ? ".next-docker" : ".next",
   ...(isDev && ngrokHostname ? { allowedDevOrigins: [ngrokHostname] } : {}),
+
+  // dev 도구 인디케이터(N 배지) 토글 — 스크린샷 촬영 세션에서만 숨김.
+  // .env(.env.local)에 HIDE_DEV_INDICATOR=1 을 넣으면 배지 사라지고, 0 또는 줄 삭제면 다시 뜸.
+  // prod 빌드엔 원래 없음(개발 전용 지표). 값은 dev 서버 시작 시점에 읽히므로 재시작 필요.
+  ...(readEnvFlag("HIDE_DEV_INDICATOR") === "1" ? { devIndicators: false as const } : {}),
 
   images: {
     qualities: [100, 75],

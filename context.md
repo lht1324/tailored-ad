@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-10-20 12:40)
+# TailoredAd — 작업 기록 (Last Updated: 2026-10-21 02:05)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -939,5 +939,49 @@ npm run deploy   # opennext build + deploy (master에서)
   ASCII 아포스트로피가 HTML 엔티티(`Don&#x27;t`)로 노출돼 크롤러 표시 사고 → U+2019(`’`)로 교체.
   타이틀은 Title Case → sentence case(전부 소문자 + 브랜딩) 전환 — 검색결과 가독성·CTR 우위.
   최종: "TailoredAd — AI ad creatives that don’t look like AI stock".
+- **마케팅 계획 수립** (10-20/21 — **계획서: `MARKETING_PLAN.md`** 작성, 실행은 1단계 진행 중):
+  사장님이 Kimi K3로 검색 실측한 결과가 트리거. 진단: "사이트는 읽히는데 검색 생태계에 존재하지 않음"
+  (제3자 소스 0건, 브랜드명 시맨틱 충돌). 코드로 고칠 수 있는 2건은 10-20에 처리 완료
+  (FAQ details 전환·히든 에러 제거·JSON-LD 신설), 남은 건 오프사이트 작업.
+  **4단계 구조**: ① 디렉터리 등록(0원) → ② 직접 콘텐츠=비교글·업종 페이지(0원, AI 인용 지속 경로)
+  → ③ 베타 시딩 30곳(무료 1장 제안, $32) → ④ 유료 증폭(unfair.so $1~2k, 2개월 차).
+  **PH는 스킵**(업보트 구필 필요·규칙위반·효과 약함, 사장님 스타일 아님). 유료 광고는 계측 전 보류.
+  예산 10~20만 원. 인용 메커니즘 핵심: AI는 **문단**을 인용하고 표 칸은 못 인용 →
+  "목록 한 줄"이 아니라 **리뷰·비교글**에 이름이 실려야 인용된다(경쟁사 wireflow·adroast가 그 패턴).
+  조사한 서비스 3곳: explee(콜드메일 에이전트 → **3단계 타깃 리스트 추출 도구로만** 사용. 자동발송 안 씀) /
+  unfair.so(크리에이터 유료 quote → 4단계 채널) / hellyeahai(퍼포드미디어 플랫폼, **CLI 스킬 이미 설치**,
+  FAQ가 우리를 "이미지 생성까지만"으로 정확히 분류 → 포지셔닝 확인됨).
+  결정 기록: OG 카드 **라이트** 채택(브랜드 기본 테마 정합) / 디렉터리 Company=**Jaeho Lee**(리뷰 문단이
+  사람이 읽는 문장이 되어야 함) / Recap Growth $49 **보류**(광고 카테고리 비교글이 없어 인센티브 없음) /
+  **Marc Lou 모델**(제작자 + 다수 제품)로 방향 — 청중·신뢰·비용 구조상 최적, 제품명 TailoredAd 유지.
+  **1단계 진행 중**: AIToolsRecap Basic 제출 완료(0원). 다음은 SaaSHub·Dang AI·Toolify(0원 3곳) + 스크린샷 2~3장.
+  gotcha: SaaSHub 등 소유권 검증 = **tailoredad.com 도메인 이메일** 필요 → Cloudflare Email Routing 10분 설정 필요.
+- **Cloudflare Web Analytics 수동 설치** (10-20, develop — `9152c6c`, prod 미배포):
+  자동 주입은 우리 HTML(Workers 정적 자산 경로)에 안 먹힘 — prod HTML에 beacon 0건 실측(브라우저 UA로도 확인).
+  → `layout.tsx`에 스니펫 수동 추가(Cloudflare 제공 `type='module'`은 Next 린트가 sync 스크립트 에러 →
+  공식 문서 방식인 `defer`로 교체). 클라우드플레어는 "수동 설치" 모드라 자동 주입 없음 → 중복 집계 위험 없음.
+  Web Analytics는 계정 레벨(dash.cloudflare.com/?to=/:account/web-analytics) → Add a site → hostname 선택.
+  zone "Analytics" 화면은 트래픽 분석(요청·전송량·캐시 적중)이라 Web Analytics와 다른 메뉴.
+  **주의**: dev 서버(3000)에서 브라우저로 열면 beacon이 prod 사이트 토큰으로 보고됨 → dev 세션이 prod 분석에 섞임.
+- **Cloudflare 4xx 435건 관측** (10-20, 미해결 — 사장님 대시보드에서 "요청" 탭 4xx 필터로 상위 URL 확인 필요):
+  1.38k 요청 대비 4xx 31%. 유력 후보: (a) 이전 `demo_*` 파일명으로 남아 있던 외부 참조(파일명 개명당),
+  (b) 인증 없이 찍힌 `/api/*`(401), (c) 봇. 5xx는 0.00% — 서버 오류 없음.
+
+## 13. 다음 작업 (마케팅 트랙 —详见 `MARKETING_PLAN.md`)
+
+- [ ] **1단계: 디렉터리 나머지 3곳** (0원) — SaaSHub(경쟁사 8종 등록 필수: AdCreative·Creatify·Pencil·Predis·Omneky·Canva·Zeely·AdRoast)·Dang AI·Toolify. 계정만 만들면 나머지는 제가 카피 제공
+- [ ] **스크린샷 2~3장** — "상품 사진 → 완성된 광고" 화면 + 편집기 화면. 사장님 브라우저 캡처 후 `public/preview/`에 두고 파일명만 전달 → 나머지 갤러리 카드는 OG 파이프라인으로 합성
+- [ ] **도메인 이메일 설정** — Cloudflare Email Routing으로 `support@tailoredad.com` (10분, 무료). SaaSHub 소유권 검증 + 런칭 체크리스트 미해결 항목 + 약관 문의처
+- [ ] **prod SQL + 배포** — Neon prod 브랜치에 `db/neon/04_analytics.sql` 실행(사장님) → UTM·Web Analytics 릴리즈(내가 머지·배포 후 beacon 주입 확인, 필요 시 캐시 퍼지 1회)
+- [ ] **TAAFT 판단** — 사장님 브라우저로 "ad creative" 검색 → 경쟁사 등재 여부 확인 후 $49 1회 여부 결정 (JS 렌더링이라 서버 검증 불가)
+- [ ] **Recap 리뷰 확인** — 3~5일 후 리뷰 붙었는지 보고 Growth $49 업그레이드 여부 판단
+- [ ] **2단계: 비교글·업종 페이지** (0원, 1~1.5일) — `/alternatives/adcreative-ai`·`/alternatives/creatify`·`/alternatives/predis` + `/ad-creative/ecommerce`·`/ad-creative/skincare`. SSG 정적 생성 + JSON-LD + sitemap 자동 편입. 사장님 확인: 비교 대상 툴·업종 3~5개·"왜 다른지" 한 줄·최종 카피
+- [ ] **3단계: 베타 시딩 30곳** ($32) — explee로 타깃 30곳 추출(발송 도구로만 사용) → 제가 브랜드별 크리에이티브 1장 + 메일 카피 → 사장님 직접 발송 → 첫 증언 확보
+- [ ] **4단계: 유료 증폭** (2개월 차, $1~2k) — unfair.so quote 5~7개. 조건: 트라이얼 5명+ · 증언 3개+ · LTV 추정 가능 시에만
+- [ ] **KPI 재실측** — 4주 간격으로 Kimi/ChatGPT에 "AI ad creative tool" 질의 → 10-20 실측이 기준선
+- [ ] **Search Console 등록** (체크리스트) — sitemap.xml 준비 완료. 등록 후 랜딩 URL 색인 요청
+- [ ] **Cloudflare 4xx 435건 원인 확인** (위 참조)
+- [ ] **랜딩 모바일 햄버거 메뉴** (미해결 — 나머지 랜딩 개선 후 논의)
+- [ ] **OPTIMIZATION_PLAN.md** 메모리·비효율 트랙 착수 (사장님 승인 시 순서: 죽은 import 삭제 → jszip/html-to-image 동적 로드 → memo 복구 → 목록 프로젝션 → presign lazy → 게이트웨이 스트림 → 이미지 프록시 캐시 → 썸네일 파이프라인 2~3일)
 
 (End of file)

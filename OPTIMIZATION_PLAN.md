@@ -130,6 +130,18 @@ CreativeRow의 `spec.camera` 표시는 상세 전용이라 목록엔 불필요).
 **수정안**: (1) AuthContext 스트림+페이지 스트림 단일 멀티플렉스 EventSource 통합,
 (2) MAX_TICKS 연장(예: 120 = 3분)으로 재연결 오버헤드 축소, (3) 재연결 시 재인증 생략(커서 기반).
 
+**→ 실제 적용 완료 (10-21, develop `67c37bf`)**:
+① 폴링 1.5초 → **5초** (배치 생성은 수십 초~분이라 체감 차이 없음, Upstash 호출 62% 감소.
+10초는 결제 직후 적립 반영까지 10초 대기 = 사람이 새로고침 두 번 하는 구간이라 기각)
+② **백그라운드 탭 정지** — `document.hidden`이면 EventSource 종료, visible 복귀 시 커서 유지 재연결
+(유휴 부하 95% 감소, 중복 이벤트 없음)
+③ **AuthContext의 user 스트림 구독 제거** — 소비자가 자기 자신뿐(크로스탭 플랜 동기화 하나)인데
+비용은 상량이었음. 필요한 이벤트는 페이지가 직접 구독: `grants`→CheckoutSuccessClient,
+`batches`→ProjectsPageClient, `batch`→상세/에디터. 크로스탭 플랜 동기화만 사라짐(새로고침으로 복구)
+④ MAX_TICKS=20 유지 (5초 틱 → 커넥션 100초 유지, 재연결 때 DB 2쿼리)
+**효과**: 스트림당 일 5.7만 → 1.7만 명령 + 유휴 탭 0. 로그인 탭 1개 기준 월 178만 명령 → 체감 2~3만.
+Upstash Free 한도(월 40만) 안으로 확실히 안 들어옴.
+
 ### 🟡 2-6. analysis 라우트 base64 다량 동시 보관 — 중 / 보통
 `src/app/api/creative/[creative-index]/analysis/route.ts:142-145,178-179` — 비율당
 fetch→arrayBuffer→Buffer→base64를 **5비율분 배열에 동시 보유** 후 LLM 요청 조립.

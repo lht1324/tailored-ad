@@ -12,12 +12,16 @@ import {
 
 /**
  * 배치 이벤트 SSE — GET /api/events?userId=&batchId=..&c={stream}|{id}
- * Upstash Streams를 1.5초 간격으로 읽어 중계 (REST는 SUBSCRIBE 불가).
- * ~30초 후 종료 → 클라 훅이 커서 포함 URL로 재연결. 인증은 쿠키 세션 + userId 일치.
+ * Upstash Streams를 5초 간격으로 읽어 중계 (REST는 SUBSCRIBE 불가).
+ * ~100초 후 종료 → 클라 훅이 커서 포함 URL로 재연결. 인증은 쿠키 세션 + userId 일치.
  * batchId는 소유 검증 통과분만 구독 (타인 배치 엿보기 차단).
+ *
+ * 주기 5초: 1.5초는 과밀 — 배치 생성 자체가 수십 초~분이라 체감 차이가 없고,
+ * 스트림당 Upstash 호출이 1.5초(일 5.7만) → 5초(일 1.7만)로 줄어든다.
+ * 10초는 결제 직후 적립 반영까지 10초 대기 = 사람이 새로고침 두 번 하는 구간이라 기각.
  */
 
-const TICK_MS = 1500;
+const TICK_MS = 5000;
 const MAX_TICKS = 20;
 const TAKE = 20;
 

@@ -31,7 +31,7 @@ export function useBatchEvents({ userId, batchIds = [], enabled = true, onEvent 
         let retry: ReturnType<typeof setTimeout> | null = null;
 
         const connect = () => {
-            if (closed) return;
+            if (closed || es) return;
             const params = new URLSearchParams({ userId });
             for (const id of batchIds) params.append('batchId', id);
             cursorsRef.current.forEach((entryId, stream) => params.append('c', `${stream}|${entryId}`));
@@ -51,14 +51,37 @@ export function useBatchEvents({ userId, batchIds = [], enabled = true, onEvent 
             es.onerror = () => {
                 es?.close();
                 es = null;
-                if (!closed) retry = setTimeout(connect, 2000);
+                // 백그라운드 탭이면 재연결하지 않음 (visibilitychange에서 복귀)
+                if (!closed && !document.hidden) retry = setTimeout(connect, 2000);
             };
         };
+
+        const disconnect = () => {
+            es?.close();
+            es = null;
+            if (retry) {
+                clearTimeout(retry);
+                retry = null;
+            }
+        };
+
+        // 백그라운드 탭 정지 — hidden이면 연결 종료(Upstash 폴링·Worker 연결 낭비 방지).
+        // visible로 돌아오면 커서를 유지한 채 재연결하므로 중복 이벤트는 없다.
+        const onVisibilityChange = () => {
+            if (closed) return;
+            if (document.hidden) {
+                disconnect();
+            } else if (!es) {
+                connect();
+            }
+        };
+
         connect();
+        document.addEventListener('visibilitychange', onVisibilityChange);
         return () => {
             closed = true;
-            if (retry) clearTimeout(retry);
-            es?.close();
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+            disconnect();
         };
         // batchIds는 batchKey 문자열로 구독 (배열 identity 무시)
         // eslint-disable-next-line react-hooks/exhaustive-deps
