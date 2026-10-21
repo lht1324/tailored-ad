@@ -65,8 +65,8 @@ function AdFooter() {
                         className="shrink-0 overflow-hidden rounded-[6px]"
                         aria-label="TailoredAd on Bro Find AI"
                     >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         {/* 배지 원본 SVG URL을 그대로 써야 검증기가 img src를 찾음 */}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                             src="https://brofindai.com/api/badge/tailoredad-355eab.svg"
                             alt="TailoredAd on Bro Find AI"
