@@ -3,7 +3,6 @@
 import React, {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react'
 import { User } from '@/lib/api/types/supabase/Users'
 import { authClient } from "@/lib/auth/client";
-import { useBatchEvents } from "@/components/public/useBatchEvents";
 import {usersClientAPI} from "@/lib/api/client/usersClientAPI";
 import {consumeStoredUtm} from "@/lib/utm";
 
@@ -117,15 +116,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfileKnown(true);
     }, []);
 
-    // Users 변경 알림 — 플랜 동기화 등 서버 쓰기 시 프로필 강제 재조회
-    useBatchEvents({
-        userId: user?.id,
-        onEvent: (event) => {
-            if (event.type !== 'user' || !user?.id) return;
-            const userId = user.id;
-            void usersClientAPI.getUserByUserId(userId).then((profile) => setUser(profile));
-        },
-    });
+    // NOTE: 유저 스트림('user' 이벤트) 구독 제거 (10-21).
+    // 이 구독의 소비자는 자기 자신뿐이고(크로스탭 플랜 동기화 하나), 비용은 상량이었음 —
+    // 로그인 상태면 모든 페이지(랜딩 포함)에서 1.5초마다 Upstash 폴링.
+    // 필요한 실시간 이벤트는 페이지가 직접 구독한다:
+    //   grants(결제 적립) → CheckoutSuccessClient / batches(목록 갱신) → ProjectsPageClient
+    //   batch(배치 진행) → ProjectDetailPageClient·EditorPageClient
+    // 플랜 변경이 다른 탭에 반영되는 건 새로고침으로 복구된다(기능 손실 아님).
 
     const value: AuthContextType = {
         user: user,
