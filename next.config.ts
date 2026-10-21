@@ -20,6 +20,11 @@ const nextConfig: NextConfig = {
   distDir: isDocker ? ".next-docker" : ".next",
   ...(isDev && ngrokHostname ? { allowedDevOrigins: [ngrokHostname] } : {}),
 
+  // dev 도구 인디케이터(N 배지) 토글 — 스크린샷 촬영 세션에서만 숨김.
+  // .env(.env.local)에 HIDE_DEV_INDICATOR=1 을 넣으면 배지 사라지고, 0 또는 줄 삭제면 다시 뜸.
+  // prod 빌드엔 원래 없음(개발 전용 지표). 값은 next.config 평가 시점에 읽히므로 dev 서버 재시작 필요.
+  ...(process.env.HIDE_DEV_INDICATOR === "1" ? { devIndicators: false as const } : {}),
+
   images: {
     qualities: [100, 75],
     remotePatterns: [
