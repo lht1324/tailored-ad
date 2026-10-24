@@ -18,7 +18,7 @@ import type { BlogPostContent } from "@/lib/content/blog/types";
 export const bestAiAdToolsPost: BlogPostContent = {
     slug: 'best-ai-ad-tools',
     kind: 'list',
-    metaTitle: 'AI ad creative tools in 2026, compared by what they make — TailoredAd',
+    metaTitle: 'AI ad creative tools in 2026, compared by what they make',
     metaDescription:
         'Ten AI ad tools compared by output type, billing model and text handling: AdCreative.ai, Creatify, Predis.ai, AdRoast, Pencil, Zeely, Canva, Photoroom, Pebblely and TailoredAd.',
     publishedAt: '2026-10-25',

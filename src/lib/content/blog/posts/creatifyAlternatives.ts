@@ -14,7 +14,7 @@ import type { BlogPostContent } from "@/lib/content/blog/types";
 export const creatifyAlternativesPost: BlogPostContent = {
     slug: 'creatify-alternatives',
     kind: 'comparison',
-    metaTitle: 'Creatify alternative for still ads — TailoredAd',
+    metaTitle: 'Creatify alternative for still ads',
     metaDescription:
         'Creatify turns a product URL into avatar-led video ads. If you ship still ads, compare it with TailoredAd: one layout, five formats, pay per finished image.',
     publishedAt: '2026-10-25',

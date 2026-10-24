@@ -12,7 +12,7 @@ import type { BlogPostContent } from "@/lib/content/blog/types";
 export const ecommerceAdCreativePost: BlogPostContent = {
     slug: 'ecommerce-ad-creative',
     kind: 'industry',
-    metaTitle: 'AI ad creative for ecommerce stores — TailoredAd',
+    metaTitle: 'AI ad creative for ecommerce stores',
     metaDescription:
         'How an online store turns one product photo into ads for every channel: the format matrix, Amazon image rules, and per-finished-image pricing from $19/month.',
     publishedAt: '2026-10-25',

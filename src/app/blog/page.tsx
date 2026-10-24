@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import BlogIndexPageServer from "@/components/page/blog/BlogIndexPageServer";
 
 export const metadata: Metadata = {
-    title: "Blog — TailoredAd",
+    title: "Blog",
     description:
         "Side-by-side comparisons of AI ad creative tools: verified prices, listed weaknesses, and a clear note on who each tool fits.",
     alternates: {
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     openGraph: {
         type: "website",
         url: "https://tailoredad.com/blog",
-        title: "Blog — TailoredAd",
+        title: "Blog",
         description:
             "Side-by-side comparisons of AI ad creative tools: verified prices, listed weaknesses, and a clear note on who each tool fits.",
         siteName: "TailoredAd",
