@@ -1,322 +1,236 @@
 # TailoredAd — 마케팅 계획서
 
-*Last Updated: 2026-10-21 02:05 · 작성: AI 에이전트 · 상태: 1단계 진행 중*
+*Last Updated: 2026-10-24 · 작성: AI 에이전트 · 상태: 2단계 구현 중 — 콘텐츠 시스템 완료 · 글 1 초안 검수 대기*
 
 > 이 문서는 TailoredAd(tailoredad.com)의 **발견 가능성(discovery) 확보** 계획이다.
-> 진단 근거는 사장님이 2026-10-20에 Kimi K3로 실행한 검색 실측 + 직접 조사한 서비스 3곳
-> (explee.com / unfair.so / hellyeahai.com) + 12개 디렉터리 비교 자료다.
->
-> **예산: 10~20만 원** (≈$74~148). 이 안에서 최대 효과를 뽑는 게 제약이다.
-> **原则: 설명 → 컨펌 → 작업.** 사용자 화면에 보이는 변경은 항상 별도 승인을 받는다.
+> 진단 근거: 사장님이 2026-10-20에 Kimi K3로 실행한 검색 실측 + 직접 조사한 서비스 + **stork.ai의 2026-10 실측 디렉터리 해부표**(Tranco 트래픽 순위·DR·실제 HTML rel 속성까지 읽은 데이터).
+> **예산: 10~20만 원** (≈$74~148). 이 안에서 최대 효과.
+> **원칙: 설명 → 컨펌 → 작업.** 사용자 화면에 보이는 변경은 항상 별도 승인을 받는다.
 
 ---
 
 ## 0. 한 줄 요약
 
-> 코드가 읽히고·빠르고·맞게 보이게 만드는 것(10-20 완료) 이후, **남은 병목은 "사람이 우리를 찾을 수 있는通道"이 없던 것**이다.
-> 1단계(디렉터리) → 2단계(직접 콘텐츠) → 3단계(베타 시딩) → 4단계(유료 증폭) 순으로,
-> **0원 항목을 먼저 쓰고 돈은 social proof가 생긴 2개월 차에 쓴다.**
+> 코드는 읽히고 빠르고 맞게 보이게 준비됐다. 남은 건 **"사람이 우리를 찾을 통로"**다.
+> ① 디렉터리(0원) → ② 자사 콘텐츠(0원) → ③ 첫 사용자·증언($32) → ④ 유료 증폭(2개월 차).
+> **순서 근거: 유통(③의 산출물 = 증언)이 유료(④)의 전제.** 증언 없이花钱하면 안 산다.
 
 ---
 
-## 1. 진단 — 현재 상태 (실측)
+## 1. 전체 로드맵 (한 화면)
 
-### 1.1 AI 검색 실측 (Kimi K3, 2026-10-20)
-
-사장님이 AI로 "TailoredAd"를 검색한 결과:
-
-| 관찰 | 내용 |
-|---|---|
-| 정확 매칭 | 사이트 자신만. 소스 신뢰도 `unrated` |
-| 제3자 언급 | **0건** (리뷰·Product Hunt·Reddit·블로그·디렉터리 전부 없음) |
-| 의미 충돌 | "tailored ad"가 영어 일반 명사구 → 의류·개인화 광고 콘텐츠에 묻힘 |
-| 카테고리 질의 | "AI 광고 크리에이티브 툴 추천" → 경쟁사(AdCreative.ai·Omneky·Adroast·Spendict·Novabrand)만 등장, TailoredAd 없음 |
-| 직접 URL 패치 시 | 콘텐츠는 잘 읽힘 (워크플로 5단계, quality-gated batch, deterministic type, 10장 무료 등 구체 클레임 추출됨) |
-
-### 1.2 코드로 고친 부분 (10-20 완료, prod 반영)
-
-| 항목 | 조치 | 검증 |
-|---|---|---|
-| FAQ 답변 미노출 | 닫힌 아코디언(AnimatePresence)이라 답변이 DOM에 없음 → 네이티브 `<details>/<summary>` 전환 | 닫힌 6개 답변 전부 HTML 등장(grep 1건씩) |
-| 히든 에러 문자열 | `invisible` 에러 문구가 DOM에 남아 텍스트 추출기에 혼입 → `&nbsp;`만 렌더 | HTML grep 0건 |
-| JSON-LD 부재 | `src/lib/landingJsonLd.ts` 신설 — Organization / SoftwareApplication(가격 3종·featureList 8개) / FAQPage(7쌍) | 브라우저 파싱 3종 확인 |
-| 메타 타이틀 | Title Case → sentence case, 아포스트로피 U+2019(엔티티 노출 방지) | prod `<title>` 실측 |
-| OG 이미지 | shortreal.ai URL → `public/og/og.jpg`(own 도메인, 1200×630) | prod `og:image` 실측 |
-| robots / sitemap | `public/robots.txt`(Allow /, Disallow /api/ /callback/ /dev/ + sitemap 선언), `public/sitemap.xml`(랜딩+약관 3종) | prod 200 확인 |
-
-### 1.3 남은 병목 — 이건 코드로 안 된다
-
-AI 답변은 **RAG라 인덱싱된 제3자 소스에서만** 우리를 꺼낼 수 있다. 제3자 소스가 0이면 어떤 모델도 "AI 광고 크리에이티브 툴" 답에 TailoredAd를 넣을 수 없다.
-→ **디렉터리 등록(1단계) + 직접 콘텐츠(2단계) + 외부 언급(3단계)이 해법.**
-
-### 1.4 인용 메커니즘 (중요 — 어디에 등록할지가 여기서 갈림)
-
-- AI는 **문단**을 인용한다. **표의 한 칸은 인용 못 한다.**
-- 따라서 "도구 목록 한 줄"만 있는 디렉터리는 인용 가치가 낮고, **리뷰·비교글**에 이름이 실리면 인용된다.
-- 근거(조사): AIToolsRecap은 자사 비교글에 "ChatGPT and Perplexity cite it. Does your tool?"라고 문장을 박아넣었고, 820+ AI citations을 표방한다.
-- 경쟁사들도 같은 패턴을 하고 있다: `wireflow.ai/blog/best-adcreative-ai-alternatives-2026`, `adroast.ai/alternatives/pencil`, `omneky.com/newsroom/...`, `superscale.ai/compare/...`
-  → **이 페이지들이 지금 AI가 인용하는 실제 형태.** 2단계는 이걸 직접 만드는 일.
-
-### 1.5 경쟁사 지도 — 우리 포지션
-
-| 축 | 제품 | 가격 | 비고 |
-|---|---|---|---|
-| 스태틱 대량 + 성능 스코어 | **AdCreative.ai** | 무료티어+유료 | 이 부류의 지배자. 김이 리포트에도 나옴 |
-| UGC 영상 | Creatify($39)·Arcads($110) | — | 영상은 우리가 안 건드림 |
-| 예측 스코어링 | Pencil | $14~ | |
-| 저가 소규모 | Predis.ai | ~$32 | |
-| 디스플레이/HTML5 | Creatopy | $36 | |
-| 엔터프라이즈 DCO | Omneky($25~99)·Smartly.io | 수천만 | |
-| UGC 실사 | Icon / Superside / Rocketium / Zeely / AdRoast / Hunch / Flair / Wireflow / Superscale | 다양 | |
-
-**포지션 갭 (우리가 차지할 자리)**: 전부 "영상"·"대량 변형"·"엔터프라이즈" 쪽이다. **"스틸 이미지 + 결정적 타이포/로고 + 건당 과금 + 미사용 소멸 없음"** 구간은 사실상 비어 있다.
-추가로 경쟁사들이 "크레딧 롤오버"를 판매한다는 것(Omneky)이 **"월 크레딧 소멸 = 마케터의 진짜 불만"**임을 보여준다 → 우리의 "unused images never expire"는 그 불편을 정면으로 해결한다. **코피 자산으로 쓸 수 있는 차별점.**
-
-### 1.6 자사 포지셔닝 원칙 (카피 규칙)
-
-- **브랜드 기본 테마 = 라이트** → OG 카드도 라이트 채택(10-20). 카드→랜딩 연속성.
-- **Company/Developer = "Jaeho Lee"**, 제품명 = "TailoredAd".
-  근거: 디렉터리 리뷰 문단이 "TailoredAd is an AI ad creative studio **by Jaeho Lee**"처럼 사람이 읽는 문장이 되어야 한다. "TailoredAd by TailoredAd"가 되면 AI 냄새.
-- **"TailoredAd"(한 단어) + "AI ad studio"** 를 외부 언급에서 고정 문자열로 심는다 (시맨틱 충돌 회피).
-- **AI 냄새 금지**: em dash, "seamless/unlock/empower/revolutionary", "brand-consistent", "deterministically" 같은 세일즈/기술 buzzword. 랜딩 카피 de-AI 원칙과 동일(마침표로 끊기, 평서문).
-
----
-
-## 2. 4단계 계획
-
-| 단계 | 이름 | 한 줄 | 비용 | 기간 | 상태 |
+| 단계 | 이름 | 산출물 | 비용 | 담당 | 상태 |
 |---|---|---|---|---|---|
-| **1** | 디렉터리 등록 | 외부 목록에 올려 이름·링크를 남긴다 | 0원 | 1~2h | **진행 중** (Recap 제출 완료) |
-| **2** | 직접 콘텐츠 | AI가 인용하는 형태(비교글·업종 페이지)를 직접 만든다 | 0원 | 1~1.5일 | 대기 |
-| **3** | 베타 시딩 30 | 타깃에게 무료 1장을 준다 → 첫 유저·첫 후기 | $32 | 1일 | 대기 |
-| **4** | 유료 증폭 | social proof가 생긴 뒤 돈을 쓴다 | $1~2k | 0.5일 | **2개월 차** (예산 밖) |
+| **0** | 코드·성능·결제·SEO 기반 | 결제가 실제로 되고, 페이지가 읽히고, 빠른 상태 | 0원 | — | ✅ 완료 (Dodo 실결제 E2E 통과) |
+| **0.5** | 계기판 (측정) | 어느 채널에서 사람이 왔는지 | 0원 | 사장님(SQL 1회) + 저(배포) | ✅ Web Analytics prod 동작 중 · UTM 코드 배포됨 (SQL 실행만 남음) · HTTPS 301 수정 완료 |
+| **1** | 디렉터리 등록 | 4곳 등재 + dofollow 링크 | 0원 | 사장님(계정·제출) + 저(카피) | ✅ **Recap·SaaSHub·Bro Find AI·Future Tools 4곳 제출 완료** |
+| **2** | 직접 콘텐츠 (비교글·업종 페이지) | AI가 인용할 문단을 우리 도메인에 | 0원 | 저 | 🔄 **콘텐츠 시스템 완료 · 글 1 초안 검수 대기 · 나머지 5장 대기** |
+| **3** | 베타 시딩 30곳 | 첫 유저 + 첫 증언 | $32 | 저(목록·크리에이티브) + 사장님(발송) | ⬜ 미착수 |
+| **4** | 유료 증폭 | 실제 사용자 유입 | $1~2k | 사장님(결제) | ⬜ **2개월 차** (증언 생긴 뒤) |
 
-**PH(Product Hunt)는 안 한다** — 업보트 구걸이 필요하고(규칙상 금지·실질 효과 약함), 사장님 스타일 아님.
-**유료 광고(hellyeah CLI 등)는 보류** — 측정(2단계 계기판) 없이 쓰면 학습 없이 소진.
+**2개월 차로 미루는 것**: Toolify($99) · Dang.ai($49) · TAAFT($49) · Reddit 광고 · PH 광고 · hellyeah(Google Ads).
 
 ---
 
-## 3. 1단계 — 디렉터리 등록 (지금 여기)
+## 2. 왜 이 순서인가 (논리)
 
-### 3.1 대상 목록 (10-22 재조사 — 이전 목록 오류 정정)
+1. **3rd-party 소스 0이 유일한 병목** — 코드로 고칠 수 있는 건 10-20에 다 고쳤다(FAQ 노출·히든 문자열·JSON-LD·타이틀·OG·robots/sitemap). 남은 건 "남이 우리를 말해 주는 곳"을 만드는 일 = 1·2단계.
+2. **인용은 문단 단위** — AI는 표의 한 줄을 인용 못 한다. 그래서 "목록 한 줄"이 아니라 **비교글이나 리뷰(문단)** 가 필요하다. 경쟁사(wireflow·adroast·superscale·omneky) 전부 이 형식. → 2단계가 지속 경로.
+3. **증언이 유료의 전제** — 유료 채널은 "이미 쓴 사람이 말해 주는 제품"에서만 전환된다. 증언 0개 상태의 유료 spend는 학습 없는 소진. → 3단계가 4단계보다 앞.
+4. **측정이 없으면 다음 달 돈을 못 정함** — 채널별 유입·전환을 봐야 어디에 돈을 쓸지 정해진다. → 0.5단계가 1단계와 동시에.
 
-> 이전 조사에서 "Toolify 무료(2~4주)", "Dang AI 무료(1~3일)"로 적었으나 **10-22 재확인 결과 무료 경로가 없거나 조건이 붙음.** 아래가 실측값.
+---
 
-| 디렉터리 | 규모 | 비용 | 심사 | 비고 |
+## 3. 0.5단계 — 계기판 (지금 가장 싼 완료 가능 항목)
+
+| 도구 | 무엇을 보는가 | 비용 | 상태 |
+|---|---|---|---|
+| **Cloudflare Web Analytics** | 방문·PV·referrer·실사용자 LCP/INP/CLS | 0원 | ✅ prod 동작 중 (beacon 1개 확인) |
+| **UTM → 우리 DB** | 유저별 정확한 채널 귀속(reddit/디렉터리명) | 0원 | 🟡 코드 배포됨 (prod). SQL 실행만 남음 (users에 UTM 컬럼 4개) |
+| stork.ai/ai-visibility-check | AI 노출 기준선 측정 | 0원 | ✅ 완료 (2건 질의, 0건 인용) |
+| HTTPS 301 수정 | http → https 리다이렉트 | 0원 | ✅ 완료 (Cloudflare Always Use HTTPS ON) |
+
+**사장님이 하실 일 1가지**: Neon 콘솔 → prod 브랜치 → `db/neon/04_analytics.sql` 실행 (users에 UTM 컬럼 4개 추가).
+→ 이후 내가 릴리즈 머지 + 배포 + beacon 주입 확인.
+
+---
+
+## 4. 1단계 — 디렉터리 등록
+
+### 4.1 판정 기준 (stork.ai 10월 실측 기준)
+| 기준 | 의미 |
+|---|---|
+| **Tranco 트래픽 순위** | 실측 트래픽. DR만 높고 순위 밖 = "방문자 없는 백링크 공장" |
+| **리스팅 깊이** | 한 줄 행인지, 문단(인용 가능)이 있는지 |
+| **free 티어의 함정** | 역링크 요구·몇 달 대기·free 사라짐 등 |
+| **dofollow 실제값** | 가격표가 말하는 것과 HTML의 `rel`이 다르면 후자가 진실 |
+
+### 4.2 대상 (10-22 재조사 + 10-21 실측 보강)
+
+| 디렉터리 | DR | 트래픽 순위 | 비용 | 판정 |
 |---|---|---|---|---|
-| **AIToolsRecap** | DR 39~40 · 툴 1,143 · 비교글 259 · **AI 인용 820+** · 월 12.5만 | Basic **0원**(크레딧 10) / Growth $49/yr | 3~5일 + 사람 손으로 써봄 | ✅ **제출 완료**. Growth는 비교글 부재로 보류 |
-| **SaaSHub** | DR 68~70 · 월 56.4만 PV | **0원** | 1~12주 | 🔄 **제출 진행 중**. 경쟁사 8종 등록 필수, "X 대안" 쿼리 타깃 |
-| **Bro Find AI** | 툴 840+ · llms.txt 보유 | **0원** | **즉시 게시** | ⬜ 3필드(URL·이름·태그라인). 주간 업보트 보드 + Discord + 자사 블로그에 launch story 발행. AI 인용 지향 |
-| **BAI.tools** | 1,038툴 · 40카테고리 | **0원** | 1~6개월 | ⬜ 2필드(이름·URL)만. 한국어 폼 있음(/ko). 유료는 dofollow |
-| **ToolScout.ai** | 1,000+ 리스트 · 사람 검수 | **0원** | 사람 검수 | ⬜ 계정 필요(구글 로그인) |
-| **Future Tools** | DR 69 · 편집자 직접 검수 | **0원** | 편집자 검토 | ⬜ Marketing·Design 카테고리 있음. 이름·URL·설명·카테고리·가격·이메일 |
-| **AIAI.Tools** | DR 40 | **0원** | 수동 | ⬜ 스크린샷을 URL로 입력해야 함(호스팅 필요) + 상대 링크 질문. 후순위 |
-| **There's An AI For That** | DR 72~77 · 툴 54,582 · 뉴스레터 250만 | **$49 1회** | 1~2일 | ❓ 사장님 결정. 무료 티어 없음(X 월간 스레드 경로만) |
-| **Dang.ai** | 월 27만 방문 | Basic **$49** / Free(backlink 필요+4주) | 4일(Basic) | ❓ Free는 backlink 조건이라 부적합 → Basic만 고려 |
-| **Add AI Directory** | — | **0원** | 편집자 | ⬜ 이메일 제출 방식(로고 첨부). 후순위 |
-| ~~Toolify~~ | DR 64~73 · 26,000툴 | **$99만** | 48시간 | ❌ **무료 경로 없음** → 예산 밖 |
-| ~~ToolDirectory.AI~~ | DR 47 | $9.99/**월** 반복 | 5일 | ❌ 반복 과금 |
+| **AIToolsRecap** | 39-40 | (측정 밖) | **0원** | ✅ **제출 완료**. 비교글 = AI 인용 가능한 형태. Growth $49는 비교글 부재로 보류 |
+| **SaaSHub** | 68-70 | (측정 밖) | **0원** | ✅ **제출 완료**. "X 대안" 페이지 = 구매의도 트래픽(2014~, 25만 제품) |
+| **Bro Find AI** | — | (측정 밖) | **0원** | ✅ **제출 완료**. 즉시 게시 + 블로그 게스트포스트(Jaeho Lee 이름) + 블루티크 인증. 이름 충돌 3개 → 기대값 낮게 |
+| **Future Tools** | 69 | **#189,099** | **0원** | ✅ **제출 완료**. 진짜 무료·사람 검수(Matt Wolfe). 4,351 리스팅. 승인 보장 없음 |
+| ToolScout.ai | — | (측정 밖) | 0원 | ⭕ 시간 날 때 |
+| BAI.tools | — | (측정 밖) | 0원 | ⭕ 시간 날 때 (한국어 폼 있음) |
+| ~~TAAFT~~ | 77 | #29,633 (1위) | $49 | ❌ **스킵** — 실트래픽 1위지만 free row는 안 보이고(가시성은 유료 레이어 케이크), 광고 카테고리 2만 3천 개 희석. $49 = 가장 싼 층이 무의미 |
+| ~~Toolify~~ | 72 | #54,062 | $99 | ❌ **스킵** — "Google 링크스팸 정책이 이름붙인 것"(dofollow 6개 판매). Cloudflare 차단 |
+| ~~Dang.ai~~ | 81 | #228,281 | $49 | ❌ **스킵** — free 티어가 역링크 크롤 강제(우리 사이트에 역링크 심으면 삭제됨) + NSFW 카테고리 맥락 |
+| ~~Fazier·AI Toolz Dira~~ | 82·66 | #210K / 밖 | 0원 | ❌ reciprocal-link 세금 |
+| ~~Turbo0·Good AI Tools~~ | 80·74 | #330K·#749K | $17~$25 | ❌ dofollow 광고하지만 실제 HTML은 nofollow |
+| ~~TopAI.tools~~ | 64 | #197,489 | $47 | ❌ free 티어 2026에 사라짐 |
+| ~~AI Tool Hunt~~ | 55 | 밖 | — | ❌ 5월부터 전 페이지 404 (리스트클엔 여전히 추천) |
+| AlternativeTo | — | — | 0원 | ⬜ 미조사. SaaSHub와 같은 "대안" 메커니즘이라 후순위 후보 |
 
-### 3.1.1 ⚠️ 선행 과제: 자체 도메인 이메일 (support@tailoredad.com)
-SaaSHub 소유권 검증 + 여러 디렉터리의 도메인 이메일 요구(일부는 gmail/yahoo를 거부) + 런칭 체크리스트 미해결 항목.
-**Cloudflare Email Routing 10분이면 끝.** §3의 절반 이상이 여기서 막힌다.
-
-### 3.1.2 공통 제출 키트 (한 벌 만들어 재사용)
+### 4.3 제출 키트 (한 벌, 재사용)
 | 필드 | 값 |
 |---|---|
 | Product name | `TailoredAd` |
 | Website | `https://tailoredad.com` |
 | Tagline (≤80자) | `Turn a product photo into on-brand ad images` |
-| Category | `Marketing` (또는 `Advertising`·`Design`) |
-| Pricing | `Freemium` |
-| Email | `support@tailoredad.com` (도메인 이메일) |
-| Logo | `public/logo/logo-512.png` (정사각 512) |
+| Category | `Marketing` (TAAFT류는 `SEO & Marketing`/`Advertising`) |
+| Pricing | `Freemium` (10장 무료) |
+| Starting price | `Free 10 images, then $19/mo for 100, $49/mo for 500, $99/mo for 1,000. First month $9.50.` |
+| Email | `support@tailoredad.com` (도메인 이메일 — 일부 디렉터리는 gmail 거부) |
+| Logo | `public/logo/logo-512.png` |
 | Screenshots | 랜딩 히어로·Projects·Create 3장 (SaaSHub 업로드본 재사용) |
+| 대안 목록 | AdCreative.ai, Creatify, Pencil, Predis.ai, Omneky, Canva, Zeely, AdRoast |
+| Q&A 6쌍 | `process/route.ts` 근거: 배치 품질 게이트 / 미사용 소멸 없음 / 실패분 무료 / 결정적 타이포 / 1회성 무료 10장 / 로고 픽셀 정확 |
+| Story | SaaSHub Q&A 답변을 launch story로 각도만 바꿔 재사용 |
 
-> 후속 후보(0원): Futurepedia(DR 62, 무료~유료 확인 필요), AI Valley(DR 45), TopAI.tools(DR 58), AIxploria, OpenTools, Smol Launch, RankmyAI, AI Valley.
+### 4.4 SaaSHub 제출 함정 (실측)
+편집 화면 미리보기는 **마크다운 목록을 벽으로 렌더하는 버그**가 있음. 공개 페이지는 정상(`/geocopy`에서 `<li>` 10개 실측). → 미리보기만 보고 판단하지 말 것. 빈 줄(문단 경계)로 끊으면 미리보기도 정돈돼 보임.
 
-### 3.2 AIToolsRecap 조사에서 나온 함정 2개 (중요)
+### 4.5 배지 = dofollow 전환 → **목적 달성 후 제거 (10-25)**
+Bro Find AI 배지를 서버 렌더 HTML에 넣으면 링크가 **nofollow → dofollow**로 전환 + 블루티크. 푸터에 전용 행으로 배치(250×54 네이티브).
+**10-25 실측 결과**: 리스팅 "Verified" 3곳 표시(블루틱 획득) + 리스팅 링크 `rel="noopener noreferrer"`(nofollow 아님 = dofollow 성립) — **목적 달성**.
+**제거 판정: 실 > 득.** ① 배지가 "0 UPVOTES"를 모든 페이지에 노출 = 역사회증거(증언 0개 상태의 신뢰 형성과 정반대) ② 라이트 푸터에서 다크 카드가 시각적으로 지배 ③ 사이트 전체 푸터 링크를 그들에게 일방 기부. 유지 편익(저트래픽 디렉터리 dofollow 1개)보다 큼.
+→ **푸터에서 배지 제거 (10-25, 사장님 승인).** 리스팅·백링크·블루틱은 그쪽 페이지에 남음. 인증 취소 여부는 정책 미명시 — 1~2주 뒤 curl 재확인, 취소 시 재부착·재인증으로 되돌릴 수 있음.
 
-1. **81개 이미지 툴 중 리뷰 붙은 건 8개뿐** (Midjourney 13, Mage 2, GPT Image 2 2, 나머지 1개씩). 나머지 73개는 `0 reviews / 0 articles / 0 compared`.
-   → 리스팅만 올리면 **눈에 안 띄는 한 줄**이 된다.
-2. **우리 경쟁사 7종이 아예 미등재**: AdCreative.ai·Creatify·Pencil·Predis.ai·Omneky·Zeely·AdRoast 전부 없음 (Canva·Midjourney·FLUX 같은 일반 이미지 툴만 있음).
-   → "비교글 포함"(Comparison Inclusion)의 이득이 **우리 카테고리에는 적용이 안 된다** (광고 크리에이티브 비교글이 이 사이트에 존재하지 않음).
-   → 그래서 **Growth $49/yr는 보류**. Basic(0원)만 올리고, 리뷰가 붙은 뒤(3~5일) 판단한다.
+### 4.6 1단계 완료 (10-23)
+- [x] 사장님: SaaSHub 제출 완료
+- [x] 사장님: Future Tools 제출 완료
+- [x] 사장님: Bro Find AI "Verify my badge" 완료
+- [x] 사장님: 도메인 이메일 (support@tailoredad.com) 완료
+- [x] HTTPS 301 수정 완료 (Cloudflare Always Use HTTPS ON)
+- [x] GSC: https:// 색인 요청 + sitemap.xml 제출
+- [x] AI 인용 기준선 측정 완료 (2건 질의, 0건 인용)
 
-### 3.2.1 ⚠️ SaaSHub 편집 화면 미리보기는 마크다운 렌더가 삐꾸어 있다 (10-22 실측)
-- **편집 화면 미리보기**: `- ` 목록이 벽으로 뭉쳐 `" - "`로 이어져 보인다 → 목록 미지원처럼 보임 → 문장형으로 바꾸라고 잘못 판단할 수 있음
-- **공개 페이지**: 정상. `/geocopy` 설명 영역에 `<li>` 10개 실측 확인(`- ` → `<ul><li>` 변환)
-- **결론: 미리보기만 보고 판단하지 말 것.** 공개 렌더러 기준으로 카피를 짜되, 미리보기가 이상하면 실제 공개 렌더을 다른 제품 페이지로 확인해볼 것.
-- 참고: SaaSHub 상위 리스팅들(Mockraft·Castmint·Nouz 등)이 산문체로 쓰인 건 그 툴들이 산문으로 냈을 뿐 플랫폼 제약 아님.
+---
 
-### 3.3 제출 키트 (한 벌 만들어 재사용)
+## 5. 2단계 — 직접 콘텐츠 (AI 인용의 지속 경로)
 
-| 항목 | 값 | 상태 |
+### 5.1 근거 (10-21 실측)
+한국어 질의 "AI 광고 크리에이티브 도구 추천"의 AI 답변이 인용한 것:
+```
+Reddit 스레드 (r/FacebookAds — Meta 광고용 AI 툴 추천)
+jenova.ai/resources/…   "2026년 디지털 광고 크리에이티브 디자인에 가장 적합한 AI…"
+draph.art/ko/blog/…    "광고 만들어주는 AI, 마케터를 위한 실용적인 디자인 도구"
+adgenai.com/ko-blog-posts/…  "크리에이티브 자동화 도구: 추천 및 도입 가이드"
+```
+→ **"best X for Y" 콘텐츠 페이지가 AI 인용 단위.** 경쟁사들도 전부 이 형식(wireflow·adroast·superscale·omneky).
+
+### 5.2 1차 범위 (10-24 확정 — `/blog` 우산 + 글 6장 + llms.txt)
+| 라우트 | 잡는 검색 | 유형 |
 |---|---|---|
-| Tool Name | `TailoredAd` | ✅ |
-| Website URL | `https://tailoredad.com` | ✅ |
-| Category | `Image AI` | ✅ (Nano Banana·Midjourney·FLUX·Recraft·DALL·E 전부 이 칸. 마케팅 칸은 이 사이트에 없음) |
-| Pricing Model | `Freemium` | ✅ |
-| Company / Developer | `Jaeho Lee` | ✅ |
-| Short Description | `Ad images for teams without a designer. Upload a product photo, get stills for every format, with the type and logo placed exactly. You pay per finished image.` | ✅ |
-| Full Description | (아래 전문) | ✅ |
-| Key Features | (아래 11줄) | ✅ |
-| Best For / Use Case | `Marketers`, `Businesses` | ✅ (Designers 넣으면 안 됨 — 우리 타깃은 "디자이너 없는 팀") |
-| Tags / Keywords | `ai ad generator, ad creative, social media ads, product photo, marketing images, ad banner, brand kit, ecommerce ads` | ✅ |
-| Platform | `Web` | ✅ (API·모바일·확장 없음) |
-| Integrations | (비움) | ✅ |
-| Starting Price | `$19/month` | ✅ (첫 달 $9.50 프로모션은 반복 가격 $19가 정답) |
-| Free Trial Available | `Yes` | ✅ (Freemium 아님 — 10장 1회성 트라이얼) |
-| Founded Year | `2026` | ✅ |
-| Logo | `public/logo/logo-512.png` | ✅ 자동 인식됨 |
-| 스크린샷 3~5장 | 2400×1260 카드 1장 확보, **제품 화면 2~3장 필요** | ⬜ |
+| `/blog` | (목록 페이지 — 섹션: Alternatives / By industry / Guides & lists) | 우산 대문 |
+| `/blog/adcreative-ai-alternatives` | AdCreative.ai 대안 | 대안 비교 — **초안 구현 완료 (`5fec645`) · 사장님 검수 대기** |
+| `/blog/creatify-alternatives` | Creatify 대안 | 대안 비교 |
+| `/blog/predis-alternatives` | Predis.ai 대안 | 대안 비교 |
+| `/blog/best-ai-ad-tools` | best AI ad creative tools | 카테고리 리스트클 (경쟁사 + 우리, 정직한 한 줄씩) |
+| `/blog/ecommerce-ad-creative` | AI 광고 크리에이티브 (업종) | 업종 가이드 (멀티채널 셀링 관점) |
+| `/blog/skincare-ad-creative` | 동일 (업종 2) | 업종 가이드 |
+| `/llms.txt` | (AI 크롤러) | 요약 — ✅ **완료 (10-25)**. `src/app/llms.txt/route.ts`가 레지스트리에서 자동 생성 (force-static 프리렌더) |
 
-**Full Description 전문 (190 words, AI 냄새 제거 완료)**
-```
-TailoredAd turns a product photo into finished ad images. You upload the product and your logo, and it makes stills for 1:1, 4:5, 9:16, 16:9, Story and banner, all from one layout.
+**경로 결정 (10-23)**: 루트 흩뿌리기✗ · `/resources`✗(사장님: "보관함 느낌") · `/blog` 채택. 블로그지만 **페이지 본체는 판매 문서 틀** (날짜·저자 없음, CTA 반복). 중간 폴더 없이 목록 페이지 안에서 섹션 구분. URL은 색인 후 변경 금지 — 지금 결정이 최종.
 
-You do not get one image per idea. TailoredAd generates a batch, checks the batch, and shows you the best one or two. Checking is the product, so the rest of the batch is our cost, not yours.
+**기준선 측정 결과 (10-22)**: 2건 질의 모두 0건 인용. 인용되는 형태 = Reddit 스레드 · "best X for Y" 콘텐츠 · 무료 툴 페이지. → 카테고리 리스트클(`/best-ai-ad-tools`)이 AI 인용의 핵심 단위.
 
-Headlines, calls to action and logos are placed after the image is made, not painted into it by a model. That is why the type stays exact and why the logo looks the same in every scene. The product keeps its color, shape and label across every format.
+**Amazon AI disclosure 각도 (10-23 신규)**: Amazon 2026-07-23 정책 — 사진처럼 생긴 AI 사람이 들어간 리스팅 이미지·A+ 콘텐츠는 IPTC 태그 필수 (NY synthetic performer법). AI 배경·소품·제품만 = 태그 불필요. 우리 product-only 모드 = 태그 불필요. → 카피 근거 + SEO 콘텐츠 각도 ("Amazon AI image rules 2026").
 
-You pay for finished images. Not for downloads, not for a month. Starter is $19 for 100 images, Growth $49 for 500, Pro $99 for 1,000. Unused images do not expire. Editing and downloads are free. A failed generation costs nothing. Ten images are free, with no card.
+### 5.3 작업 방식 (10-24 — 시스템 구축 완료, `5fec645`)
+- **동적 콘텐츠 시스템**: `src/app/blog/[slug]` + `generateStaticParams` SSG + `dynamicParams=false` (레지스트리 밖 슬러그 즉시 404).
+  새 글 = `src/lib/content/blog/posts/` 파일 1개 + 레지스트리 1줄 → URL·목록·sitemap·JSON-LD 전부 자동.
+- **데이터/로더 분리** (POST_ 프롬프트 패턴 준수): `types.ts`(규격) + `posts/*`(데이터) + `blogContentServerAPI.ts`(레지스트리·로더·빌드 타임 무결성 검증 — 슬러그 중복·오탈자·끊긴 내부링크 시 빌드 실패).
+- 페이지당 JSON-LD(Article/Breadcrumb/FAQPage — FAQ는 본문과 단일 소스) + canonical + OG 자동.
+- `src/app/sitemap.ts` 자동 생성으로 전환 (수동 `public/sitemap.xml` 삭제). lastmod = 글 updatedAt.
+- 사장님 확인: 글 1 eyeball (dev 서버) · 랜딩 헤더·푸터에 `/blog` 링크 추가 여부 (현재 orphan — 화면 변경이라 승인 필요)
 
-People in the ads are generated. Real faces are never composited.
+### 5.4 ★ 카피 제1원칙 — AI 냄새 제거 (10-25 사장님 지시. 모든 글에 적용)
 
-Start at tailoredad.com.
-```
+> **글은 사람이 쓴 것처럼. AI가 쓴 것처럼 읽히는 순간 그 글은 신뢰를 잃고, 인용도 안 된다.**
 
-**Key Features 11줄**
-```
-Ad images from one product photo and logo
-1:1, 4:5, 9:16, 16:9, Story and banner from one layout
-Batches of candidates, only the best one or two shown
-Headline, CTA and logo placed after the image is made
-Exact type, no AI letter artifacts
-Product and logo consistent across every scene
-Pay per finished image
-Unused images never expire
-Failed generations cost nothing
-Unlimited downloads, free editing
-10 free images, no card required
-```
-
-### 3.4 SaaSHub용 별도 설명 (오디언스가 다름)
-SaaSHub 독자는 "팀 단위로 도구를 고르는 구매자"다. TAAFT용 문구 재사용 금지 — **SaaSHub용 150~300자 설명을 따로** 쓴다(보안·팀 단위·가격 티어 중심).
-
-**경쟁사 8종 목록 (SaaSHub 등록 필수, 정직하게)**: AdCreative.ai · Creatify · Pencil · Predis.ai · Omneky · Canva · Zeely · AdRoast
-
-**차단 요소**: SaaSHub 소유권 검증 = **tailoredad.com 도메인 주소의 이메일** 필요. 지금 `support@tailoredad.com`이 없어서 막힌다.
-→ **Cloudflare Email Routing으로 10분 설정** (G2·Capterra 등에도 필요 + 런칭 체크리스트의 미해결 항목이기도 함).
-
-### 3.5 TAAFT $49 — 결정 전 확인
-TAAFT는 JS 렌더링이라 서버로는 경쟁사 등재 여부를 확인할 수 없다. **사장님이 브라우저에서 "ad creative" 검색**해서 AdCreative·Creatify가 뜨는지 보고 결정. 뜨면 우리도 옆에 있어야 하는 곳이고, 안 뜨면 $49 근거가 약해진다.
-
-### 3.6 1단계 남은 작업
-- [ ] SaaSHub 계정 + 제출 (경쟁사 8종, 소유권 검증)
-- [ ] Dang AI 계정 + 제출
-- [ ] Toolify 계정 + 제출
-- [ ] 스크린샷 2~3장 촬영(사장님 브라우저) → `public/preview/`에 두고 파일명 전달 → 나머지 갤러리 카드는 내가 OG 파이프라인으로 합성
-- [ ] TAAFT: 사장님 브라우저로 "ad creative" 검색 → 경쟁사 등재 확인 → 결정
-- [ ] Recap: 3~5일 후 리뷰 붙었는지 확인 → Growth $49 업그레이드 판단
-
----
-
-## 4. 2단계 — 직접 콘텐츠 (AI 인용의 지속 경로)
-
-### 4.1 왜 이것이 핵심인가
-디렉터리 리스팅은 1회성이지만, **직접 만든 검색 페이지는 계속 AI가 인용하는 문단이 된다.** 경쟁사가 wireflow·adroast로 하고 있는 것이 정확히 이거다.
-
-### 4.2 1차 범위 (제안 — 승인 후 착수)
-| 라우트 | 내용 |
-|---|---|
-| `/alternatives/adcreative-ai` | AdCreative.ai 대안 — 가격·특징·언제 쓰는지 실제 비교 + 우리 강점 |
-| `/alternatives/creatify` | Creatify 대안 (UGC 영상이 필요 없는 사람용) |
-| `/alternatives/predis` | Predis.ai 대안 (저가 소규모 팀용) |
-| `/ad-creative/ecommerce` | 업종별 — 전자상업 광고 크리에이티브 |
-| `/ad-creative/skincare` | 업종별 — 스킨케어 브랜드용 |
-
-각 페이지 구성: 정직한 비교(가격·특징·한계) + 우리 강점(건당 과금·미사용 소멸 없음·결정적 타이포·로고 일관성) + 실제 결과물 이미지 + FAQ + JSON-LD(Article/FAQPage) + 내부링크.
-
-### 4.3 작업 방식
-- SSG 정적 생성(Next.js App Router) — 빌드 타임에 HTML 생성 → CDN 엣지 캐시(`s-maxage`)
-- 각 페이지 `sitemap.xml` 자동 포함 + canonical + OG
-- 사이트맵에 자동 편입되도록 `src/app/sitemap.ts` 또는 `public/sitemap.xml` 갱신
-- **사장님 확인 항목**: (1) 비교 대상 툴 선정 (2) 업종 3~5개 (3) "우리가 왜 다른지" 한 줄 (4) 최종 카피 eyeball
-
-### 4.4 추가 후보 (2단계 확장)
-- `llms.txt` — AI 크롤러용 평문 요약 (10분)
-- `/blog` — 실전 사용법·팁 콘텐츠 ( juncture: AI가 제품 사용법까지 인용)
-- comparison/industry 페이지에서 Image AI 카테고리 진입(수익은 작지만 AI 색인 지표)
-
----
-
-## 5. 3단계 — 베타 시딩 30곳 ($32)
-
-### 5.1 컨셉: "팔아주세요"가 아니라 "만들어드릴게요"
-사장님 성격상 콜드 세일즈는 부담. 그래서 **타깃 브랜드 제품으로 1장씩 만들어 첨부**하고 "무료로 1장 만들어드렸습니다"로 접근한다. 도구 제품이기에 가능한 인사.
-
-### 5.2 타깃 선정 기준
-- 업종: DTC 스킨케어·프리미엄 커피·보틀 위스키·피트니스 용품·홈리빙스 (랜딩 이미지의 톤과 맞고 반복 구매로 이미지가 잦은 업종)
-- 규모: 매출 100만~5000만 달러 (팀이 있는 곳 = 디자이너가 없거나 못 쓰는 곳)
-- 연락: founders/marketing lead
-- 리스트 소스: **explee의 B2B DB(105M+ CEO 컨택트)** — 발송 도구가 아니라 "찾는 도구"로만 사용. (explee = 자동 세일즈 에이전트 / 750통당 $0.04 / 무료 크레딧 $30)
-
-### 5.3 실행 흐름
-1. explee 가입 → 사이트 URL로 캠페인 생성 → 타깃 30곳 추출 (또는 세그먼트 익스플로러)
-2. **내가** 각 타깃 제품 이미지 수집·크리에이티브 1장 생성(생성비 1장 $0.05 내외) → 캡처
-3. **내가** 메일 카피 3안 작성 (제목·본문·CTA) → 사장님 승인
-4. **사장님** 직접 발송 (자동 발송 아님)
-5. 응답 오면: 10장 무료 크레딧 or 1장 추가 제작 제안 → 피드백·증언 수집
-
-### 5.4 기대값(솔직)
-- 비용: explee $30 + 생성비 $2 = **$32 (약 4만 원)**
-- 전환: 30통 중 응답 3~6건 → 트라이얼 1~3명
-- **진짜 목표는 숫자가 아니라 대화 10건과 첫 증언 1개.** 증언이 4단계(유료 증폭)의 연료다.
-- **주의**: 자동 대량 발송은 스팸으로 간다. 30통 수작업이 맞다.
-
----
-
-## 6. 4단계 — 유료 증폭 (2개월 차)
-
-### 6.1 unfair.so (크리에이터 유료 quote)
-- 개별 quote $20~250 / 캠페인 패키지 예시 $2,200 → 22명 → 480K 임프레션
-- "구걸"을 돈으로 대체하는 유일한 방법 (사장님 스타일 저격)
-- **기대값(솔직)**: $1~2k → 방문 1,800명 → 트라이얼 55~110 → 유저 3~7명. **환산으론 손해.**
-  산출물은 "X 포스트가 인덱싱되어 AI가 인용하는 3rd-party 소스"와 백링크. **2단계의 목적을 1~2k로 즉시 사는 것.**
-- 선별 기준: 사이트가 크리에이터 오디언스를 분석해준다("AI creators 31명, AI founders 34명"). **마케터·AI交集 오디언스만** 고를 것 (팔로워 수 말고 정합)
-- Launch 시간: US 오전 9~11시 = KST 자정~오전 2시 (사장님 취침 시간 → 캠페인은 예약, 사장님은 아침에 댓글 응대)
-
-### 6.2 그 외 유료 옵션
-| 옵션 | 비용 | 비고 |
+**집필 전 체크리스트 (통과 못 하면 출고 금지):**
+| # | 규칙 | 근거 |
 |---|---|---|
-| Reddit 광고 | $100~200 테스트 | 서브레딧 타겟. 실제 관심층만. $1~2 CPC 수준에서 트라이얼 소수 |
-| TAAFT $49 1회 | $49 | 1단계에 이미 포함 |
-| PH 광고(featured) | $50~200/일 | PH 시청층=메이커, 우리 타깃과 미묘하게 어긋남 |
-| hellyeah(Google Ads) | — | **보류**: LTV/CAC 나오기 전. 측정(2.6) 붙고 나면 |
+| 1 | **엠대시(—) 0개.** 마침표·쉼표·콜론으로 쪼갠다. 단, metaTitle의 브랜드 구분자("— TailoredAd")는 브랜드 서식이므로 예외 | 09-22 랜딩 de-AI 선례 |
+| 2 | **자기평가 부사 금지**: honest·honestly·genuinely·actually·really·simply. 증거(숫자·출처)가 말하게 한다 | "Honest breakdowns"류는 오히려 AI 지문 |
+| 3 | **"X, not Y" 구문은 페이지당 1개 이하.** "typeset, not generated"류 연타가 최다 지문 | 스킬: confident over qualified |
+| 4 | **3항 나열(triad) 연타 금지.** 리스트 길이를 2·3·4로 섞고 문장 길이도 섞는다 | "X, Y, and Z" 리듬 = 대표 AI 지문 |
+| 5 | **격언식 표어 금지**: "Written to be quoted, not to rank", "The dividing line is...", "The short answer"류. 페이지당 1개 이하 | 뽀샵식 마무리는 AI 서명 |
+| 6 | **같은 정보 두 번 말하지 않기** — subheadline과 섹션 제목이 같은 말 반복 금지 | 초안에서 "five minutes" 2회 발견 |
+| 7 | **같은 형용사 반복 점검** — pixel-exact·deterministic 같은 브랜드 어휘도 본문 3회 초과면 줄인다 | |
+| 8 | **스타카토 연타 금지** — 짧은 단문 3연속은 AI 리듬. 길이를 섞는다 | |
+| 9 | **수동태·명사화 금지** — "-tion/-ment" 남용, "is generated"류. 능동으로 | 스킬: active over passive |
+| 10 | **구체 숫자는 유지·출처 명시** — 구체성이 사람의 글이다. 가격·날짜·검증 출처를 쓴다 | 스킬: specificity over vagueness |
 
-### 6.3 2개월 차에 들어가기 위한 조건 (미달하면 안 함)
-- [ ] 트라이얼 사용자 5명 이상
+**퇴고 절차**: 초안 → 위 체크리스트 통과 → grep으로 엠대시·부사 잔여 검사(0건 확인) → 사장님 eyeball.
+
+**10-25 글 1 적용 실적**: 엠대시 12→0, "honest/genuinely" 5→0, "X, not Y" 6→1(headline 1곳만 생존), 격언 표어 3→0, "five minutes" 중복 제거, "typos and warped glyphs" 3→2회.
+
+### 5.5 참고: 한국어 경쟁자 3개 발견 (신규 인텔)
+`draph.art(드랍아트)` · `nextify.ai` · `jenova.ai` — 한국어 AI 광고 툴이며 **한국어 AI 질의에서 이미 인용되고 있다.** 영어권은 AdCreative·Creatify가 쥐고 있으니, 한국어 콘텐츠로 진입하는 쪽이 빈틈일 수 있다. (우리 사이트는 영어 — 별도 결정 필요, 지금은 보류)
+
+### 5.6 타겟 재정의 (10-23)
+**지속 구매자 (LTV 높음)**: 소규모 DTC 브랜드 (1~10명 팀) — 신제품 정기 출시 + 브랜드 일관성 + 디자이너 부재. LTV $200~600/년
+**첫 고객 (LTV 낮음)**: 글로벌 드랍쉬퍼 (광고型) — 제품 수명 2~6주, LTV $40~120/년. 첫 결제 용도로 좋음
+**메시지 분리**: DTC 브랜드용 = "Brand-consistent ad creatives for teams without a designer" / 드랍쉬퍼용 = "Product photo → ad in 5 formats, exact type. Test 30 variants risk-free."
+
+### 5.7 도달 방법 (채널 전략)
+- **DTC 브랜드**: Google 검색 ("AI ad creative", "AdCreative alternative") → 2단계 SEO 콘텐츠가 주 채널
+- **드랍쉬퍼**: 커뮤니티 (Facebook 그룹, Reddit, TikTok) → 3단계 시딩
+- **공통**: 디렉터리 (SaaSHub, Bro Find AI, Future Tools, AIToolsRecap) + AI 검색 인용 (llms.txt)
+- **하지 말 것**: PH 런치, TAAFT $49, Toolify $99, 100곳 스프레이, 측정 전 유료 광고
+
+### 5.8 Shopify 조사 완료 (10-23)
+Shopify = "누구나 온라인 가게를 열 수 있게 해주는 인터넷 상가 건물". 2025 GMV $378B, 매출 $11.6B, 활성 스토어 ~280~500만, 175+ 국가. 드랍쉬핑 = Shopify의 핵심 사용 사례. App Store = 유통 채널 (21,000+ 앱, $1.3B 개발자 지급). AI 광고 크리에이티브는 아직 내장 안 함 → TailoredAd의 자리 실재. App Store 진입은 3단계 이후 검증 뒤 결정.
+
+---
+
+## 6. 3단계 — 베타 시딩 30곳 ($32)
+
+### 6.1 컨셉
+"팔아주세요"가 아니라 **"만들어드릴게요"** — 타깃 브랜드 제품으로 1장씩 만들어 첨부. 도구 제품이기에 가능한 인사. 사장님 성격에 맞고, 콜드 세일즈가 아니다.
+
+### 6.2 타깃 (10-23 재정의)
+- **지속 구매자 (DTC 브랜드)**: 상품 20개 이상 + 네이버/쿠팡/메타 동시 운영 셀러 → "셀프웍스·셀웨이 쓰는 사람", "쿠팡+네이버 동시 운영"
+- **첫 고객 (드랍쉬퍼)**: 글로벌 드랍쉬퍼 (광고型) — Meta/TikTok 광고 돌리는 셀러. LTV 낮지만 첫 결제 용도
+- 규모: 매출 100만~5000만 달러 (팀이 있고 디자이너 없거나 못 쓰는 곳)
+- 리스트 소스: explee B2B DB(105M+ CEO 컨택트) — **발송 도구가 아니라 "찾는 도구"로만 사용**
+- 소요: 1일 / 비용 $30(발송) + $2(생성 30장)
+
+### 6.3 기대값(솔직)
+- 전환 1~3명, 대화 10건, **증언 1개**
+- 정량 목표가 아니라 **증언 확보가 목표** (증언이 4단계의 전제)
+
+---
+
+## 7. 4단계 — 유료 증폭 (2개월 차)
+
+### 7.1 unfair.so
+- quote $20~250/크리에이터, $99/249/990 플랜, 케이스: 231K 뷰·1,140% ROI·1,800명 방문·50+ 데모
+- 선별 기준: 팔로워 수 말고 **오디언스 정합** (AI creators·마케터)
+- 시간: US 오전 9~11시 = KST 자정~오전 2시 (사장님 취침 시간 → 예약 후 아침에 응대)
+
+### 7.2 진입 조건 (미달하면 안 됨)
+- [ ] 트라이얼 5명 이상
 - [ ] 증언·스크린샷 3개 이상
-- [ ] LTV 추정 가능(평균 재구독 or 업그레이드율)
+- [ ] LTV 추정 가능
 
----
-
-## 7. 계기판 (측정) — 이미 준비됨
-
-| 도구 | 무엇을 보는가 | 비용 | 상태 |
-|---|---|---|---|
-| **Cloudflare Web Analytics** | 방문자·PV·**referrer**(어느 사이트에서 왔나)·실사용자 LCP/INP/CLS | 0원 | 스니펫 추가 완료(develop `9152c6c`) → **prod 배포 대기** |
-| **UTM → 우리 DB** | 각 유저의 **정확한 채널**(reddit/디렉터리명 등) + 가입까지. `users.utm_source/medium/campaign/content` | 0원 | develop `746e8d3` → **prod SQL 실행 + 배포 대기** |
-
-**왜 둘 다 필요한가**: CF는 referrer 단위(우리 통제 밖), 우리 DB는 UTM 단위(정확한 귀속).
-**왜 아직 0인가**: 트래픽 자체가 없음. 계기판은 차가 오는 중 — 1단계부터 채널이 열려야 의미 생김.
-
-**prod 반영에 필요한 사장님 작업 2가지**
-1. Neon 콘솔 → prod 브랜치 → SQL Editor → `db/neon/04_analytics.sql` 실행 (users에 UTM 컬럼 4개)
-2. 배포(릴리즈 머지) — 내가 진행, `--no-ff` 머지 후 deploy + beacon 주입 확인
-
-**참고**: HTML이 엣지에 1년 캐시(`s-maxage=31536000`)라 배포 후 옛 HTML이 남으면 beacon이 안 보일 수 있음 → 그때 캐시 퍼지 1회.
+### 7.3 그 외
+Reddit 광고($100~200 테스트) · PH 광고(프런티어 안 함, 광고로만) · hellyeah(Google Ads) — 전부 계측 후.
 
 ---
 
@@ -324,60 +238,71 @@ TAAFT는 JS 렌더링이라 서버로는 경쟁사 등재 여부를 확인할 �
 
 | 안 하는 것 | 이유 |
 |---|---|
-| **Product Hunt 런치** | 업보트 구필 필요(규칙상 금지, PH는 협조 업보트를 추적·탈락), 오디언스 0이면 #195위 실측 사례, 4주 사전 준비 필요 |
-| **업보트 부탁 DM** | PH 규칙 위반. "살펴보고 의견 남겨줘"만 가능 |
-| **자동 대량 콜드메일(explee 발송)** | 사장님 성격 저격 + 콜드 DM 자체가 부담.  explee는 **리스트 추출 도구로만** 사용 |
-| **유료 광고(Google Ads 등)** | 측정·LTV 없이 소진. 계기판 붙고 LTV 나온 후 |
-| **이메일 수집 폼(랜딩)** | 사장님 지시로 철회(10-20). 계측은 UTM+Web Analytics로 충분 |
-| **다크 OG 카드** | 브랜드 기본 테마=라이트. 다크는 앱 다크모드(#0A0A0B)도 아닌 제3의 표면 |
-| **크레딧 부스트(Fatured Homepage·Category Top·Boost)** | 1회성 트래픽 부스트. 월 12.5만 방문 사이트에서 효과 제한적. Growth $49도 비교글 근거가 없어 보류 |
-| **"AI 냄새" 카피** | em dash·buzzword·세일즈 문장. 랜딩 카피 de-AI 원칙과 동일 |
+| PH 런치 | 업보트 구필(규칙위반)·이질감·4주 준비·오디언스 0 |
+| TAAFT $49 | free row 안 보임(유료 레이어 케이크) + 2만 3천 개 희석 |
+| Toolify $99 | Google 링크스팸 정책이 이름붙인 유형 |
+| Dang.ai | free 티어 역링크 강제 + NSFW 맥락 |
+| 역링크 요구 디렉터리(Fazier·AI Toolz Dira·Twelve Tools) | 우리 사이트를 조작당함 |
+| dofollow 광고=실제 nofollow(Turbo0·Good AI Tools) | 시간 낭비 |
+| 이��일 수집 폼 | 사장님 지시(10-20 철회). UTM+Web Analytics로 계측 |
+| 다크 OG 카드 | 브랜드 기본 테마=라이트. 다크는 앱 다크모드(#0A0A0B)도 아닌 제3의 표면 |
+| 유료 광고(측정 전) | 학습 없이 소진 |
+| 자동 대량 세일즈 | 스팸 |
+| 디렉터리 100곳 스프레이 | "살아있는 몇 개가 100개보다 낫다"(stork 실측) |
 
 ---
 
-## 9. 일정 (2개월)
+## 9. 10월 남은 것 (순서) — 10-23 갱신
 
-| 주차 | 할 일 | 담당 |
-|---|---|---|
-| **W1** | 1단계: SaaSHub·Dang AI·Toolify 제출(0원) + 스크린샷 2~3장 촬영 + 도메인 이메일 설정 | 사장님(계정·촬영) + 저(카피·합성) |
-| **W1** | Recap 리뷰 결과 확인 → Growth 업그레이드 여부 판단 | 사장님 |
-| **W1** | prod SQL 실행 + 릴리즈(UTM·Web Analytics) | 사장님(SQL) + 저(배포) |
-| **W2** | 2단계: 비교글 3장 + 업종 페이지 2장 (SSG) | 저(구현) + 사장님(카피 승인) |
-| **W2** | 3단계: 타깃 30곳 선정 + 크리에이티브 30장 + 메일 카피 | 저 + 사장님(발송) |
-| **W3** | 3단계 실행 + 응답 관리 + 첫 증언 확보 | 사장님 |
-| **W4** | 검색 재실측(Kimi/ChatGPT) — 1단계·2단계 반영 확인 | 사장님 |
-| **M2** | 조건 충족 시 4단계(unfair.so $1~2k) | 사장님 판단 |
+1. [x] 사장님: 도메인 이메일 `support@tailoredad.com` 완료
+2. [x] 사장님: SaaSHub 제출 완료
+3. [x] 사장님: Future Tools 제출 완료
+4. [x] 사장님: Bro Find AI "Verify my badge" 완료
+5. [x] 사장님: HTTPS 301 수정 완료 (Cloudflare Always Use HTTPS ON)
+6. [x] 사장님: GSC https 색인 요청 + sitemap.xml 제출
+7. [x] 저: AI 인용 기준선 측정 완료 (2건 질의, 0건 인용)
+8. [ ] 사장님: prod 브랜치에 `db/neon/04_analytics.sql` 실행 (UTM 기록 켜기 — 배포 불필요, 코드 이미 prod 배포됨)
+9. [x] 사장님: `/blog` 글 6장 검수 통과 (10-25 "이상은 없어")
+10. [x] 저: 블로그 콘텐츠 시스템 구축 완료 (10-24, `5fec645` — 동적 [slug]·레지스트리 분리·sitemap 자동화·JSON-LD·글 1 초안)
+11. [x] 저: 나머지 글 5장 완료 (10-25, `fab6f41` — creatify·predis·best-ai-ad-tools·ecommerce·skincare)
+12. [x] 저: 푸터에 Blog 링크 추가 (10-25, `8476002` — orphan 해소)
+13. [x] 저: `/llms.txt` 완료 (10-25 — 레지스트리 자동 생성, force-static)
+14. [ ] 저: 3단계 준비 — 타깃 30곳(DTC 브랜드 + 드랍쉬퍼) + 크리에이티브 30장 + 메일 카피
+15. [ ] 사장님: 릴리즈 머지 + 배포 판단 (블로그 시스템 전체 + 배지 제거 + llms.txt 탑재)
+16. [ ] 사장님: 3단계 발송 → 4단계 진입 여부 결정
 
-**KPI(측정 가능한 것)**
-- 디렉터리 게시 수: 목표 4곳(Recap·SaaSHub·Dang AI·Toolify)
-- 비교글/업종 페이지: 5장
-- 유입: 방문자/일, referrer 분포
-- 트라이얼 가입 수, 유료 전환 수
-- AI 인용 출현(카테고리 질의 3종을 4주 간격으로 재실측 — 10-20 실측이 기준선)
+## 10. 11월 (조건부)
+- 4단계 유료 증폭(unfair.so 5~7 quote, $100~250)
+- 2단계 확장: 업종 페이지 +10, "best AI ad tools" 页, llms-full
+- 3단계 후기 testimonial을 비교글·landing에 반영
 
 ---
 
-## 10. 결정 로그
+## 11. 결정 로그
 
 | 날짜 | 결정 | 이유 |
 |---|---|---|
-| 10-20 | 이메일 수집 폼 철회 | 사장님 지시. 계측은 UTM+Web Analytics로 대체 |
-| 10-20 | OG 카드 **라이트** 채택 | 브랜드 기본 테마 정합 + 카드→랜딩 연속성 + 대다수 공유 UI가 밝음 |
-| 10-20 | Company/Developer = **Jaeho Lee** | 리뷰 문단이 사람이 읽는 문장이 되어야 함("TailoredAd by TailoredAd" 방지) |
-| 10-20 | Recap Growth $49 **보류** | 비교글이 우리 카테고리에 없고 경쟁사 7종 미등재 → 비교글 인센티브 근거 없음 |
-| 10-20 | **PH 스킵** | 구필·규칙위반·효과 약함. 사장님 스타일 아님 |
-| 10-20 | 1단계를 디렉터리로 확정 | 트래픽 생성 + AI 인용 소스 2-in-1. 순서 1→2→3→4 |
-| 10-21 | **Marc Lou 모델**(제작자 + 다수 제품)로 방향 | 청중·신뢰·비용 구조상 개인 브랜드 하의 제품이 현재 상황 최적. 제품명 TailoredAd는 유지(카테고리 키워드·도메인·AI 인용 엔티티 일치) |
-
----
-
-## 11. 참고: 조사한 서비스 3곳 요약 (10-20)
-
-| 서비스 | 정체 | 우리와의 관계 |
-|---|---|---|
-| **explee.com** | AI 콜드아웃 세일즈 에이전트(구 AutoGTM). URL 넣으면 시장 조사→ICP→리드 발굴→맞춤 이메일→미팅 예약. $0.04/이메일, $30 무료 크레딧, 105M+ CEO 컨택트, 97% 인박스율(워밍된 도메인 풀 발송). **프로그래밍 SEO**(/b2b-database/locations/*)가 트래픽 엔진 | 경쟁자 아님 — **3단계의 타깃 리스트 추출 도구**로만 사용. 자동발송은 안 씀 |
-| **unfair.so** | 크리에이터 마케팅. 크리에이터가 **동시에** quote-post → 피드 알고리즘 폭발. quote $20~, $99/249/990 플랜. 사례: treg13 2.82M 뷰, unfair 자체 231K 뷰·1,140% ROI·1,800명 방문·50+ 데모 | **4단계 채널** — "구걸"을 돈으로 대체. 단 2개월 차에 social proof가 있을 때 |
-| **hellyeahai.com** | AI 퍼포드미디어 플랫폼. URL 하나로 프리감사→전략·크리에이티브·캠페인 생성→승인→론칭→매일 최적화(에이전트 로그). AIMA 엔진. FAQ: "AI ad creative tool은 이미지 생성에서 멈춘다. 우리는 풀 페이드 워크플로를 돌린다" | 경쟁자 아님(전면 워크플로 보유). **사장님께 CLI 스킬이 이미 설치**됨. 유료 광고는 보류(측정 전). 자기 FAQ가 우리를 정확히 분류 → 이미지+카피에서 "생성까지만" 포지셔닝 명확히 함 |
+| 10-20 | 이메일 수집 폼 철회 | 사장님 지시. UTM+Web Analytics로 계측 |
+| 10-20 | OG 라이트 채택 | 브랜드 기본 테마 정합 + 카드→랜딩 연속성 |
+| 10-20 | 디렉터리 Company = `Jaeho Lee` | 리뷰 문단이 사람이 읽는 문장이 되어야 함 |
+| 10-21 | SaaSHub Q&A 3~6쌍 | 비교 페이지 Q&A가 AI 인용 단위 |
+| 10-21 | TAAFT 스킵 | 실트래픽 1위지만 free row 무의미 + 희석 |
+| 10-21 | Bro Find AI 3개만(무료) | 나머지는 소모/대기 대비 효과 미미 |
+| 10-21 | dev/prod 빌드 폴더 분리(`.next-dev`) | 배포마다 dev 정지 필요했던 문제 영구 해결 |
+| 10-21 | SaaSHub 미리보기는 버그 | 공개 페이지 정상 — 미리보기만 보고 판단 금지 |
+| 10-22 | AI 인용 기준선 0건 | 2건 질의 모두 0건 인용. 인용 형태 = Reddit · best X for Y 콘텐츠 · 무료 툴 페이지 |
+| 10-22 | HTTPS 301 수정 | http://가 200으로 서빙됨 → Cloudflare Always Use HTTPS ON → 301 |
+| 10-23 | Amazon AI disclosure 규칙 | 2026-07-23 정책: synthetic performer 태그 필수. product-only 모드 = 태그 불필요 → 카피 근거 |
+| 10-23 | 타겟 재정의 | 지속 구매자 = 소규모 DTC 브랜드. 첫 고객 = 글로벌 드랍쉬퍼. 메시지 분리 |
+| 10-23 | Shopify 조사 완료 | GMV $378B, 매출 $11.6B, 175+ 국가. AI 광고 크리에이티브 미내장 → 자리 실재 |
+| 10-23 | 1단계 완료 | Recap·SaaSHub·Bro Find AI·Future Tools 4곳 제출 완료 |
+| 10-23 | `/blog` 우산 + 동적 [slug] 채택 | 루트 흩뿌리기✗·resources✗(보관함 느낌)·blog✓(선례 wireflow). 본체는 판매 문서 틀. 중간 폴더 없이 목록 섹션 구분 |
+| 10-24 | 블로그 콘텐츠 시스템 (`5fec645`) | 새 글 = 파일 1개 + 레지스트리 1줄. 데이터/로더 분리(POST_ 패턴). sitemap 자동화. 레지스트리 밖 슬러그 404 |
+| 10-24 | AdCreative.ai 가격 실측 검증 | 출처 4곳 교차 일치: $39/10크레딧·$249/50·$999/100. 2026년 Professional 크레딧 100→50 삭감(동일가). video·scoring은 $249 이상 |
+| 10-25 | ★ 카피 제1원칙 채택 | AI 냄새 제거. 체크리스트 §5.4 (엠대시 0·자기평가 부사 금지·"X, not Y" 1개 이하·triad 금지·표어 금지). 글 1 전면 퇴고 완료 |
+| 10-25 | Bro Find AI 배지 제거 | 목적(dofollow·블루틱) 달성 확인 후 실>득 판정 — "0 UPVOTES" 역사회증거 + 시각적 지배. 재부착 가능하니 되돌릴 수 있는 결정 |
+| 10-25 | 블로그 글 6장 완성·검수 통과 |Creatify·Predis 가격 2026-10 개편 실측 반영 (구 리뷰와 다른 현재가). 원어민 관용구 자체 교정 4건 + 사장님 검수 통과 |
+| 10-25 | llms.txt 레지스트리 연동 | 정적 파일 대신 `src/app/llms.txt/route.ts` 자동 생성 — 새 글 추가 시 무수정. gotcha: 가격은 PricingSection·landingJsonLd·llms.txt 삼중 관리 |
 
 ---
 
@@ -385,14 +310,19 @@ TAAFT는 JS 렌더링이라 서버로는 경쟁사 등재 여부를 확인할 �
 
 | 파일 | 내용 |
 |---|---|
-| `src/lib/landingJsonLd.ts` | 랜딩 JSON-LD 3종 (Organization/SoftwareApplication/FAQPage) |
-| `public/robots.txt` | 크롤링 규칙 + sitemap 선언 |
-| `public/sitemap.xml` | 랜딩 + 약관 3종 |
+| `src/lib/landingJsonLd.ts` | 랜딩 JSON-LD 3종 |
+| `public/robots.txt` · `src/app/sitemap.ts` | 크롤링 규칙 + sitemap 자동 생성 (10-24부터 수동 파일 대체) |
+| `src/app/llms.txt/route.ts` | AI 크롤러용 사이트 요약 — 레지스트리에서 자동 생성 (force-static). gotcha: 가격 삼중 관리 |
+| `src/lib/content/blog/` | 블로그 콘텐츠 — types(규격)·posts(데이터)·blogContentServerAPI(레지스트리·검증)·blogJsonLd |
+| `src/app/blog/page.tsx` · `src/app/blog/[slug]/page.tsx` | /blog 목록 + 본문 틀 (SSG, dynamicParams=false) |
+| `src/components/page/blog/` | 블로그 템플릿 UI (Index·Post × Server/Client) |
+| `src/lib/content/blog/posts/adcreativeAiAlternatives.ts` | 글 1 초안 — AdCreative.ai 대안 (검수 대기) |
 | `public/og/og.jpg` | OG 카드(라이트, 2400×1260) |
-| `src/components/page/ad/landing/LandingPageClient.tsx` | UTM 캡처 호출 |
-| `src/lib/utm.ts` | UTM 저장·소비 |
-| `src/app/api/subscribers/` | (철회됨 — 참고용으로 없음) |
-| `db/neon/04_analytics.sql` | prod 실행 대기 (users UTM 컬럼 4개) |
-| `src/app/layout.tsx` | Cloudflare Web Analytics 스니펫 |
-| `src/app/dev/og/page.tsx` | OG 카드 캡처 개발 페이지(디렉터리용 갤러리 제작 재사용) |
-| `OPTIMIZATION_PLAN.md` | 메모리·비효율 최적화 계획(마케팅과 별개 트랙) |
+| `src/components/page/ad/public/AdFooter.tsx` | 디렉터리 배지(전용 행) |
+| `src/lib/utm.ts` · `db/neon/04_analytics.sql` | UTM 귀속 |
+| `src/app/dev/og/page.tsx` | OG·갤러리 카드 캡처 개발 페이지 |
+| `OPTIMIZATION_PLAN.md` | 메모리·비효율 최적화 계획(별도 트랙) |
+| `src/components/page/ad/landing/LandingPageClient.tsx` | 랜딩 페이지 구조 (9개 블록) |
+| `src/components/page/ad/landing/hero-section/HeroSection.tsx` | 히어로 — "Ads that don't look like AI stock" |
+| `src/components/page/ad/landing/pricing-section/PricingSection.tsx` | 가격 — 3플랜, 첫달 50% 할인 |
+| `src/components/page/ad/landing/faq-section/FAQSection.tsx` | FAQ 7개 (네이티브 details) |
