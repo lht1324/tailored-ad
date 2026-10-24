@@ -67,7 +67,7 @@ export const creatifyAlternativesPost: BlogPostContent = {
                 'Video-first: credits, templates and launchers are all video-denominated',
                 'Pricing changed in October 2026, so older reviews show different numbers',
                 'The useful team features (custom avatars, launcher, tracker) sit on Pro',
-                'Lettering rides on generated frames, so text glitches are possible',
+                'Lettering is baked into the generated frames, so text glitches are possible',
             ],
         },
         {

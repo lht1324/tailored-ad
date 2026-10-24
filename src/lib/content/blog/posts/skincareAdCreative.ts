@@ -73,14 +73,14 @@ export const skincareAdCreativePost: BlogPostContent = {
             heading: 'What stays with the brand',
             paragraphs: [
                 'AI should not write your promises. Ingredient claims, before-and-after language, SPF numbers and regulatory wording are legal statements about a product people put on their skin, and no generation pipeline should be trusted with them. The tool places the type; the words are yours to approve.',
-                'Shade honesty belongs in the same bucket. The pipeline preserves the product\u2019s identity from your photo, but color is the one property shoppers litigate most in this category. Check the render against the real product before it runs, and treat any mismatch as a stop.',
+                'Shade honesty belongs in the same bucket. The pipeline preserves the product\u2019s identity from your photo, but color is the one property shoppers scrutinize most in this category. Check the render against the real product before it runs, and pull the render if it drifts.',
             ],
         },
         {
             heading: 'A seasonal rhythm that fits AI',
             paragraphs: [
                 'Skincare calendars are dense: a launch in spring, a repackaging in summer, a gift set in winter, plus the promotions in between. Each event multiplies the same product across placements and moods. Shooting every variant is how budgets vanish; reusing three hero assets across dozens of generated scenes is how small brands keep pace.',
-                'A practical loop: shoot the hero assets once per season, upload the packshot and logo, generate batches per campaign, and let the quality gate carry the first pass of review. Ten images are free to start, with no card.',
+                'A practical loop: shoot the hero assets once per season, upload the packshot and logo, generate batches per campaign, and let the quality gate do the first pass of review. Ten images are free to start, with no card.',
             ],
         },
     ],
