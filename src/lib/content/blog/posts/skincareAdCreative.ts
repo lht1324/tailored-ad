@@ -13,7 +13,7 @@ import type { BlogPostContent } from "@/lib/content/blog/types";
 export const skincareAdCreativePost: BlogPostContent = {
     slug: 'skincare-ad-creative',
     kind: 'industry',
-    metaTitle: 'AI ad creative for skincare brands — TailoredAd',
+    metaTitle: 'AI ad creative for skincare brands',
     metaDescription:
         'Skincare ad creative with AI: clean scenes, texture close-ups, a bottle that stays consistent, and the disclosure rules for generated models. From $19/month.',
     publishedAt: '2026-10-25',

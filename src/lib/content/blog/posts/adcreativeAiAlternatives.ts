@@ -19,7 +19,7 @@ import type { BlogPostContent } from "@/lib/content/blog/types";
 export const adcreativeAiAlternativesPost: BlogPostContent = {
     slug: 'adcreative-ai-alternatives',
     kind: 'comparison',
-    metaTitle: 'AdCreative.ai alternative for still ads — TailoredAd',
+    metaTitle: 'AdCreative.ai alternative for still ads',
     metaDescription:
         'AdCreative.ai starts at $39/mo for 10 download credits, and video plus creative scoring sit behind the $249/mo plan. If you ship still ads, compare it with TailoredAd.',
     publishedAt: '2026-10-24',

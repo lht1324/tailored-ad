@@ -15,7 +15,7 @@ import type { BlogPostContent } from "@/lib/content/blog/types";
 export const predisAlternativesPost: BlogPostContent = {
     slug: 'predis-alternatives',
     kind: 'comparison',
-    metaTitle: 'Predis.ai alternative for ad stills — TailoredAd',
+    metaTitle: 'Predis.ai alternative for ad stills',
     metaDescription:
         'Predis.ai bundles a social calendar with ad generation on one shared credit pool. If you need ad stills with exact type, compare it with TailoredAd.',
     publishedAt: '2026-10-25',
