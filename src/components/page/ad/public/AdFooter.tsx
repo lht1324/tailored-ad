@@ -25,27 +25,7 @@ function AdFooter() {
                     </p>
                 </div>
                 <div className="flex flex-col items-start gap-5 md:items-end">
-                    {/* 디렉터리 배지 — 미래 증설 대비 별도 행. 검증기가 서버 렌더 HTML의 링크를 읽음. */}
-                    <div className="flex flex-wrap items-center gap-3">
-                        <a
-                            href="https://brofindai.com/tools/tailoredad-355eab"
-                            target="_blank"
-                            rel="noopener"
-                            className="shrink-0 overflow-hidden rounded-[8px]"
-                            aria-label="TailoredAd on Bro Find AI"
-                        >
-                            {/* 배지 원본 SVG URL을 그대로 써야 검증기가 img src를 찾음 */}
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                                src="https://brofindai.com/api/badge/tailoredad-355eab.svg"
-                                alt="TailoredAd on Bro Find AI"
-                                width={250}
-                                height={54}
-                                className="h-[54px] w-[250px]"
-                            />
-                        </a>
-                    </div>
-<div className="flex flex-wrap items-center gap-x-8 gap-y-4">
+                    <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
                         {FOOTER_LINKS.map((link) => (
                             <a
                                 key={link.href}
