@@ -142,7 +142,7 @@ adgenai.com/ko-blog-posts/…  "크리에이티브 자동화 도구: 추천 및 
 | `/blog/best-ai-ad-tools` | best AI ad creative tools | 카테고리 리스트클 (경쟁사 + 우리, 정직한 한 줄씩) |
 | `/blog/ecommerce-ad-creative` | AI 광고 크리에이티브 (업종) | 업종 가이드 (멀티채널 셀링 관점) |
 | `/blog/skincare-ad-creative` | 동일 (업종 2) | 업종 가이드 |
-| `/llms.txt` | (AI 크롤러) | 요약 (stork.ai 생성기) |
+| `/llms.txt` | (AI 크롤러) | 요약 — ✅ **완료 (10-25)**. `src/app/llms.txt/route.ts`가 레지스트리에서 자동 생성 (force-static 프리렌더) |
 
 **경로 결정 (10-23)**: 루트 흩뿌리기✗ · `/resources`✗(사장님: "보관함 느낌") · `/blog` 채택. 블로그지만 **페이지 본체는 판매 문서 틀** (날짜·저자 없음, CTA 반복). 중간 폴더 없이 목록 페이지 안에서 섹션 구분. URL은 색인 후 변경 금지 — 지금 결정이 최종.
 
@@ -262,13 +262,14 @@ Reddit 광고($100~200 테스트) · PH 광고(프런티어 안 함, 광고로�
 6. [x] 사장님: GSC https 색인 요청 + sitemap.xml 제출
 7. [x] 저: AI 인용 기준선 측정 완료 (2건 질의, 0건 인용)
 8. [ ] 사장님: prod 브랜치에 `db/neon/04_analytics.sql` 실행 (UTM 기록 켜기 — 배포 불필요, 코드 이미 prod 배포됨)
-9. [ ] 사장님: `/blog`·`/blog/adcreative-ai-alternatives` eyeball (글 1 카피 검수, dev 서버)
+9. [x] 사장님: `/blog` 글 6장 검수 통과 (10-25 "이상은 없어")
 10. [x] 저: 블로그 콘텐츠 시스템 구축 완료 (10-24, `5fec645` — 동적 [slug]·레지스트리 분리·sitemap 자동화·JSON-LD·글 1 초안)
-11. [ ] 저: 나머지 글 5장 (creatify · predis · best-ai-ad-tools · ecommerce · skincare — 승인된 규격으로)
-12. [ ] 저: 랜딩 헤더·푸터에 `/blog` 링크 (승인 필요 — 현재 orphan)
-13. [ ] 저: `/llms.txt` (stork.ai 생성기)
+11. [x] 저: 나머지 글 5장 완료 (10-25, `fab6f41` — creatify·predis·best-ai-ad-tools·ecommerce·skincare)
+12. [x] 저: 푸터에 Blog 링크 추가 (10-25, `8476002` — orphan 해소)
+13. [x] 저: `/llms.txt` 완료 (10-25 — 레지스트리 자동 생성, force-static)
 14. [ ] 저: 3단계 준비 — 타깃 30곳(DTC 브랜드 + 드랍쉬퍼) + 크리에이티브 30장 + 메일 카피
-15. [ ] 사장님: 3단계 발송 → 4단계 진입 여부 결정
+15. [ ] 사장님: 릴리즈 머지 + 배포 판단 (블로그 시스템 전체 + 배지 제거 + llms.txt 탑재)
+16. [ ] 사장님: 3단계 발송 → 4단계 진입 여부 결정
 
 ## 10. 11월 (조건부)
 - 4단계 유료 증폭(unfair.so 5~7 quote, $100~250)
@@ -300,6 +301,8 @@ Reddit 광고($100~200 테스트) · PH 광고(프런티어 안 함, 광고로�
 | 10-24 | AdCreative.ai 가격 실측 검증 | 출처 4곳 교차 일치: $39/10크레딧·$249/50·$999/100. 2026년 Professional 크레딧 100→50 삭감(동일가). video·scoring은 $249 이상 |
 | 10-25 | ★ 카피 제1원칙 채택 | AI 냄새 제거. 체크리스트 §5.4 (엠대시 0·자기평가 부사 금지·"X, not Y" 1개 이하·triad 금지·표어 금지). 글 1 전면 퇴고 완료 |
 | 10-25 | Bro Find AI 배지 제거 | 목적(dofollow·블루틱) 달성 확인 후 실>득 판정 — "0 UPVOTES" 역사회증거 + 시각적 지배. 재부착 가능하니 되돌릴 수 있는 결정 |
+| 10-25 | 블로그 글 6장 완성·검수 통과 |Creatify·Predis 가격 2026-10 개편 실측 반영 (구 리뷰와 다른 현재가). 원어민 관용구 자체 교정 4건 + 사장님 검수 통과 |
+| 10-25 | llms.txt 레지스트리 연동 | 정적 파일 대신 `src/app/llms.txt/route.ts` 자동 생성 — 새 글 추가 시 무수정. gotcha: 가격은 PricingSection·landingJsonLd·llms.txt 삼중 관리 |
 
 ---
 
@@ -309,6 +312,7 @@ Reddit 광고($100~200 테스트) · PH 광고(프런티어 안 함, 광고로�
 |---|---|
 | `src/lib/landingJsonLd.ts` | 랜딩 JSON-LD 3종 |
 | `public/robots.txt` · `src/app/sitemap.ts` | 크롤링 규칙 + sitemap 자동 생성 (10-24부터 수동 파일 대체) |
+| `src/app/llms.txt/route.ts` | AI 크롤러용 사이트 요약 — 레지스트리에서 자동 생성 (force-static). gotcha: 가격 삼중 관리 |
 | `src/lib/content/blog/` | 블로그 콘텐츠 — types(규격)·posts(데이터)·blogContentServerAPI(레지스트리·검증)·blogJsonLd |
 | `src/app/blog/page.tsx` · `src/app/blog/[slug]/page.tsx` | /blog 목록 + 본문 틀 (SSG, dynamicParams=false) |
 | `src/components/page/blog/` | 블로그 템플릿 UI (Index·Post × Server/Client) |
