@@ -206,5 +206,5 @@ export const adcreativeAiAlternativesPost: BlogPostContent = {
     ],
 
     ctaLabel: 'Create your first ad',
-    relatedSlugs: [],
+    relatedSlugs: ['best-ai-ad-tools', 'creatify-alternatives'],
 };

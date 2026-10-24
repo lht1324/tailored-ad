@@ -1,5 +1,10 @@
 import type { BlogPostContent } from "@/lib/content/blog/types";
 import { adcreativeAiAlternativesPost } from "@/lib/content/blog/posts/adcreativeAiAlternatives";
+import { creatifyAlternativesPost } from "@/lib/content/blog/posts/creatifyAlternatives";
+import { predisAlternativesPost } from "@/lib/content/blog/posts/predisAlternatives";
+import { bestAiAdToolsPost } from "@/lib/content/blog/posts/bestAiAdTools";
+import { ecommerceAdCreativePost } from "@/lib/content/blog/posts/ecommerceAdCreative";
+import { skincareAdCreativePost } from "@/lib/content/blog/posts/skincareAdCreative";
 
 /**
  * 블로그 콘텐츠 레지스트리 + 로더 — 데이터(posts/*)와 접근(이 파일) 분리.
@@ -17,6 +22,11 @@ import { adcreativeAiAlternativesPost } from "@/lib/content/blog/posts/adcreativ
 /** 레지스트리 — 실제 글 목록. 여기 한 줄이 배포 스위치다. */
 const REGISTRY: readonly BlogPostContent[] = [
     adcreativeAiAlternativesPost,
+    creatifyAlternativesPost,
+    predisAlternativesPost,
+    bestAiAdToolsPost,
+    ecommerceAdCreativePost,
+    skincareAdCreativePost,
 ];
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
