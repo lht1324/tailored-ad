@@ -54,7 +54,7 @@ export default function BlogIndexPageClient({ posts }: { posts: BlogPostContent[
                             Comparisons &amp; guides for AI ad creative.
                         </h1>
                         <p className="mt-5 text-[17px] leading-relaxed text-text2">
-                            Honest breakdowns of AI ad tools — what they cost, where they fit, and who should stay away. Written to be quoted, not to rank.
+                            Side-by-side comparisons of AI ad tools, with prices checked on the date each post was published. Some tools win. Some do not.
                         </p>
                     </Reveal>
 

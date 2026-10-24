@@ -4,7 +4,7 @@ import BlogIndexPageServer from "@/components/page/blog/BlogIndexPageServer";
 export const metadata: Metadata = {
     title: "Blog — TailoredAd",
     description:
-        "Honest comparisons and guides for AI ad creative tools: what they cost, where each fits, and who should stay away. Written to be quoted.",
+        "Side-by-side comparisons of AI ad creative tools: verified prices, listed weaknesses, and a clear note on who each tool fits.",
     alternates: {
         canonical: "https://tailoredad.com/blog",
     },
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
         url: "https://tailoredad.com/blog",
         title: "Blog — TailoredAd",
         description:
-            "Honest comparisons and guides for AI ad creative tools: what they cost, where each fits, and who should stay away.",
+            "Side-by-side comparisons of AI ad creative tools: verified prices, listed weaknesses, and a clear note on who each tool fits.",
         siteName: "TailoredAd",
     },
 };

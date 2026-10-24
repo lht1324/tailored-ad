@@ -155,21 +155,43 @@ adgenai.com/ko-blog-posts/…  "크리에이티브 자동화 도구: 추천 및 
 - `src/app/sitemap.ts` 자동 생성으로 전환 (수동 `public/sitemap.xml` 삭제). lastmod = 글 updatedAt.
 - 사장님 확인: 글 1 eyeball (dev 서버) · 랜딩 헤더·푸터에 `/blog` 링크 추가 여부 (현재 orphan — 화면 변경이라 승인 필요)
 
-### 5.4 참고: 한국어 경쟁자 3개 발견 (신규 인텔)
+### 5.4 ★ 카피 제1원칙 — AI 냄새 제거 (10-25 사장님 지시. 모든 글에 적용)
+
+> **글은 사람이 쓴 것처럼. AI가 쓴 것처럼 읽히는 순간 그 글은 신뢰를 잃고, 인용도 안 된다.**
+
+**집필 전 체크리스트 (통과 못 하면 출고 금지):**
+| # | 규칙 | 근거 |
+|---|---|---|
+| 1 | **엠대시(—) 0개.** 마침표·쉼표·콜론으로 쪼갠다. 단, metaTitle의 브랜드 구분자("— TailoredAd")는 브랜드 서식이므로 예외 | 09-22 랜딩 de-AI 선례 |
+| 2 | **자기평가 부사 금지**: honest·honestly·genuinely·actually·really·simply. 증거(숫자·출처)가 말하게 한다 | "Honest breakdowns"류는 오히려 AI 지문 |
+| 3 | **"X, not Y" 구문은 페이지당 1개 이하.** "typeset, not generated"류 연타가 최다 지문 | 스킬: confident over qualified |
+| 4 | **3항 나열(triad) 연타 금지.** 리스트 길이를 2·3·4로 섞고 문장 길이도 섞는다 | "X, Y, and Z" 리듬 = 대표 AI 지문 |
+| 5 | **격언식 표어 금지**: "Written to be quoted, not to rank", "The dividing line is...", "The short answer"류. 페이지당 1개 이하 | 뽀샵식 마무리는 AI 서명 |
+| 6 | **같은 정보 두 번 말하지 않기** — subheadline과 섹션 제목이 같은 말 반복 금지 | 초안에서 "five minutes" 2회 발견 |
+| 7 | **같은 형용사 반복 점검** — pixel-exact·deterministic 같은 브랜드 어휘도 본문 3회 초과면 줄인다 | |
+| 8 | **스타카토 연타 금지** — 짧은 단문 3연속은 AI 리듬. 길이를 섞는다 | |
+| 9 | **수동태·명사화 금지** — "-tion/-ment" 남용, "is generated"류. 능동으로 | 스킬: active over passive |
+| 10 | **구체 숫자는 유지·출처 명시** — 구체성이 사람의 글이다. 가격·날짜·검증 출처를 쓴다 | 스킬: specificity over vagueness |
+
+**퇴고 절차**: 초안 → 위 체크리스트 통과 → grep으로 엠대시·부사 잔여 검사(0건 확인) → 사장님 eyeball.
+
+**10-25 글 1 적용 실적**: 엠대시 12→0, "honest/genuinely" 5→0, "X, not Y" 6→1(headline 1곳만 생존), 격언 표어 3→0, "five minutes" 중복 제거, "typos and warped glyphs" 3→2회.
+
+### 5.5 참고: 한국어 경쟁자 3개 발견 (신규 인텔)
 `draph.art(드랍아트)` · `nextify.ai` · `jenova.ai` — 한국어 AI 광고 툴이며 **한국어 AI 질의에서 이미 인용되고 있다.** 영어권은 AdCreative·Creatify가 쥐고 있으니, 한국어 콘텐츠로 진입하는 쪽이 빈틈일 수 있다. (우리 사이트는 영어 — 별도 결정 필요, 지금은 보류)
 
-### 5.5 타겟 재정의 (10-23)
+### 5.6 타겟 재정의 (10-23)
 **지속 구매자 (LTV 높음)**: 소규모 DTC 브랜드 (1~10명 팀) — 신제품 정기 출시 + 브랜드 일관성 + 디자이너 부재. LTV $200~600/년
 **첫 고객 (LTV 낮음)**: 글로벌 드랍쉬퍼 (광고型) — 제품 수명 2~6주, LTV $40~120/년. 첫 결제 용도로 좋음
 **메시지 분리**: DTC 브랜드용 = "Brand-consistent ad creatives for teams without a designer" / 드랍쉬퍼용 = "Product photo → ad in 5 formats, exact type. Test 30 variants risk-free."
 
-### 5.6 도달 방법 (채널 전략)
+### 5.7 도달 방법 (채널 전략)
 - **DTC 브랜드**: Google 검색 ("AI ad creative", "AdCreative alternative") → 2단계 SEO 콘텐츠가 주 채널
 - **드랍쉬퍼**: 커뮤니티 (Facebook 그룹, Reddit, TikTok) → 3단계 시딩
 - **공통**: 디렉터리 (SaaSHub, Bro Find AI, Future Tools, AIToolsRecap) + AI 검색 인용 (llms.txt)
 - **하지 말 것**: PH 런치, TAAFT $49, Toolify $99, 100곳 스프레이, 측정 전 유료 광고
 
-### 5.7 Shopify 조사 완료 (10-23)
+### 5.8 Shopify 조사 완료 (10-23)
 Shopify = "누구나 온라인 가게를 열 수 있게 해주는 인터넷 상가 건물". 2025 GMV $378B, 매출 $11.6B, 활성 스토어 ~280~500만, 175+ 국가. 드랍쉬핑 = Shopify의 핵심 사용 사례. App Store = 유통 채널 (21,000+ 앱, $1.3B 개발자 지급). AI 광고 크리에이티브는 아직 내장 안 함 → TailoredAd의 자리 실재. App Store 진입은 3단계 이후 검증 뒤 결정.
 
 ---
@@ -273,6 +295,7 @@ Reddit 광고($100~200 테스트) · PH 광고(프런티어 안 함, 광고로�
 | 10-23 | `/blog` 우산 + 동적 [slug] 채택 | 루트 흩뿌리기✗·resources✗(보관함 느낌)·blog✓(선례 wireflow). 본체는 판매 문서 틀. 중간 폴더 없이 목록 섹션 구분 |
 | 10-24 | 블로그 콘텐츠 시스템 (`5fec645`) | 새 글 = 파일 1개 + 레지스트리 1줄. 데이터/로더 분리(POST_ 패턴). sitemap 자동화. 레지스트리 밖 슬러그 404 |
 | 10-24 | AdCreative.ai 가격 실측 검증 | 출처 4곳 교차 일치: $39/10크레딧·$249/50·$999/100. 2026년 Professional 크레딧 100→50 삭감(동일가). video·scoring은 $249 이상 |
+| 10-25 | ★ 카피 제1원칙 채택 | AI 냄새 제거. 체크리스트 §5.4 (엠대시 0·자기평가 부사 금지·"X, not Y" 1개 이하·triad 금지·표어 금지). 글 1 전면 퇴고 완료 |
 
 ---
 

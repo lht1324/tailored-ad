@@ -11,40 +11,44 @@ import type { BlogPostContent } from "@/lib/content/blog/types";
  *
  * ⚠️ 가격은 변한다. 재발행 시 위 출처를 다시 확인하고 updatedAt을 갱신할 것.
  * TailoredAd 측 수치는 Dodo 카탈로그(19/49/99, 첫달 50%)가 진실.
+ *
+ * 카피 제1원칙: AI 냄새 제거 (10-25 사장님 지시, MARKETING_PLAN §5.8 체크리스트 통과본).
+ * — 엠대시 0 (metaTitle의 브랜드 구분자 제외) · "honest/genuinely" 0 · "X, not Y" 전체 1개(headline) ·
+ *   격언식 표어 금지 · 정보 중복 제거 (five minutes 2회 → 1회, typos 문장 3회 → 2회).
  */
 export const adcreativeAiAlternativesPost: BlogPostContent = {
     slug: 'adcreative-ai-alternatives',
     kind: 'comparison',
     metaTitle: 'AdCreative.ai alternative for still ads — TailoredAd',
     metaDescription:
-        'AdCreative.ai starts at $39/mo for 10 download credits, with video and scoring behind the $249/mo plan. If you ship still ads, see how TailoredAd compares.',
+        'AdCreative.ai starts at $39/mo for 10 download credits, and video plus creative scoring sit behind the $249/mo plan. If you ship still ads, compare it with TailoredAd.',
     publishedAt: '2026-10-24',
-    updatedAt: '2026-10-24',
+    updatedAt: '2026-10-25',
 
     eyebrow: 'AdCreative.ai alternative',
     headline: 'AdCreative.ai alternative: ad images with the type placed, not painted',
     subheadline:
-        'AdCreative.ai is the biggest name in AI ad creative, built around a monthly credit pool and — on higher tiers — video. If what you actually ship is still ads, the comparison below takes about five minutes.',
+        'AdCreative.ai is the biggest name in AI ad creative. Its plans run on a monthly credit pool, and video sits on the higher tiers. If what you ship is still ads, read the comparison below before you pick a plan.',
 
     quickAnswer: [
-        'Stay on AdCreative.ai if you want its Creative Scoring model, video ad formats, and multi-brand seats — and if a monthly credit pool of 10 to 100 downloads matches your volume. Plans run $39/month for 10 credits, $249/month for 50, and $999/month for 100, with video and scoring on the $249 tier.',
-        'Consider TailoredAd if you ship still ads. One design renders into 1:1, 4:5, 9:16, 16:9 and 2:3, the headline, CTA and logo are composited pixel-exact instead of painted by the model, and billing is per finished image: $19/month for 100 images, $49 for 500, $99 for 1,000 — first month half price.',
-        'The dividing line is text. If a mangled AI-rendered headline has ever burned one of your ads, that single difference is the product: TailoredAd guarantees the type because it is rendered, not generated.',
+        'AdCreative.ai fits teams that want its Creative Scoring model, video ad formats, and multi-brand seats. Plans run $39/month for 10 credits, $249/month for 50, and $999/month for 100. Video and creative scoring are on the $249 tier.',
+        'TailoredAd fits teams that ship still ads. One layout exports as 1:1, 4:5, 9:16, 16:9 and 2:3. The headline, CTA and logo are placed by code rather than painted by the model, and billing is per finished image: $19/month for 100 images, $49 for 500, $99 for 1,000. The first month is half price.',
+        'Text is where the two split. AdCreative.ai asks the model to paint the headline. TailoredAd composites it with code, so typos and warped glyphs cannot reach the export.',
     ],
 
     keyTakeaways: [
-        'AdCreative.ai: $39/mo (10 credits), $249/mo (50), $999/mo (100) on monthly billing. Video and Creative Scoring sit on Professional. In 2026 the Professional allocation was halved from 100 to 50 credits at the same price.',
-        'TailoredAd: $19/100, $49/500, $99/1,000 images per month. You pay for finished images only — failed generations are free — and unused images never expire.',
-        'Type handling is the real fork: AdCreative.ai paints lettering with the model; TailoredAd composites headline, CTA and logo deterministically, so typos and warped glyphs cannot reach the export.',
+        'AdCreative.ai: $39/mo (10 credits), $249/mo (50), $999/mo (100) on monthly billing. Video and Creative Scoring sit on Professional. In 2026 the Professional allocation was cut from 100 to 50 credits at the same price.',
+        'TailoredAd: $19/100, $49/500, $99/1,000 images per month. You pay for finished images only. Failed generations are free, and unused images never expire.',
+        'Product photos stay identical across scenes. Upload one product shot and your logo, and every background is generated around them with matching light and shadow.',
     ],
 
     table: {
-        caption: 'Monthly billing side by side (prices checked October 24, 2026 — verify current plans before purchase)',
+        caption: 'Monthly billing side by side. Prices checked October 24, 2026. Verify current plans before purchase.',
         columns: ['', 'AdCreative.ai', 'TailoredAd'],
         rows: [
-            ['Entry plan', '$39/mo — 10 credits', '$19/mo — 100 images'],
-            ['Mid plan', '$249/mo — 50 credits', '$49/mo — 500 images'],
-            ['Top plan', '$999/mo — 100 credits', '$99/mo — 1,000 images'],
+            ['Entry plan', '$39/mo, 10 credits', '$19/mo, 100 images'],
+            ['Mid plan', '$249/mo, 50 credits', '$49/mo, 500 images'],
+            ['Top plan', '$999/mo, 100 credits', '$99/mo, 1,000 images'],
             ['What one unit buys', '1 credit ≈ 1 download', '1 image = 1 finished render'],
             ['Output type', 'Stills and video', 'Stills only'],
             ['Video features', 'Professional ($249/mo) and above', 'Not offered'],
@@ -65,9 +69,9 @@ export const adcreativeAiAlternativesPost: BlogPostContent = {
                 'The most recognized brand in the category',
             ],
             cons: [
-                'Monthly download credits — heavy use repriced at roughly $3.90–$4.98 per credit',
+                'Monthly download credits. Heavy use repriced at roughly $3.90 to $4.98 per credit',
                 'Creative Scoring and video require the $249/mo Professional plan',
-                "Professional's credit allocation was halved (100 → 50) in 2026 at the same price",
+                "Professional's credit allocation was halved (100 to 50) in 2026 at the same price",
                 'Lettering is generated, so typos and warped glyphs are possible on exports',
             ],
         },
@@ -76,14 +80,14 @@ export const adcreativeAiAlternativesPost: BlogPostContent = {
             bestFor: 'Teams shipping still ads that need exact typography and brand-consistent product shots',
             pricingFrom: '$19/mo (100 images, first month $9.50)',
             pros: [
-                'Headlines, CTA and logo are composited deterministically — no AI letter artifacts',
+                'Headlines, CTA and logo are composited deterministically, with no AI letter artifacts',
                 'One layout renders into 1:1, 4:5, 9:16, 16:9 and 2:3',
                 'Pay per finished image; failed generations are free',
                 'Unused images never expire; downloads and edits are unlimited',
                 'Product-only mode contains no synthetic people, so no AI-person tagging workflow',
             ],
             cons: [
-                'Still images only — no video ads',
+                'Still images only, no video ads',
                 'No competitor-insights or creative-scoring model',
                 'Young product: smaller template library and shorter track record',
             ],
@@ -94,20 +98,20 @@ export const adcreativeAiAlternativesPost: BlogPostContent = {
         {
             heading: 'Why teams look for an AdCreative.ai alternative',
             paragraphs: [
-                'AdCreative.ai earned its position: it is the most recognized name in AI ad creative, and its Creative Scoring model — which ranks candidates by predicted performance — is genuinely useful for teams that test at volume. The friction shows up in the billing model and the output format, not in recognition.',
-                'Three reasons come up repeatedly:',
+                'AdCreative.ai earned its position. It is the most recognized name in AI ad creative, and its Creative Scoring model, which ranks candidates by predicted performance, is useful for teams that test at volume. The billing model and the output format are where the friction shows up.',
+                'Three things come up again and again:',
             ],
             bullets: [
-                "Credits, not volume. Starter includes 10 download credits for $39 — roughly $3.90 per credit. In 2026 the Professional plan's allocation was halved from 100 to 50 credits at the same $249 price, moving the effective cost per credit from about $2.49 to $4.98.",
-                'The paywall sits where the value is. Creative Scoring and video ad formats are reported on the $249/month Professional plan, so a team that wants scoring is paying for video whether or not it ships video.',
-                'Generated lettering. When the model paints the headline, typos and warped glyphs are possible on any export. For ads where the sentence is the offer, that is a rejection reason, not a style choice.',
+                "The credit pool runs out fast. Starter includes 10 download credits for $39, which works out to roughly $3.90 per credit. In 2026 the Professional allocation was halved from 100 to 50 credits at the same $249 price, so the cost per credit went from about $2.49 to $4.98.",
+                'The paywall sits where the value is. Creative Scoring and video ad formats are reported on the $249/month Professional plan, so a team that wants scoring pays for video whether or not it ships video.',
+                'Generated lettering. When the model paints the headline, typos and warped glyphs are possible on any export. For ads where the sentence is the offer, a warped headline is a rejection reason.',
             ],
         },
         {
             heading: 'What TailoredAd does differently',
             paragraphs: [
-                'TailoredAd is built backwards from a still-ad workflow. You upload one product photo (plus your logo, and optionally a reference person you own the rights to); the system generates a batch of scene candidates, filters them through a quality gate, and shows you only the ones worth looking at.',
-                'The layout is then typeset, not generated. A layout model decides where the headline, call to action and logo go, and the final render places that text deterministically — the same way a browser renders a web page. Pixel-exact type is a property of the pipeline, not a lucky roll.',
+                'TailoredAd is built backwards from a still-ad workflow. You upload one product photo, plus your logo and optionally a reference person you own the rights to. The system generates a batch of scene candidates, filters them through a quality gate, and shows you only the ones worth looking at.',
+                'The layout is then typeset. A layout model decides where the headline, call to action and logo go, and the final render places that text with code, the same way a browser renders a web page. Pixel-exact type comes from the pipeline itself.',
             ],
             bullets: [
                 'One layout, five formats: every approved creative exports as 1:1, 4:5, 9:16, 16:9 and 2:3 from the same composition.',
@@ -119,38 +123,38 @@ export const adcreativeAiAlternativesPost: BlogPostContent = {
         {
             heading: 'When staying on AdCreative.ai is the right call',
             paragraphs: [
-                'A fair comparison says this plainly: for some teams, AdCreative.ai is the better fit.',
+                'Some teams should stay on AdCreative.ai. If two or more of these describe you, stay put:',
             ],
             bullets: [
-                'You ship video ads as a primary format. TailoredAd does not make video; this alone can decide it.',
+                'You ship video ads as a primary format. TailoredAd does not make video, and this alone can decide it.',
                 'You want Creative Scoring to rank candidates by predicted performance instead of judging them yourself.',
-                'You manage many brands and seats — Professional covers 10 brands and 10 users, Ultimate 25 and 20.',
-                'Your volume genuinely fits a credit pool: a few high-variance downloads per month can be cheaper on credits than a subscription.',
+                'You manage many brands and seats. Professional covers 10 brands and 10 users, Ultimate covers 25 and 20.',
+                'Your volume fits a credit pool: a few high-variance downloads per month can be cheaper on credits than a subscription.',
             ],
         },
         {
             heading: 'A note on AI disclosure rules (2026)',
             paragraphs: [
-                'Since July 2026, Amazon requires sellers to tag listing images and A+ content that contain photorealistic AI-generated people, following New York\u2019s synthetic-performer disclosure law. Images with AI-generated backgrounds, props or products — no synthetic people — are outside that requirement.',
-                'This matters when comparing tools: pipelines that insert AI models into product shots now carry a disclosure workflow on Amazon. TailoredAd\u2019s product-only mode contains no people at all, so its output has no such tagging requirement; if you add a generated model to a scene, you own any disclosure your channel requires.',
+                'Since July 2026, Amazon requires sellers to tag listing images and A+ content that contain photorealistic AI-generated people, following New York\u2019s synthetic-performer disclosure law. Images with AI-generated backgrounds, props or products, with no synthetic people in frame, are outside that requirement.',
+                'This matters when you compare tools, because pipelines that insert AI models into product shots now carry a disclosure workflow on Amazon. TailoredAd\u2019s product-only mode contains no people at all, so its output has no such tagging requirement. If you add a generated model to a scene, you own any disclosure your channel requires.',
             ],
         },
         {
             heading: 'How to choose in five minutes',
             paragraphs: ['Ignore feature lists for a moment and answer five questions:'],
             bullets: [
-                'What do you actually ship — stills, video, or both?',
-                'How does the headline reach the final file: rendered by code, or painted by a model?',
+                'What do you actually ship: stills, video, or both?',
+                'How does the headline reach the final file? Rendered by code, or painted by a model?',
                 'What is the billing unit, and what happens to allowance you did not spend?',
-                'Does any channel you sell on require AI-person disclosure — and does your pipeline create it?',
-                'Which tool survives a test with your own product photo? Both have trials or free tiers — run the same photo through both.',
+                'Does any channel you sell on require AI-person disclosure, and does your pipeline create one?',
+                'Which tool survives a test with your own product photo? Both have trials or free tiers. Run the same photo through both.',
             ],
         },
         {
-            heading: 'The short answer',
+            heading: 'Where that leaves you',
             paragraphs: [
-                'If the answers point at stills, exact type, and per-image billing, TailoredAd is built for that job. Start with the 10 free images and compare the export against whatever you run today.',
-                'If they point at video, scoring, and multi-brand seats, AdCreative.ai is the honest pick — and this page will still be here if that changes.',
+                'If your work is stills and the text has to be right, try TailoredAd with the 10 free images and compare the export against whatever you run today.',
+                'If video, scoring, and seat-heavy teams describe your week, AdCreative.ai is the better pick. This page will still be here if that changes.',
             ],
         },
     ],
@@ -159,7 +163,7 @@ export const adcreativeAiAlternativesPost: BlogPostContent = {
         {
             question: 'Is TailoredAd a full AdCreative.ai replacement?',
             answer: [
-                'No. TailoredAd does not produce video ads and has no creative-scoring model. For still-image workflows it covers the core loop — product photo to batch, quality gate, typeset layout, five export formats — which is where the two products overlap.',
+                'No. TailoredAd does not produce video ads and has no creative-scoring model. For still-image workflows it covers the core loop: product photo to batch, quality gate, typeset layout, and five export formats.',
             ],
         },
         {
@@ -201,6 +205,6 @@ export const adcreativeAiAlternativesPost: BlogPostContent = {
         },
     ],
 
-    ctaLabel: 'Create your first ad — 10 free images',
+    ctaLabel: 'Create your first ad',
     relatedSlugs: [],
 };

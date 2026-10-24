@@ -145,9 +145,9 @@ function CtaBand({ post }: { post: BlogPostContent }) {
         <Reveal>
             <div className="mt-16 flex flex-col items-start justify-between gap-6 rounded-[1.5rem] bg-text1 p-8 md:flex-row md:items-center md:p-10">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-canvas">Ready to test it on your own product?</h2>
+                    <h2 className="text-2xl font-bold tracking-tight text-canvas">Test it on your own product first.</h2>
                     <p className="mt-2 text-[15px] leading-relaxed text-canvas/70">
-                        10 free images, no card required. Your product, your type, five formats.
+                        10 free images, no card required. See how your product looks before you pay anything.
                     </p>
                 </div>
                 <Link
