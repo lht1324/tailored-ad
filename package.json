@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "dev:worker": "next dev --webpack",
+    "dev": "next dev -p 3002",
+    "dev:worker": "next dev --webpack -p 3003",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

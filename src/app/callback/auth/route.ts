@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
             // verifier 미교환 상태 — 서버 쿠키에 세션이 아직 없음.
             // 쿼리(verifier 포함) 유지한 채 클라 세션 페이지로 넘기면
             // SDK가 verifier를 교환(쿠키 설정)한 뒤 여기로 복귀한다.
-            const origin = process.env.NODE_ENV === 'production' ? request.url : "http://localhost:3000";
+            const origin = process.env.NODE_ENV === 'production' ? request.url : "http://localhost:3002";
             return NextResponse.redirect(
                 new URL(`/callback/session?${request.nextUrl.searchParams.toString()}`, origin),
             );
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
             ? redirectTo
             : defaultPath
 
-        return NextResponse.redirect(new URL(redirectPath, process.env.NODE_ENV === 'production' ? request.url : "http://localhost:3000"))
+        return NextResponse.redirect(new URL(redirectPath, process.env.NODE_ENV === 'production' ? request.url : "http://localhost:3002"))
     } catch (error) {
         console.error('Unexpected auth callback error:', error)
         return NextResponse.redirect(new URL('/sign-in?error=oauth_failed', request.url))

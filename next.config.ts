@@ -11,7 +11,7 @@ const isDocker = process.env.DOCKER === "true";
  * dev 서버가 .next/dev/types/*.ts(typed routes)를 쓰는 동안 prod 빌드의 타입체크가
  * 같은 파일을 읽으면 문법 오류로 빌드가 죽는다(10-20 실측: routes.d.ts ';' expected).
  * OpenNext는 prod distDir 커스텀을 지원하지 않으므로(prod는 .next 고정) dev만 옮긴다.
- *   로컬 dev(3000) → .next-dev / 도커 dev(3001) → .next-docker / prod 빌드 → .next
+ *   로컬 dev(3002) → .next-dev / 도커 dev(3003) → .next-docker / prod 빌드 → .next
  */
 const distDir =
     process.env.NEXT_DIST_DIR ?? (isDocker ? ".next-docker" : isDev ? ".next-dev" : ".next");
@@ -102,7 +102,7 @@ const nextConfig: NextConfig = {
             value:
               process.env.NODE_ENV === "production"
                 ? "https://tailoredad.com"
-                : "http://localhost:3000",
+                : "http://localhost:3002",
           },
           {
             key: "Access-Control-Allow-Methods",

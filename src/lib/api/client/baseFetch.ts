@@ -4,7 +4,7 @@ function getRootPath(route: string) {
     if (isProd || route.includes("http")) {
         return "";
     }
-    // dev 전용 — 클라(3000) → API 서버(3001) 직행 베이스. NEXT_PUBLIC_*는 빌드타임 주입.
+    // dev 전용 — 클라(3002) → API 서버(3003) 직행 베이스. NEXT_PUBLIC_*는 빌드타임 주입.
     // 누락 시 문자열 "undefined" URL이 되지 않게 동일 출처(빈 값)로 폴백.
     return process.env.NEXT_PUBLIC_BASE_URL || "";
 }
