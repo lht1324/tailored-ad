@@ -36,13 +36,11 @@ function readEnvFlag(key: string): string | undefined {
     return undefined;
 }
 
-// dev HMR 허용 호스트 — ngrok 경유 접속 시에만 (재시작마다 바뀌므로 env에서 파생, 하드코딩 금지)
-const ngrokHostname = (() => {
+// dev HMR 허용 호스트 — 터널(ngrok·Cloudflare) 경유 접속 시에만 (env에서 파생, 하드코딩 금지)
+const devTunnelHostname = (() => {
     try {
         const { hostname } = new URL(process.env.NEXT_PUBLIC_BASE_URL ?? "");
-        return hostname.endsWith(".ngrok-free.dev") || hostname.endsWith(".ngrok.io")
-            ? hostname
-            : null;
+        return hostname && hostname !== "localhost" && hostname !== "127.0.0.1" ? hostname : null;
     } catch {
         return null;
     }
@@ -50,7 +48,7 @@ const ngrokHostname = (() => {
 
 const nextConfig: NextConfig = {
   distDir,
-  ...(isDev && ngrokHostname ? { allowedDevOrigins: [ngrokHostname] } : {}),
+  ...(isDev && devTunnelHostname ? { allowedDevOrigins: [devTunnelHostname] } : {}),
 
   // dev 도구 인디케이터(N 배지) 토글 — 스크린샷 촬영 세션에서만 숨김.
   // .env(.env.local)에 HIDE_DEV_INDICATOR=1 을 넣으면 배지 사라지고, 0 또는 줄 삭제면 다시 뜸.
