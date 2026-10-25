@@ -3,7 +3,7 @@ services:
         build: .
         container_name: tailored-ad-server
         ports:
-            - "3003:3000"
+            - "3003:3003"
         volumes:
             - ./:/workdir
             - /workdir/node_modules
