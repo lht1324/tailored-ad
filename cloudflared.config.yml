@@ -1,0 +1,34 @@
+# Cloudflare Tunnel 설정 — 실제 사용 파일은 터널 호스트 PC의 ~/.cloudflared/config.yml
+# 이 파일은 버전 관리용 참고본. 변경 시 실제 파일에도 동일 반영할 것.
+#
+# 구조: 터널 1개(dev) + ingress 항목 나열. 프로세스 1개가 전 프로젝트 처리.
+# ⚠️ 터널은 계정 소속 — 동시에 여러 PC에서 run 금지 (양쪽에 번갈아 라우팅돼 502 유발).
+#    dev 호스트인 PC에서만 run.
+# ⚠️ cert.pem은 존(도메인) 단위 스코프 + login마다 덮어씌움 — 존별로 cert-<프로젝트>.pem 백업,
+#    타존 작업 시 `cloudflared tunnel --origincert <백업본> route dns ...` 사용.
+#
+# 포트 규칙: 프로젝트당 +2 (3001·3003·3005·3007)
+# credentials: `cloudflared tunnel token --cred-file ~/.cloudflared/<ID>.json dev`로 현 PC 발급 가능
+
+tunnel: 097484fe-3d99-4d45-8936-aeee558895ce
+credentials-file: /Users/jaeho/.cloudflared/097484fe-3d99-4d45-8936-aeee558895ce.json
+
+ingress:
+  # ── ShortReal ─────────────────────────────────────────────────
+  - hostname: dev.shortreal.ai
+    service: http://localhost:3001
+
+  # ── TailoredAd (도커 dev) ─────────────────────────────────────
+  - hostname: dev.tailoredad.com
+    service: http://localhost:3003
+
+  # ── LocalAgents ───────────────────────────────────────────────
+  - hostname: dev.localagents.link
+    service: http://localhost:3005
+
+  # ── JaehoLee ──────────────────────────────────────────────────
+  - hostname: dev.jaeholee.xyz
+    service: http://localhost:3007
+
+  # ── catch-all (필수 — 반드시 마지막 유지) ──
+  - service: http_status:404
