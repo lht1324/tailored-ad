@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-10-28 02:26)
+# TailoredAd — 작업 기록 (Last Updated: 2026-10-28 04:05)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -51,6 +51,26 @@
 - **타깃 25곳 확보** (`MAILING_LIST.md` 신설): 웹 검색으로 후보 수집 → 각 사이트 contact 페이지 직접 크롤링으로 이메일 추출(2026-10-28). ★ 적합 19곳 + ⚠️ 규모 클 수 있음 6곳
 - **드랍쉬퍼 5곳 제외** (사장님 10-28): 브랜드명 없고 수명 2~6주라 증언 가치 낮음
 
+### 3단계 시딩 — 2차 실측 검증 (10-28, `MAILING_LIST.md` §3)
+- **1차 25곳의 구조적 결함 발견**: 주소가 `orders@`·`support@`·`help@` 등 **CS/주문 큐**인 곳이 다수. CS 담당자는 영업 메일을 넘길 의무가 없어 회신율이 최하위. 규모도 중견 이상 편중.
+- **후보 131개 도메인 실측 스캔** → **1군 34곳 · 2군 15곳 · 제외 82곳** 확정. 1차 리스트는 "발송 대상 아님"으로 문서에 명시하고 보존.
+- **스캔 방법**: 홈 요청으로 생존·Shopify 판별(`cdn.shopify.com`/`myshopify.com`) → `/products.json?limit=250`으로 상품 수 → 홈 인라인 픽셀 + **GTM 컨테이너 원문 파싱**으로 광고 신호 → contact/about/policies 크롤링으로 주소 추출 → `%20`·`u003e`·`your@email.com`류 오탐 수동 제거.
+- **확정 불가 항목 3개 (문서에 한계로 명시)**:
+  - **광고 집행 여부 — 자동 판별 불가**. Shopify는 Meta 픽셀을 **Web Pixels API(서버측)**로 심어 HTML에 `fbq`가 없다. `미확인 ≠ 광고 안 함`. Ad Library는 로그인 장벽(403 실측)으로 자동 조회 실패 → 육안 확인 필요.
+  - **Instagram 팔로워 — 전면 차단**(비로그인 조회 빈 응답). 규모는 상품 수·인지도로만 추정.
+  - **상품 수 — 절반 이상 429**(Shopify 봇 차단). 숫자는 실측값, `?`는 미확보.
+- **실명 주소 2곳 확보**: `reilly@methodicalcoffee.com` · `brandon@3sixteen.com`. 광고 픽셀 감지 7곳.
+- **커피를 11곳으로 두껍게**: 구독제라 매달 새 소재 수요가 구조적으로 발생 → 관계 성립 시 재구매 지속성 최고.
+
+### 채널 전략 결정 (10-28, 사장님 논의)
+- **PH(Product Hunt) 보류**: 실결제 E2E 미통과 상태에서 띄우면 유입이 결제 실패로 전소. 증언·결제 검증 후로 미룸.
+- **유료 백링크 대행 불매**: 스팸 풋프린트·페널티 리스크. 도메인 초창기는 링크 수보다 활동신호가 중요.
+- **검색광고(2단계)를 맨 뒤로**: 하루 $5~10은 소액이 아님(월 $150~300). 해당 키워드 CPC $2~6라 클릭 1~2개/일 → 통계적으로 못 읽는 표본. 검색광고의 실값은 "랜딩 전환률 측정"인데, **아웃리치 링크에 UTM만 붙이면 무료로 같은 데이터를 얻는다** → 증언 1건 + 랜딩→가입 5% 확인 후 **2~3주 $300~500 단발**로만 집행.
+- **X(Twitter) = 발송 채널 아님, 발굴 채널**: DTC 대표는 X에 없고, 상호 팔로우 없으면 DM 자체가 막히며 제재가 빠름. 대신 `"ad creative" expensive`·`CAC rising`·`creative testing` 검색으로 **고통을 공개적으로 말한 리드**를 찾아 공개 답장하는 용도로만.
+- **Instagram = 전시장**(발송 아님): 0 팔로워 문제는 팔로워가 아니라 **증거물 부족**이 원인. 시딩 결과물이 곧 포트폴리오이자 콘텐츠라 별도 SNS 제작 불필요.
+- **타깃 재정의**: 중견 DTC가 아니라 **광고는 돌리는데 팀이 작은 곳**. 판별 기준 = Meta Ad Library 집행 + IG 5k~100k + 상품 10~80 + 스튜디오급 제품 사진 + 직통 주소 확보 가능.
+- **발송 인프라 경고 (미해결)**: `support@tailoredad.com`은 **Cloudflare Email Routing = 수신 전용**이라 발송 불가. DMARC 레코드도 없음. 업계는 메인 도메인 대신 보조 도메인 + 워밍업 + 인박스 로테이션으로 회피하지만, 우리 규모(하루 5~8통 수동)는 **메인 도메인 + 물량 억제**로 흡수하는 게 정답.
+
 ## 1. 개요
 
 - **브랜드**: TailoredAd — "Tailored ads, not templates" (Harnessed AI ad studio)
@@ -70,7 +90,9 @@
 - **가격**: Starter $19/100장($0.190), Growth $49/500장($0.098), Pro $99/1,000장($0.099).
   첫주문 50% (Dodo 코드 `FIRSTORDER50`, Starter 한정·신규·1주기).
 - **결제**: Dodo 확정. USD 고정, MoR. 상품 매핑은 `dodoProducts.ts`
-  (recurring 가격 asc → plan-1/2/3, 3건 아니면 loudly 실패 — **대시보드 가격 변경 시 표시가와 실청구 갈림 주의**).
+  **metadata 기반**(`planId` = `plan-1`/`plan-2`/`plan-3`, 없으면 `plan` 키 예비) — 가격·순서 변경에 무적.
+  metadata 없는 상품은 무시, 3플랜이 정확히 1개씩 아니면 loudly 실패. 목록·매핑 캐시 1시간.
+  **prod 실측(10-28)**: Starter `pdt_0NpF9VQjYvFLc5jA9DFin`/1900/plan-1 · Growth `pdt_0NpF9VKMSYntkd0OciAJb`/4900/plan-2 · Pro `pdt_0NpF9VDKXhtpkIC6RHyfU`/9900/plan-3 정상 해석.
   체크아웃 이메일 고정 — 웹훅 userId 폴백이 이메일 매칭에 의존.
 - **얼굴 정책**: 실사 얼굴 OUT (Enterprise + Stripe 체급만 예외). AI 페르소나(합성) 노선 → Amazon 2026-07 synthetic performer 태그와 정합 (product-only는 태그 불필요).
 - **Hero CTA 4분기**: 비로그인→`/create`, trial+0→`/#pricing`, 로그인 그 외→`/projects`.
@@ -113,25 +135,26 @@
 - [ ] **쓰레기 DNS 삭제** — `jaeholee.xyz` 영역의 `dev.jaehoolee.xyz.jaeholee.xyz` (터널 세팅 중 생성된 오타 레코드)
 - [ ] **dev 로그인 테스트** — `dev.tailoredad.com`에서 Google 로그인 → prod 세션 오염 여부 확인 (Neon Auth 신뢰 도메인에 dev.* 미등록이면 복귀 단계에서 막힐 수 있음)
 - [x] Search Console 등록 + https 색인 요청 + sitemap 제출
-- [x] 도메인 이메일 `support@tailoredad.com`
+- [x] 도메인 이메일 `support@tailoredad.com` (수신 전용 — 발송 수단은 별도 필요)
 
 ## 6. 다음 작업
 
 ### 마케팅 트랙 (상세 `MARKETING_PLAN.md`·`MAILING_LIST.md`)
-- [ ] **사장님: prod SQL** — Neon prod 브랜치에 `db/neon/04_analytics.sql` 실행 (UTM 즉시 켜짐, 배포 불필요)
-- [ ] **사장님: GSC에서 블로그 글 6개 색인 요청** (sitemap은 자동 반영 완료 — 이건 가속용)
-- [ ] **저: 3단계 — 브랜드별 대표 제품 선정 + 제품 사진 확보** (25곳)
-- [ ] **저: 크리에이티브 25장 생성** (도그푸딩 겸함, 원가 약 $2)
+- [x] **prod SQL (UTM 컬럼 4개)** — 10-28 실행·검증 (`utm_source`·`utm_medium`·`utm_campaign`·`utm_content` 존재 확인, prod 브랜치)
+- [x] **GSC 블로그 글 6개 색인 요청** (사장님 10-28)
+- [ ] **사장님: 발송 수단 확보** — `support@tailoredad.com`은 수신 전용(Cloudflare Email Routing). Google Workspace 등 발송 경로 필요. **3단계 전체의 선행 조건**
+- [ ] **저: 1군 34곳 Meta Ad Library 육안 확인** (광고 집행 여부 확정 — 자동 판별 불가)
+- [ ] **저: 1군에서 3곳 선정 → 대표 제품·제품 사진 확보 → 크리에이티브 3장 생성** (먼저 검증, 확장은 반응 보고)
 - [ ] **저: 메일 카피 초안 (1:1)** → 사장님 검수 → 발송(하루 5~8통 분산)
-- [ ] **목표: 증언 1개** → 4단계 진입 조건
-- [ ] **사장님: ⚠️ 6곳 포함/제외 확정** (`MAILING_LIST.md` — 포함 25 / 제외 19)
 - [ ] **저: AI 인용 재측정** — 2~4주 후 동일 질의 (기준선 10-22 0건)
+- [ ] **목표: 증언 1개** → 4단계 진입 조건
 - [ ] 4단계 유료 (2개월 차, 조건: 트라이얼 5+·증언 3+·LTV 추정 가능)
 
 ### 제품 트랙
-- [ ] **Dodo live 401** (지원 문의 대기): live 키로 live `/checkouts` 직접 호출도 401. test 대조는 422(인증 통과)
-  → live 자격·계정 문제, 코드 무관. 잔량: live E2E (로그인→잔액→실결제→적립→환불) + R2 쓰기 첫 생성 확인.
-- [ ] **HeroWall 잘림·저화질**: `public/` hero 6종이 1:1 구버전이라 4:5 프레임 좌우 크롭. `landing-final/` 4:5 WebP 덮어쓰기 대기 (사장님)
+- [ ] **Dodo live 체크아웃 401** (지원 문의 대기): live `/checkouts` 직접 호출도 401.
+  **10-28 정정**: live **Products API는 정상 동작**(prod 게이트웨이 `/api/client-gateway?path=/api/dodo/products`가 live 키로 3플랜 반환) → 키·계정 자체는 유효. 401은 **checkouts 라우트 국소 문제**로 범위 축소됨.
+  잔량: live E2E (로그인→잔액→실결제→적립→환불) + R2 쓰기 첫 생성 확인.
+  **prod DB 실측(10-28)**: `subscription_grants` 2건 모두 `reason='trial'`(10장)·`polar_subscription_id` NULL, `usage_ledger` 0건 → **유료 결제로 적립된 기록 0건.** 체크아웃 화면이 열린다는 것과 결제→웹훅→적립 통과는 별개.
 - [ ] **Portfolio Creative 중복**: 11칸 중 4쌍이 같은 creative의 비율違い. 56장 풀에서 분산 재배정
 - [ ] **prod gateway 500 잔여 확인** (사장님): 프로젝트 새로고침으로 확인
 - [ ] **OPTIMIZATION_PLAN.md** 트랙 착수 (죽은 import → 동적 로드 → memo → 목록 프로젝션 → presign lazy → 게이트웨이 스트림 → 이미지 프록시 캐시 → 썸네일 파이프라인)
@@ -178,3 +201,33 @@ cloudflared tunnel run dev   # dev.* 4개 도메인 터널 (사장님 Warp 탭)
 - **Neon 스키마 이전 시**: 체크제약 동반 확인 (`subscription_grants.reason` 사고)
 - **Dodo 테스트**: TimeInterval 대문자 (`Month`). 웹훅 payload에 metadata.userId 부재 → 폴백 체인 (구독 조회 → 이메일)
 - **client-gateway 라우트 추가**: `ROUTE_ENTRIES`에 1줄 필수 (누락 시 404). `http://internal` origin을 절대 URL로 쓰지 말 것
+- **Shopify 리드 수집** (10-28): `/products.json`은 **IP당 429가 쉽게 걸린다**(수십 건이면 차단). `cdn.shopify.com`/`myshopify.com` 문자열로 Shopify 판별. **Meta 픽셀은 Web Pixels API(서버측)로 심겨 HTML에 `fbq`가 없다 → 픽셀 부재를 "광고 안 함"으로 해석하면 오판.** Ad Library는 비로그인 403.
+- **macOS 프레임워크 파이썬 SSL**: `CERTIFICATE_VERIFY_FAILED`로 urllib 전면 실패. `ssl.create_default_context(cafile="/etc/ssl/cert.pem")`로 해결 (certifi 미설치 환경).
+- **Cloudflare Email Routing은 수신 전용**: MX가 `route*.mx.cloudflare.net`인 도메인은 그 주소로 **발송 불가**. 콜드 아웃리치 전 발송 수단(Gmail Workspace 등) + DMARC 확인 필수.
+
+## 10. 다음 세션 착수 목록 (10-28 이월분 — 우선순위 순)
+
+> 사장님 지시(10-28): 이번에 하지 않고 전부 다음으로 묶음. 아래만 보면 이어서 재개 가능.
+
+### A. 결제 검증 (제품 트랙 최우선)
+- [ ] prod Pricing에서 Starter 실결제 1건 ($9.50, `FIRSTORDER50`) → `subscription_grants` 유료 1건 + 100장 확인 → 웹훅 적립 → 환불
+- [ ] 위 통과 전에는 **PH 런치 보류** (유입 전소 방지)
+- [ ] Dodo live `/checkouts` 401 원인 확정 (Products API는 정상 → 라우트 국소 문제)
+
+### B. 3단계 시딩
+- [ ] **사장님**: 발송 수단 확보 (Google Workspace 권장) + DMARC `p=none` 추가
+- [ ] **저**: 1군 34곳 Meta Ad Library 육안 확인 (광고 집행 확정)
+- [ ] **저**: 3곳 선정 → 제품 사진 확보 → 크리에이티브 3장 생성 → 메일 카피 1:1 초안
+- [ ] 발송 3통 테스트 → 반응 확인 후 확장 여부 판단 (25장 선생성 금지)
+
+### C. 정리·검증 잔무
+- [ ] `npm run lint` 전체 재확인
+- [ ] Cloudflare 4xx 31% 원인 확인
+- [ ] dev 로그인 테스트 (`dev.tailoredad.com` Google 로그인 → prod 세션 오염 여부)
+- [ ] 쓰레기 DNS 삭제 (`dev.jaehoolee.xyz.jaeholee.xyz`)
+- [ ] prod gateway 500 잔여 확인 (프로젝트 새로고침)
+- [ ] 약관 실체 검토 · `tailorad.com` 구매+리다이렉트 · `shortreal.ai/ad` → 301
+- [ ] Portfolio Creative 중복 4쌍 재배정
+- [ ] OPTIMIZATION_PLAN.md 트랙 착수
+- [ ] short_real client-gateway CF 대응 (다른 세션 인계)
+
