@@ -12,6 +12,10 @@
 **One-liner**
 Turn one product photo into ad stills in five formats, with the headline and logo set by code instead of painted by an AI.
 
+**서비스의 입출력 (한 줄 계약)**
+> **입력 = 대표이미지(상품 사진) 한 장 + 로고 → 출력 = 광고 이미지 5포맷.**
+> 대표이미지는 *입력*이다. 출력물을 아마존 대표이미지 칸에 다시 넣는 것은 불가(§Anti-persona).
+
 **What it does**
 Upload a product photo and a logo. The system generates a batch of scene candidates, filters them through a quality gate, and shows only the ones worth using. A layout model then places the headline, CTA and logo, and the final render **composites that text deterministically** (rendered like a web page, not generated). Every approved design exports as 1:1, 4:5, 9:16, 16:9 and 2:3.
 
@@ -42,6 +46,18 @@ Small DTC ecommerce brands, 1–10 people, roughly $1M–$50M revenue, 10–80 S
 > **"광고는 돌리는데 팀이 작은 곳."** 중견 DTC가 아니다.
 > 판별 신호: Meta 픽셀/Google Ads 태그 감지 · 제품 사진이 스튜디오급 · 카탈로그 20~80 · **파트너십·미디어 전용 주소 존재**
 
+**구매자의 현재 위치 (10-29 사장님 진술 — 가장 중요한 정보)**
+이 사람은 우리를 처음 만나는 게 아니다. 이미 두 번 실패한 상태로 온다:
+
+| 단계 | 경험 |
+|---|---|
+| ① 직접 시도 | "AI로도 광고 뽑을 수 있다 해서 이리저리 해봤는데 어째 영 아니고" — 결과물이 티 나고 글자가 깨짐 |
+| ② 대안 조사 | "adcreative 같은 거 알아봤더니 꽤 비싸고" — $249/월에서 멈춤 |
+| ③ 원하는 것 | **"그냥 상품 이미지 넣으면 꽤 좋은 수준의 광고 이미지를 생성해주는 서비스"** |
+
+→ **메시징 함의**: 이 사람에게 "AI가 뭘 할 수 있는지"는 설명할 필요가 없다. 알아서 실망까지 했다. 필요한 건 **"앞의 두 번이 왜 실패했고, 이번엔 왜 다른가"**다.
+→ **톤 함의**: 고객은 "완벽"이 아니라 **"꽤 좋은 수준"**을 기대한다. 우리 카피의 강한 주장(pixel-exact, AI stock 아님)은 신뢰가 아니라 **회의**를 살 수 있다. 과장하지 않는 편이 이 구매자에게 맞다.
+
 **Decision-makers**
 - 창업자/오너 (소규모에서 실제 구매자)
 - Head of Growth / 마케팅 매니저
@@ -60,6 +76,7 @@ Small DTC ecommerce brands, 1–10 people, roughly $1M–$50M revenue, 10–80 S
 - 스킨케어: 신제품 런치 + 시즌 세트
 - 홈·향: 시즌 컬렉션 + 리타겟팅 소재 교체
 - 펫: 정기 프로모션
+- **아마존 셀러**: 이미 갖고 있는 **대표이미지(순백 제품컷)를 입력으로** 넣어 → 보조이미지(칸 2~7)·A+ 콘텐츠·메타 광고용 소재를 만든다. 순백 제품컷은 우리가 원하는 최적 입력이라 이 세그먼트는 궁합이 좋다. **단 출력물을 다시 아마존 대표이미지 칸에 넣는 것은 불가**(§Anti-persona)
 
 ---
 
@@ -157,7 +174,7 @@ AI 이미지의 실패는 대부분 "글자가 깨졌다" 또는 "제품이 변�
 | 이런 요구 | 왜 안 맞나 |
 |---|---|
 | 영상 광고를 원함 | 영상 기능 자체가 없음 → Creatify로 보낸다 |
-| 아마존 **대표이미지**(칸 1번: 순백·무텍스트·상품 85%)를 원함 | 우리 출력물은 배경+헤드라인이 있는 광고용이라 그 규정을 위반한다. 칸 2~7·A+·메타 광고에는 쓸 수 있다 |
+| **출력물**을 아마존 대표이미지(칸 1번)로 쓰려 함 | 우리 출력물은 배경+헤드라인이 있는 광고용이라 순백·무텍스트 규정을 위반한다. 칸 2~7·A+·메타 광고에는 쓸 수 있다. **대표이미지를 "입력"으로 주는 것은 전혀 문제 없고 오히려 좋은 고객** |
 | 장당 10원 수준 대량 뽑기 | 품질 게이트 때문에 우리가 비쌈 (경쟁사가 더 싸다) |
 | 실사 모델 UGC가 필요 | 실사 얼굴을 합성하지 않는다 |
 | 사내 디자이너·크리에이티브 팀이 이미 있음 | 이미 해결된 문제 |
@@ -200,6 +217,11 @@ AI 이미지의 실패는 대부분 "글자가 깨졌다" 또는 "제품이 변�
 - "Is there an AI tool that can **actually understand your brand**?"
 - "i've been uploading product shots to a few ai tools lately, like claude for ideas but **nothing that spits out ready visuals**"
 - "I create every ad creative for my Shopify store using AI — **no designer, no Canva, no budget**"
+
+**구매자 언어 — 사장님 진술 (10-29, 원문)**
+> "요즘 AI로도 광고 뽑을 수 있다 해서 이리저리 해 봤는데 어째 영 아니고, adcreative 같은 거 알아봤더니 꽤 비싸고, 그냥 상품 이미지 넣으면 꽤 좋은 수준의 광고 이미지(들)을 생성해주는 서비스를 원하는 사람들."
+
+이 한 문장에 3단계 구매 여정이 다 들어 있다: **직접 시도 → 실망 → 대안 조사 → 가격에서 멈춤.** 카피는 이 순서를 따라가야 한다.
 
 **How they describe us** — **[공백]** 실고객 0명. 이 칸은 시딩 반응에서 나온 문장으로만 채운다. **AI가 지어내지 말 것.**
 
