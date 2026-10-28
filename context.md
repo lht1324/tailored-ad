@@ -1,9 +1,9 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-10-28 04:05)
+# TailoredAd — 작업 기록 (Last Updated: 2026-10-29 01:05)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
 
-## 0. 최근 세션 기록 (10-25 ~ 10-28)
+## 0. 최근 세션 기록 (10-25 ~ 10-29)
 
 ### 카피 제1원칙 채택 (10-25, 사장님 지시)
 - **"AI 냄새 없이 쓴다"를 제1원칙으로 확정.** 체크리스트 10개를 `MARKETING_PLAN.md` §5.4에 등재.
@@ -59,8 +59,20 @@
   - **광고 집행 여부 — 자동 판별 불가**. Shopify는 Meta 픽셀을 **Web Pixels API(서버측)**로 심어 HTML에 `fbq`가 없다. `미확인 ≠ 광고 안 함`. Ad Library는 로그인 장벽(403 실측)으로 자동 조회 실패 → 육안 확인 필요.
   - **Instagram 팔로워 — 전면 차단**(비로그인 조회 빈 응답). 규모는 상품 수·인지도로만 추정.
   - **상품 수 — 절반 이상 429**(Shopify 봇 차단). 숫자는 실측값, `?`는 미확보.
-- **실명 주소 2곳 확보**: `reilly@methodicalcoffee.com` · `brandon@3sixteen.com`. 광고 픽셀 감지 7곳.
+- **실명 주소 2곳 확보**: ~~`reilly@methodicalcoffee.com`~~ · `brandon@3sixteen.com`. 광고 픽셀 감지 7곳.
+  **10-29 정정**: `reilly@`는 **실제로 없었다** (폼만). 자동 추출 오탐.
 - **커피를 11곳으로 두껍게**: 구독제라 매달 새 소재 수요가 구조적으로 발생 → 관계 성립 시 재구매 지속성 최고.
+
+### 3단계 시딩 — 필터표 + 사장님 수동 검증 (10-29)
+- **필터표 작성** (`MAILING_LIST.csv`, 52곳 × 15컬럼): Numbers/Sheets에서 조건 필터 가능. 컬럼 = 군·업종·브랜드·도메인·이메일·주소유형·상품수·카탈로그·Meta광고·GoogleAds·TikTok·광고신호·점수·우선순위·비고.
+- **자동 수집 방법**: 홈 HTML + `/products.json` + **GTM 컨테이너 원문 파싱**(Shopify는 Meta 픽셀을 Web Pixels API로 심어 HTML에 `fbq`가 없음).
+- **429 실측**: 52곳을 1분에 돌리면 IP가 차단된다(44건 429). **4초 간격 + 브라우저 헤더**로 재수집해 52/52 확보.
+- **변별력 없는 신호는 점수에서 제외**: Klaviyo 47/52 · Shopify 50/52 → 상수라 제외. 남은 신호 = Meta 10 · GoogleAds 20 · TikTok 2.
+- **★ 핵심 발견 — 파트너십·미디어 주소가 최고 등급**: 같은 회사·같은 제품이라도 `partners@`·`business@`·`collaborations@`는 **업무 자체가 외부 제안 검토**다. CS·주문 주소는 넘길 의무가 없다. 점수 가중치를 실명 중심에서 **파트너십 +6 · 미디어 +5 · 도매 +4 · 실명 +3 · 일반 +1 · CS 0**으로 재편.
+- **사장님 수동 확인으로 오탐 5건 제거** (52곳 중 10%): `Methodical Coffee`·`Bocce's Bakery`·`Recess`·`Osea`·`Farmhouse Pottery`는 **폼만 있고 이메일 없음**. Farmhouse는 AI 챗봇이 연결을 제안했으나 부담스러워 중단 → **폼·챗봇만 있는 곳은 캠페인에서 제외** 결정.
+- **확인된 파트너십·미디어 주소**: `partners@materialkitchen.com` · `business@chamberlaincoffee.com` · `collaborations@labruket.com`(Justine) · `allison@georgehowellcoffee.com`(Media) · `brandon@3sixteen.com`(Wholesale). L:A BRUKET은 상업담당 실명 2명도 있음(`carla.kromberg@` DACH · `laurine.combasson@` FR/UK/BNL).
+- **1차 발송 대상 3곳 선정안**: Material Kitchen(`partners@`) · Chamberlain Coffee(`business@`) · L:A BRUKET(`collaborations@`). 대안 George Howell·3sixteen. **25장 선생성 금지** — 3통 반응 보고 확장.
+- **Meta Ad Library API 이월**: 토큰에 Meta 앱 + 신원 확인 필요(문서 확인). 3곳 고르는 데 30분짜리 심사를 붙이는 건 낭비 → 확장 단계로 미룸. **API에 이미지/영상 구분 필드는 없음**(`ad_snapshot_url`의 `<video>` 유무로 추정 가능).
 
 ### 채널 전략 결정 (10-28, 사장님 논의)
 - **PH(Product Hunt) 보류**: 실결제 E2E 미통과 상태에서 띄우면 유입이 결제 실패로 전소. 증언·결제 검증 후로 미룸.
@@ -143,8 +155,8 @@
 - [x] **prod SQL (UTM 컬럼 4개)** — 10-28 실행·검증 (`utm_source`·`utm_medium`·`utm_campaign`·`utm_content` 존재 확인, prod 브랜치)
 - [x] **GSC 블로그 글 6개 색인 요청** (사장님 10-28)
 - [ ] **사장님: 발송 수단 확보** — `support@tailoredad.com`은 수신 전용(Cloudflare Email Routing). Google Workspace 등 발송 경로 필요. **3단계 전체의 선행 조건**
-- [ ] **저: 1군 34곳 Meta Ad Library 육안 확인** (광고 집행 여부 확정 — 자동 판별 불가)
-- [ ] **저: 1군에서 3곳 선정 → 대표 제품·제품 사진 확보 → 크리에이티브 3장 생성** (먼저 검증, 확장은 반응 보고)
+- [ ] **사장님: 1차 발송 3곳 확인** — Material Kitchen·Chamberlain Coffee·L:A BRUKET (`MAILING_LIST.md` §6.4)
+- [ ] **저: 3곳 제품 선정 → 제품 사진 확보 → 크리에이티브 3장 생성** (먼저 3장만, 25장 선생성 금지)
 - [ ] **저: 메일 카피 초안 (1:1)** → 사장님 검수 → 발송(하루 5~8통 분산)
 - [ ] **저: AI 인용 재측정** — 2~4주 후 동일 질의 (기준선 10-22 0건)
 - [ ] **목표: 증언 1개** → 4단계 진입 조건
@@ -216,9 +228,12 @@ cloudflared tunnel run dev   # dev.* 4개 도메인 터널 (사장님 Warp 탭)
 
 ### B. 3단계 시딩
 - [ ] **사장님**: 발송 수단 확보 (Google Workspace 권장) + DMARC `p=none` 추가
-- [ ] **저**: 1군 34곳 Meta Ad Library 육안 확인 (광고 집행 확정)
-- [ ] **저**: 3곳 선정 → 제품 사진 확보 → 크리에이티브 3장 생성 → 메일 카피 1:1 초안
+- [x] **저**: 타깃 52곳 스캔 + 필터표(`MAILING_LIST.csv`) — 10-29 완료
+- [x] **저**: 수동 확인 반영(폼만 5곳 제외·파트너십 주소 발굴) — 10-29 완료
+- [ ] **사장님**: 3곳 선정안 확인 (Material Kitchen · Chamberlain Coffee · L:A BRUKET)
+- [ ] **저**: 3곳 제품 사진 확보 → 크리에이티브 3장 생성 → 메일 카피 1:1 초안
 - [ ] 발송 3통 테스트 → 반응 확인 후 확장 여부 판단 (25장 선생성 금지)
+- [ ] (확장 시) Meta Ad Library API로 34곳 일괄 조회 — 토큰에 앱+신원 확인 필요
 
 ### C. 정리·검증 잔무
 - [ ] `npm run lint` 전체 재확인
