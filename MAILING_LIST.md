@@ -233,6 +233,34 @@
 
 ---
 
+## 3.6 사장님 수동 확인 반영 (2026-10-29) — **이메일 스캔은 오탐이 있었다**
+
+사장님이 실제 사이트를 열어 확인한 결과, **자동 추출이 5곳에서 틀렸습니다.** HTML에 남은 문자열(과거 페이지·스크립트)을 긁은 것으로 보이며, 실제로는 **문의 폼만** 있었습니다.
+
+**발송 불가로 제외 (폼만·이메일 없음)**
+`Methodical Coffee` · `Bocce's Bakery` · `Recess` · `Osea` · `Farmhouse Pottery`
+→ Farmhouse Pottery는 AI 챗봇이 "연결해주겠다"고 했으나 부담스러워 중단. **폼·챗봇만 있는 곳은 이 캠페인에서 제외**하는 게 맞다 (우리 접근은 이메일 기반).
+
+**확인된 주소 — 등급 재분류 (핵심 발견)**
+
+| 브랜드 | 주소 | 등급 | 근거 |
+|---|---|---|---|
+| Material Kitchen | `partners@materialkitchen.com` | **파트너십** | "For brands, influencers, and ambassadors" |
+| Chamberlain Coffee | `business@chamberlaincoffee.com` | **파트너십** | "Press & Collaborations" |
+| L:A BRUKET | `collaborations@labruket.com` | **미디어** | Media(Justine). 실명 상업담당 2명도 있음 — `carla.kromberg@`(DACH)·`laurine.combasson@`(FR/UK/BNL) |
+| George Howell | `allison@georgehowellcoffee.com` | **미디어** | Media 전용 |
+| 3sixteen | `brandon@3sixteen.com` | **도매** | Wholesale 전용. `info@`도 있음 |
+| Bird Rock Coffee | `info@birdrockcoffee.com` | CS/주문 | 전화 병기 |
+
+**왜 파트너십·미디어 주소가 최고 등급인가**
+CS·주문 주소(`info@`·`support@`·`orders@`)는 담당자에게 **영업 메일을 넘길 의무가 없다.** 반면 파트너십·미디어 인박스는 **업무 자체가 외부 제안 검토**다. 같은 회사·같은 제품이라도 회신율이 다르다.
+
+**점수 가중치 변경**: 파트너십 +6 · 미디어 +5 · 도매 +4 · 실명 +3 · 일반 +1 · CS 0 (기존 실명 중심에서 상향 조정)
+
+**교훈**: 자동 추출은 후보를 좁히는 용도로만. **발송 전 주소 확인은 필수** (이번에 5/52 = 약 10% 오탐).
+
+---
+
 ## 4. 발송 규칙 (사장님 작업)
 
 ### 법적 최소 요건 (미국 CAN-SPAM · 영국 PECR 공통)

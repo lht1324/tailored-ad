@@ -1,37 +1,32 @@
 ﻿군,업종,브랜드,도메인,이메일,주소유형,상품수,카탈로그,Meta광고,GoogleAds,TikTok,광고신호,점수,우선순위,비고
-2군,커피,Chamberlain Coffee,chamberlaincoffee.com,hi@chamberlaincoffee.com,일반,?,미확보,Y,Y,Y,3,6,A,
-2군,홈·주방,Material Kitchen,materialkitchen.com,hello@materialkitchen.com,일반,59,중형,Y,Y,,2,6,A,상품 59 · 신호 3
-2군,음료,Recess,takearecess.com,hello@takearecess.com,일반,?,미확보,Y,Y,Y,3,6,A,
-1군,커피,Bird Rock Coffee,birdrockcoffee.com,info@birdrockcoffee.com,CS/주문,47,중형,Y,Y,,2,5,A,Meta+Google · 상품 47
-1군,펫,Bocce's Bakery,boccesbakery.com,hello@boccesbakery.com,일반,139,중대형,Y,Y,,2,5,A,Meta+Google · 상품 139
-1군,커피,Methodical Coffee,methodicalcoffee.com,reilly@methodicalcoffee.com,실명,157,중대형,,Y,,1,5,A,실명(reilly@) · 상품 157
-1군,의류,3sixteen,3sixteen.com,brandon@3sixteen.com,실명,250,중대형,,,,0,4,A,실명(brandon@) · 의류
-2군,홈·도예,Farmhouse Pottery,farmhousepottery.com,kiara@farmhousepottery.com,실명,250,중대형,,,,0,4,A,2군 · 실명(kiara@)
-2군,커피,George Howell,georgehowellcoffee.com,allison@georgehowellcoffee.com,실명,108,중대형,,,,0,4,A,2군 · 실명(allison@)
-1군,홈·도예,Jono Pandolfi,jonopandolfi.com,care@jonopandolfi.com,CS/주문,157,중대형,Y,Y,,2,4,A,Meta+Google · 상품 157
-2군,스킨케어,Labruket,labruket.com,carla.kromberg@labruket.com,실명,149,중대형,,,,0,4,A,2군 · 실명(carla.kromberg@) · 스웨덴
-2군,스킨케어,Osea,oseamalibu.com,rachel@oseamalibu.com,실명,92,중대형,,,,0,4,A,"2군 · 실명(rachel@, 공동창업)"
-1군,커피,Stone Creek Coffee,stonecreekcoffee.com,customers@stonecreekcoffee.com,CS/주문,224,중대형,Y,Y,,2,4,A,Meta+Google · 상품 224
+2군,커피,Chamberlain Coffee,chamberlaincoffee.com,business@chamberlaincoffee.com,파트너십,?,미확보,Y,Y,Y,3,11,A,Press & Collaborations · 신호 3개
+2군,홈·주방,Material Kitchen,materialkitchen.com,partners@materialkitchen.com,파트너십,59,중형,Y,Y,,2,11,A,Partnerships 전용 · Meta+Google 신호
+1군,커피,Bird Rock Coffee,birdrockcoffee.com,info@birdrockcoffee.com,CS/주문,47,중형,Y,Y,,2,5,A,Meta+Google 신호 · 전화 병기
+2군,커피,George Howell,georgehowellcoffee.com,allison@georgehowellcoffee.com,미디어,108,중대형,,,,0,5,A,Media 전용(allison)
+2군,스킨케어,Labruket,labruket.com,collaborations@labruket.com,미디어,149,중대형,,,,0,5,A,Media(Justine) · 실명2(carla·laurine)도 있음
+1군,의류,3sixteen,3sixteen.com,brandon@3sixteen.com,도매,250,중대형,,,,0,4,B,Wholesale 전용(brandon) · info@도 있음
+1군,홈·도예,Jono Pandolfi,jonopandolfi.com,care@jonopandolfi.com,CS/주문,157,중대형,Y,Y,,2,4,B,Meta+Google · 상품 157
+1군,커피,Stone Creek Coffee,stonecreekcoffee.com,customers@stonecreekcoffee.com,CS/주문,224,중대형,Y,Y,,2,4,B,Meta+Google · 상품 224
 1군,스킨케어,Evan Healy,evanhealy.com,orderdesk@evanhealy.com,CS/주문,250,중대형,Y,,,1,3,B,상품 250 (카탈로그 큼)
 1군,음료,Hiyo,drinkhiyo.com,hello@drinkhiyo.com,일반,44,중형,,Y,,1,3,B,
 1군,커피,Madcap Coffee,madcapcoffee.com,info@madcapcoffee.com,CS/주문,112,중대형,Y,,,1,3,B,
 1군,커피,Passenger Coffee,passengercoffee.com,contact@drinkpassenger.com,CS/주문,250,중대형,Y,,,1,3,B,
-1군,식품,Boonville Barn,boonvillebarn.com,hello@boonvillebarn.com,일반,48,중형,,,,0,2,B,
-2군,식품,Brightland,brightland.co,goodday@brightland.co,일반,45,중형,,,,0,2,B,
-1군,스킨케어,Dieux Skin,dieuxskin.com,hello@dieuxskin.com,일반,27,중형,,,,0,2,B,
-1군,음료,Ghia,drinkghia.com,hi@drinkghia.com,일반,57,중형,,,,0,2,B,
-1군,식품,Gustus Vitae,gustusvitae.com,hello@gustusvitae.com,일반,250,중대형,,Y,,1,2,B,
-1군,커피,Heart Coffee,heartroasters.com,coffee@heartroasters.com,일반,35,중형,,,,0,2,B,
-2군,식품,Jacobsen Salt,jacobsensalt.com,hello@jacobsensalt.com,일반,429,중대형,,Y,,1,2,B,
-1군,홈·향,Keap Candles,keapcandles.com,thelab@keapcandles.com,일반,429,중대형,,Y,,1,2,B,팀 주소(thelab@) · 상품수 미확보
-2군,음료,Kin Euphorics,kineuphorics.com,hello@kineuphorics.com,일반,19,소형,,Y,,1,2,B,
-1군,스킨케어,Salt & Stone,saltandstone.com,info@saltandstone.com,CS/주문,37,중형,,Y,,1,2,B,
-1군,음료,Sanzo,drinksanzo.com,hello@drinksanzo.com,일반,8,소형,,Y,,1,2,B,
-1군,펫,Shameless Pets,shamelesspets.com,hello@shamelesspets.com,일반,52,중형,,,,0,2,B,
-1군,음료,Sunwink,sunwink.com,hello@sunwink.com,일반,3,소형,,Y,,1,2,B,
-1군,스킨케어,Tower 28,tower28beauty.com,hey@tower28beauty.com,일반,68,중형,,,,0,2,B,
-1군,스킨케어,Ursa Major,ursamajorvt.com,hello@ursamajorvt.com,일반,60,중형,,,,0,2,B,
-1군,음료,Wildwonder,drinkwildwonder.com,hello@drinkwildwonder.com,일반,23,중형,,,,0,2,B,
+1군,식품,Boonville Barn,boonvillebarn.com,hello@boonvillebarn.com,일반,48,중형,,,,0,2,C,
+2군,식품,Brightland,brightland.co,goodday@brightland.co,일반,45,중형,,,,0,2,C,
+1군,스킨케어,Dieux Skin,dieuxskin.com,hello@dieuxskin.com,일반,27,중형,,,,0,2,C,
+1군,음료,Ghia,drinkghia.com,hi@drinkghia.com,일반,57,중형,,,,0,2,C,
+1군,식품,Gustus Vitae,gustusvitae.com,hello@gustusvitae.com,일반,250,중대형,,Y,,1,2,C,
+1군,커피,Heart Coffee,heartroasters.com,coffee@heartroasters.com,일반,35,중형,,,,0,2,C,
+2군,식품,Jacobsen Salt,jacobsensalt.com,hello@jacobsensalt.com,일반,429,중대형,,Y,,1,2,C,
+1군,홈·향,Keap Candles,keapcandles.com,thelab@keapcandles.com,일반,429,중대형,,Y,,1,2,C,팀 주소(thelab@) · 상품수 미확보
+2군,음료,Kin Euphorics,kineuphorics.com,hello@kineuphorics.com,일반,19,소형,,Y,,1,2,C,
+1군,스킨케어,Salt & Stone,saltandstone.com,info@saltandstone.com,CS/주문,37,중형,,Y,,1,2,C,
+1군,음료,Sanzo,drinksanzo.com,hello@drinksanzo.com,일반,8,소형,,Y,,1,2,C,
+1군,펫,Shameless Pets,shamelesspets.com,hello@shamelesspets.com,일반,52,중형,,,,0,2,C,
+1군,음료,Sunwink,sunwink.com,hello@sunwink.com,일반,3,소형,,Y,,1,2,C,
+1군,스킨케어,Tower 28,tower28beauty.com,hey@tower28beauty.com,일반,68,중형,,,,0,2,C,
+1군,스킨케어,Ursa Major,ursamajorvt.com,hello@ursamajorvt.com,일반,60,중형,,,,0,2,C,
+1군,음료,Wildwonder,drinkwildwonder.com,hello@drinkwildwonder.com,일반,23,중형,,,,0,2,C,
 1군,티,Bellocq Tea,bellocq.com,inquiries@bellocq.com,CS/주문,250,중대형,,Y,,1,1,C,
 1군,커피,Canyon Coffee,canyoncoffee.co,hello@canyoncoffee.co,일반,?,미확보,,,,0,1,C,
 1군,커피,Coava Coffee,coavacoffee.com,info@coavacoffee.com,CS/주문,?,미확보,,Y,,1,1,C,
@@ -44,10 +39,15 @@
 1군,스킨케어,Then I Met You,thenimetyou.com,hello@thenimetyou.com,일반,429,중대형,,,,0,1,C,
 1군,티,Arbor Teas,arborteas.com,info@arborteas.com,CS/주문,122,중대형,,,,0,0,C,
 2군,음료,Athletic Brewing,athleticbrewing.com,info@athleticbrewing.com,CS/주문,250,중대형,,,,0,0,C,
+1군,펫,Bocce's Bakery,boccesbakery.com,폼만(없음),불가,139,중대형,Y,Y,,2,0,제외,Meta+Google · 상품 139 · 이메일 없음(폼)
 1군,홈·향,Candlefish,candlefish.com,info@candlefish.com,CS/주문,250,중대형,,,,0,0,C,
 1군,커피,Ceremony Coffee,ceremonycoffee.com,info@ceremonycoffee.com,CS/주문,128,중대형,,,,0,0,C,
 2군,홈·직물,Faribault Mill,faribaultmill.com,info@faribaultmill.com,CS/주문,250,중대형,,,,0,0,C,
+2군,홈·도예,Farmhouse Pottery,farmhousepottery.com,폼만(없음),불가,250,중대형,,,,0,0,제외,2군 · 실명(kiara@) · 이메일 없음(폼)
 1군,티,Kettl Tea,kettl.co,contact@kettl.co,CS/주문,116,중대형,,,,0,0,C,
 1군,의류,Lady White Co,ladywhiteco.com,info@ladywhiteco.com,CS/주문,250,중대형,,,,0,0,C,
 1군,식품,Masienda,masienda.com,info@masienda.com,CS/주문,86,중대형,,,,0,0,C,
+1군,커피,Methodical Coffee,methodicalcoffee.com,폼만(없음),불가,157,중대형,,Y,,1,0,제외,실명(reilly@) · 상품 157 · 이메일 없음(폼)
+2군,스킨케어,Osea,oseamalibu.com,폼만(없음),불가,92,중대형,,,,0,0,제외,"2군 · 실명(rachel@, 공동창업) · 이메일 없음(폼)"
+2군,음료,Recess,takearecess.com,폼만(없음),불가,?,미확보,Y,Y,Y,3,0,제외, · 이메일 없음(폼)
 2군,커피,Tandem Coffee,tandemcoffee.com,contact@tandemcoffee.com,CS/주문,250,중대형,,,,0,0,C,
