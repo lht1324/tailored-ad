@@ -3,7 +3,26 @@
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
 
-## 0. 최근 세션 기록 (10-25 ~ 10-29)
+## 0. 최근 세션 기록 (10-25 ~ 10-30)
+
+### prod 생성 경로 버그 발견 (10-30) — 3장 생성 시도 중
+- 3단계 크리에이티브 3장을 prod에서 만들려다 **"Preparing concept"에서 영구 정지**. 3면 실측으로 원인 확정:
+  `ad_creative_specs=[]`·`status=queued`·`updated_at=null` (DB) + **Replicate 예측 10-09 이후 0건** + 10-20 배치도 10일째 queued.
+- **원인**: `/api/image`가 업로드 후 `internalFireAndForgetFetch(BASE_URL/api/creative/specs)`로 다음 단계 호출 →
+  prod `BASE_URL=https://tailoredad.com` = **워커가 자기 zone fetch** (Workers에서 죽는 패턴). `.catch()`가 삼켜 흔적 없음.
+  dev는 `BASE_URL=dev.tailoredad.com`(터널)이라 진짜 외부 요청 → 동작. **출시 이후 생성 성공 0건.**
+- **부작용 없음**: 실패 배치는 완성 이미지가 없어 크레딧 차감 0 (10장 유지).
+- 수정 방향: internalFetch 3곳(specs·prompt·persona)을 게이트웨이식 **in-process 직접 호출**로 교체. **미착수.**
+- 같은 이유로 **PH 런치·유료 집행은 여전히 보류**가 맞다 (결제 이전에 생성이 안 된다).
+
+### 3단계 시딩 — 크리에이티브 3장 준비 (10-30)
+- 제품 3종 선정 후 **입력 이미지 확보·전처리 완료**: `seed-outreach/` (gitignore 등록, `public/` 금지).
+  - Material Kitchen **The 8" Knife** — 투명 PNG → trim + 흰 배경 + 여백 → 1400×1400
+  - Chamberlain **Social Dog Medium Roast** — 투명 PNG → 흰 배경 평탄화 → 2048×2048
+  - L:A BRUKET **092 Hand Cream SRL** — 원본 JPG 1438×1798 (라벨 글자가 많아 정체성 보존 최혹독 테스트)
+- 브랜드 팔레트는 **이미지에서 실제 추출**(6색 양자화): MK `#4B4743/#A1A0A0/#E7E6E6` · CB `#EF8976/#714E53/#F7EDE6` · LA `#10130D/#A7A9A0/#DBDEDF`
+- **생성 설정 명세 확정** (concept 1 · 1:1+4:5 · CTA off · 인물 없음 · 제품 노트·팔레트·헤드라인 후보) → `context.md` §10.2
+- 사장님이 직접 실행하기로 함 (10-30). 실행 전 §10.0 버그 수정 또는 dev 우회 결정 필요.
 
 ### 카피 제1원칙 채택 (10-25, 사장님 지시)
 - **"AI 냄새 없이 쓴다"를 제1원칙으로 확정.** 체크리스트 10개를 `MARKETING_PLAN.md` §5.4에 등재.
@@ -163,6 +182,9 @@
 - [ ] 4단계 유료 (2개월 차, 조건: 트라이얼 5+·증언 3+·LTV 추정 가능)
 
 ### 제품 트랙
+- [ ] **🔴 P0: prod 생성 경로 죽음 (10-30)** — `/api/image` → `internalFireAndForgetFetch(BASE_URL/api/creative/specs)`가 **워커 자기 zone fetch**라 prod에서 실패. 배치는 `queued`·`specs=[]`로 영구 정지, Replicate 제출 0건. **출시 이후 생성 성공 0건** (10-20 배치도 10일째 queued).
+  수정: `lib/utils/internalFetch.ts` 기반 3곳(`creative/specs`·`creative/{i}/prompt`·`image/generation/persona`)을 게이트웨이식 in-process 직접 호출 + `ctx.waitUntil`로 교체. 상세 §10.0.
+  → 이거 고치기 전에는 prod 유료 전환·PH 런치·시딩 모두 의미 없음.
 - [ ] **Dodo live 체크아웃 401** (지원 문의 대기): live `/checkouts` 직접 호출도 401.
   **10-28 정정**: live **Products API는 정상 동작**(prod 게이트웨이 `/api/client-gateway?path=/api/dodo/products`가 live 키로 3플랜 반환) → 키·계정 자체는 유효. 401은 **checkouts 라우트 국소 문제**로 범위 축소됨.
   잔량: live E2E (로그인→잔액→실결제→적립→환불) + R2 쓰기 첫 생성 확인.
@@ -219,24 +241,74 @@ cloudflared tunnel run dev   # dev.* 4개 도메인 터널 (사장님 Warp 탭)
 
 ## 10. 다음 작업 상세 — 크리에이티브 3장 (3단계 첫 발송)
 
-> 상태: **미착수** (사장님 지시 10-29 "아직"). 이 절만 읽으면 그대로 재개 가능.
+> 상태: **사장님이 직접 실행** (10-30 지시 "내가 이따 직접 할게"). 이 절만 읽으면 그대로 재개 가능.
+> ⚠️ **선행 조건: prod 생성이 현재 막혀 있다** — §10.0 참조. 고치기 전에는 prod에서 아무것도 안 나온다.
 
-### 무엇을 하는가
-선정 3곳의 **실제 제품 사진을 입력으로** 우리 제품(TailoredAd)을 돌려 **광고 이미지 1장씩, 총 3장**을 만든다.
+### 10.0 ⚠️ prod 생성 경로 버그 (10-30 발견 — 미수정)
 
-| 브랜드 | 받는 주소 | 업종 | 선정 이유 |
+prod에서 실제로 1장을 시도했고 **"Preparing concept"에서 영구 정지**했다. 원인을 코드·DB·Replicate 3면에서 확정:
+
+| 확인 | 결과 |
+|---|---|
+| `ad_generation_batches` | `status=queued`, `ad_creative_specs=[]`, `updated_at=null` → **조합 배정 단계가 실행조차 안 됨** |
+| Replicate 예측 목록 | **2026-10-09 이후 0건** → 이미지 생성 요청이 제출되지 않음 |
+| 10-20에 만든 배치 | 10일째 `queued` 방치 → **출시 이후 생성이 한 번도 성공한 적 없음** |
+
+**원인**: `src/app/api/image/route.ts`가 원본 업로드 후
+`internalFireAndForgetFetch(`${BASE_URL}/api/creative/specs?batchId=…`)`로 다음 단계를 부른다.
+prod의 `BASE_URL=https://tailoredad.com` = **워커가 자기 zone을 fetch** — Workers에서 죽는 패턴(client-gateway를 고칠 때 실측한 그 문제). `.catch()`가 에러를 삼켜 흔적도 남지 않는다.
+**dev가 되는 이유**: `BASE_URL=dev.tailoredad.com`(터널)이라 진짜 외부 요청이 되어 사장님 PC까지 도달한다.
+
+**수정 방향** (미착수): `lib/utils/internalFetch.ts` 기반 호출 3곳(`/api/creative/specs`, `/api/creative/{i}/prompt`, `/api/image/generation/persona`)을 **게이트웨이와 같은 in-process 직접 호출**로 교체. `ctx.waitUntil`로 응답 후 실행 유지.
+**대안(임시)**: dev 서버+터널에서 생성 → 결과 파일만 사용. 단 prod는 여전히 고장.
+
+**부작용 없음**: 실패 배치는 완성 이미지가 없어 **크레딧 차감 0** (10장 유지 확인).
+
+### 10.1 입력 파일 (루트 `seed-outreach/` — git 미추적)
+
+`seed-outreach/`는 `.gitignore`에 등록돼 있다(타사 브랜드 자산 · `public/` 금지).
+
+| 브랜드 | 파일 | 치수 | 출처/전처리 |
 |---|---|---|---|
-| **Material Kitchen** | `partners@materialkitchen.com` | 홈·주방 | 파트너십 인박스 + Meta·Google 신호 둘 다 + 카탈로그 59(중형) |
-| **Chamberlain Coffee** | `business@chamberlaincoffee.com` | 커피 | 파트너십 인박스 + 신호 3개(Meta·Google·TikTok) |
-| **L:A BRUKET** | `collaborations@labruket.com` | 스킨케어·향 | 미디어 인박스 + 랜딩 이미지 톤과 일치 |
+| Material Kitchen | `seed-outreach/material-kitchen/product_the-8-knife_1400x1400.png` | 1400×1400 | 상품 페이지. **원본이 투명 PNG**라 제품만 trim → 흰 배경 평탄화 → 여백 70px |
+| Chamberlain Coffee | `seed-outreach/chamberlain-coffee/product_social-dog-medium-roast_2048x2048.png` | 2048×2048 | `og:image:url`(2048px PDP컷). **투명 PNG → 흰 배경 평탄화** |
+| L:A BRUKET | `seed-outreach/labruket/product_092-hand-cream_1438x1798.jpg` | 1438×1798 | 상품 페이지 원본 JPG. 흰 배경 그대로 (전처리 없음) |
 
-### 왜 만드는가 (우선순위 순)
+**파일명 규칙**: `product_{제품슬러그}_{WxH}.{ext}` · 결과물은 `out_{제품슬러그}_{ratio}.{ext}`
+
+### 10.2 생성 설정 명세 (사장님이 화면에 그대로 입력)
+
+**공통**: `/create` → 제품 이미지 업로드 → **How many options = 1 creative** (기본 4 주의) → 비율 선택 → Generate
+
+| 항목 | Material Kitchen | Chamberlain Coffee | L:A BRUKET |
+|---|---|---|---|
+| 파일 | `product_the-8-knife_1400x1400.png` | `product_social-dog-medium-roast_2048x2048.png` | `product_092-hand-cream_1438x1798.jpg` |
+| **인물(가상 모델)** | **없음** (product-only) | **없음** | **없음** |
+| **인물 프롬프트** | — (사용 안 함) | — (사용 안 함) | — (사용 안 함) |
+| **비율** | 1:1 + 4:5 | 1:1 + 4:5 | 1:1 + 4:5 |
+| creative 수 | 1 | 1 | 1 |
+| CTA 버튼 | **OFF** (1차) | **OFF** | **OFF** |
+| **제품 노트 (프롬프트)** | `warm oak kitchen counter, soft morning window light, minimal, steel and cream` | `sunlit kitchen shelf, cozy morning, coral and navy accents` | `quiet stone bathroom shelf, soft daylight, linen towel, minimal Nordic` |
+| **브랜드 팔레트** (이미지에서 추출) | `#4B4743`, `#A1A0A0`, `#E7E6E6` | `#EF8976`, `#714E53`, `#F7EDE6` | `#10130D`, `#A7A9A0`, `#DBDEDF` |
+| 예상 크레딧 | 2 | 2 | 2 |
+
+**왜 인물 없음인가**: ⓐ product-only는 우리 최대 주장(제품 정체성·정확한 타이포)을 가장 직접 시험한다 ⓑ Amazon AI-person 태그 대상이 아니다 ⓒ 페르소나 생성은 LLM 1콜 + 비용이 추가된다.
+**L:A BRUKET 인물 옵션(미사용)**: 손 클로즈업이 필요하면 persona 프롬프트 `Nordic woman, 30s, natural bare hands, minimal makeup, soft daylight`. 쓰면 Amazon 태그 대상이 되므로 1차에서는 뺀다.
+
+**헤드라인은 자동 생성된다** (직접 입력 필드 없음). 발송 전 에디터에서 아래 후보로 다듬는다:
+- Material Kitchen: `The knife you leave out.`
+- Chamberlain: `Mornings, sorted.`
+- L:A BRUKET: `Hands, handled.`
+
+**비용**: 3브랜드 × 2포맷 = **6장 = 6크레딧** (trial 10장 중). 여유 4장.
+
+### 10.3 왜 만드는가 (우선순위 순)
 1. **회신율 실험** — 우리 계획의 유일한 무기다. "팔겠습니다"가 아니라 "귀사 제품으로 만들어봤습니다"가 열리게 하는 열쇠. 3통이면 반응 자체를 볼 수 있다.
-2. **우리 제품의 첫 외부 입력 테스트** — 지금까지 모든 생성은 **우리 데모 사진**(통제된 조명·단순 배경)이었다. 타사 제품 사진은 배경·조명·해상도·워터마크가 제각각이다. 파이프라인이 실제로 버티는지 확인하는 첫 시험. **여기서 깨지면 고객에게 가기 전에 아는 게 낫다.**
+2. **우리 제품의 첫 외부 입력 테스트** — 지금까지 모든 생성은 **우리 데모 사진**(통제된 조명·단순 배경)이었다. 타사 제품 사진은 배경·조명·해상도가 제각각이다. 특히 **L:A BRUKET 튜브는 라벨에 작은 글자가 많아** "제품 정체성 보존"을 가장 혹독하게 시험한다.
 3. **증언 확보의 씨앗** — "이미지가 좋네요"라는 한 마디가 4단계 유료의 진입 조건이다.
-4. **도그푸딩** — 무료 10장 경로를 우리 손으로 통과한다. 크레딧 적립·품질 게이트·다운로드·5포맷 export 중 어디서 막히는지 확인.
+4. **도그푸딩** — 무료 10장 경로를 우리 손으로 통과한다.
 
-### 어디에 쓰는가 (권한 구분 — 중요)
+### 10.4 어디에 쓰는가 (권한 구분 — 중요)
 | 용도 | 가능 여부 |
 |---|---|
 | **메일 1:1 첨부** | ✅ 즉시. 본인 회사 제품을 본인에게 보여주는 것 |
@@ -247,25 +319,19 @@ cloudflared tunnel run dev   # dev.* 4개 도메인 터널 (사장님 Warp 탭)
 
 → **결론: 메일 밖으로 나가는 순간 허락이 필요하다.** 허락 없이 `public/`에 넣지 않는다.
 
-### 저장 위치 (git·public 금지)
-- 타사 브랜드 자산이므로 **레포 밖**에 둔다: `~/seed-outreach/{브랜드슬러그}/`
-- `public/` 절대 금지 (서빙되면 공개 게시가 된다)
-- 레포에 넣어야 하면 `.gitignore` 대상 폴더로
+### 10.5 실행 순서
+1. §10.0 버그 수정(또는 dev 우회 결정)
+2. `tailoredad.com` 로그인 → `/create`
+3. 브랜드 순서대로: 파일 업로드 → 1 creative → 1:1·4:5 → 노트·팔레트 입력 → Generate
+4. 결과 확인 → 헤드라인 다듬기(에디터) → 다운로드 → `seed-outreach/{브랜드}/out_*.png`
+5. 판정(아래) → 통과 시 메일 카피 초안(#저) → 발송
 
-### 절차
-1. **제품 선정** (브랜드당 1개) — 기준: 대표성 있는 것 · 형태가 단순해 배경 분리가 쉬운 것 · 로고가 명확한 것 · 흰배경 메인컷이 있는 것(우리 최적 입력)
-2. **사진 확보** — 스토어 상품 페이지의 원본 컷(가능하면 순백). 워터마크·합성 컷 회피
-3. **생성** — `/create`에서 conceptCount 1, 비율은 **1:1 + 4:5** 우선(9:16은 여유 시). 헤드라인은 그 브랜드 톤에 맞춰 짧게
-4. **검수** — 사장님 판정: **"이 이미지를 우리가 보냈을 때 부끄러운가?"** (마케팅 지식 불필요, 이 한 가지만)
-5. **메일 카피** — 1:1 초안. 링크에 UTM(`utm_source=seed&utm_campaign={브랜드}`) 부착해 유입 귀속 확보
-6. **발송** — 사장님. 하루 3통 이내로 분산
-
-### 판정 기준 (사장님)
-- 제품이 **원본과 똑같이** 보이는가 (색·형태·라벨)
+### 10.6 판정 기준 (사장님)
+- 제품이 **원본과 똑같이** 보이는가 (색·형태·라벨 글자)
 - 글자가 **깨지지 않았는가**
 - **"AI 티"가 나는가** — 이게 나면 발송 중단하고 프롬프트·모델을 먼저 고친다
 
-### 실패 시 대응
+### 10.7 실패 시 대응
 | 증상 | 조치 |
 |---|---|
 | 제품 색·형태 변형 | 참조 이미지 품질 문제 → 순백 컷으로 교체 후 재생성 |
@@ -273,15 +339,12 @@ cloudflared tunnel run dev   # dev.* 4개 도메인 터널 (사장님 Warp 탭)
 | AI 티 남 | 프롬프트(§3 잔량)부터 정리. 발송 보류 |
 | 3곳 다 실패 | 시딩 중단. 제품 품질이 먼저다 (보내봐야 브랜드만 상한다) |
 
-### 비용·시간
-- 3곳 × (base 1장 + ratios 4장) — **합계 $1 미만** (장당 수 센트)
-- 제 작업 2~3시간 (제품 선정·사진 확보·생성·카피), 사장님 검수 10분
-
-### 하지 말 것
-- **25장 선생성** — 3통 반응 보고 확장 (기존 결정)
+### 10.8 하지 말 것
+- **25장 선생성** — 3통 반응 보고 확장
 - 실사 얼굴 합성 — 안 함 (정책)
 - 아마존 **대표이미지 용도**로 만들기 — 규정 위반 (입력으로 쓰는 건 무관)
 - 우리 브랜드 로고를 타사 이미지에 넣기 — 그건 그들 광고가 아니다
+- `public/`에 넣기 · git에 커밋하기
 
 ---
 
