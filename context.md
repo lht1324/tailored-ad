@@ -1,9 +1,21 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-10-29 02:10)
+# TailoredAd — 작업 기록 (Last Updated: 2026-10-30 05:15)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
 
 ## 0. 최근 세션 기록 (10-25 ~ 10-30)
+
+### 생성 파이프라인 감사 보고서 작성 (10-30) — `PIPELINE_AUDIT.md`
+- **범위 정정**: §10.0에 "수정 3곳"으로 적혀 있던 것은 틀렸다. 전수 조사 결과 **호출부 19곳 / 대상 라우트 11개**다.
+- **결제도 같이 죽어 있다 (신규 발견)**: `api/webhook/dodo/route.ts:32`가 `/api/dodo/process`를 같은 self-fetch로 호출한다. 즉 **Dodo 401을 고쳐 결제가 성공해도 크레딧이 적립되지 않는다.** 웹훅은 200을 반환하므로 Dodo는 성공으로 기록한다 → **돈만 받고 아무것도 안 주는 상태**.
+- **죽은 호출 1건 발견**: `api/webhook/fungies/route.ts:36`이 `/api/fungies/process`를 부르는데 **해당 라우트 파일이 없다**(`src/app/api/fungies/` 부재). 폐기된 결제사 잔재 → 삭제 대상.
+- **gateway 표 누락 3개**: `image/generation/persona` · `image/process/persona` · `dodo/process`는 `ROUTE_ENTRIES`에 등록돼 있지 않다. 디스패치 전환 시 추가 필요.
+- **11개 라우트 전부 `getIsValidRequestS2S`** 인증 → 세션·userId 없이 내부 호출 가능(전환에 장애 없음).
+- **사고를 10일간 숨긴 3가지 구조적 결함**도 보고서에 명시: ⓐ `.catch()`가 에러를 삼킴 ⓑ 실패를 상태로 남기지 않음(`queued` 방치) ⓒ 장기 정체 감시 없음. **큐로 바꿔도 이 3개를 같이 고치지 않으면 재발한다.**
+- **2단계 설계 확정(문서화만, 미착수)**: Phase 1 = in-process 디스패치(헬퍼 1개 수정, 호출부 무수정, 2~3시간) / Phase 2 = Cloudflare Queues(재시도·DLQ·30초 제약 해소, 1일). Service Binding·Workflows·호스팅 이전은 **지금 채택 안 함**(이유 문서화).
+- **Phase 1의 한계 명시**: `waitUntil`은 응답 후 **최대 30초**. 4-creative 팬아웃이 넘기면 잘릴 수 있다 → Phase 2 필요 근거.
+- **상대 경로 호출(`/foo`)은 불가** 실측: `fetch`는 절대 URL만 받아 `TypeError: Failed to parse URL`. 우회 불가 확인.
+
 
 ### prod 생성 경로 버그 발견 (10-30) — 3장 생성 시도 중
 - 3단계 크리에이티브 3장을 prod에서 만들려다 **"Preparing concept"에서 영구 정지**. 3면 실측으로 원인 확정:
@@ -183,7 +195,8 @@
 
 ### 제품 트랙
 - [ ] **🔴 P0: prod 생성 경로 죽음 (10-30)** — `/api/image` → `internalFireAndForgetFetch(BASE_URL/api/creative/specs)`가 **워커 자기 zone fetch**라 prod에서 실패. 배치는 `queued`·`specs=[]`로 영구 정지, Replicate 제출 0건. **출시 이후 생성 성공 0건** (10-20 배치도 10일째 queued).
-  수정: `lib/utils/internalFetch.ts` 기반 3곳(`creative/specs`·`creative/{i}/prompt`·`image/generation/persona`)을 게이트웨이식 in-process 직접 호출 + `ctx.waitUntil`로 교체. 상세 §10.0.
+  수정: `lib/utils/internalFetch.ts` 1곳 → in-process 디스패처 위임 (**호출부 19곳은 무수정**). 상세 = **`PIPELINE_AUDIT.md`** (§10.0의 "3곳" 표기는 오기 — 실제 19곳/11라우트).
+  **같은 원인으로 결제 적립도 죽어 있다** (`api/webhook/dodo/route.ts:32` → `/api/dodo/process`).
   → 이거 고치기 전에는 prod 유료 전환·PH 런치·시딩 모두 의미 없음.
 - [ ] **Dodo live 체크아웃 401** (지원 문의 대기): live `/checkouts` 직접 호출도 401.
   **10-28 정정**: live **Products API는 정상 동작**(prod 게이트웨이 `/api/client-gateway?path=/api/dodo/products`가 live 키로 3플랜 반환) → 키·계정 자체는 유효. 401은 **checkouts 라우트 국소 문제**로 범위 축소됨.
@@ -351,6 +364,27 @@ prod의 `BASE_URL=https://tailoredad.com` = **워커가 자기 zone을 fetch** �
 ## 11. 다음 세션 착수 목록 (10-28 이월분 — 우선순위 순)
 
 > 사장님 지시(10-28): 이번에 하지 않고 전부 다음으로 묶음. 아래만 보면 이어서 재개 가능.
+> 사장님 지시(10-30): 파이프라인 수정은 "한 번 싹 훑는 작업"이라 지금 착수하지 않음 → 아래 A0로 이월.
+
+### A0. 파이프라인 수정 (P0 — **최우선**, 상세 `PIPELINE_AUDIT.md`)
+
+> 근거·조사 결과·리스크·검증 계획 전부 `PIPELINE_AUDIT.md`. 여기는 실행 체크리스트만.
+
+**Phase 1 — in-process 디스패치 (2~3시간)**
+- [ ] `src/lib/internalDispatch.ts` 신설 — 경로 매칭 → lazy import → 핸들러 직접 호출 (게이트웨이 패턴). 매칭 실패는 loudly 실패
+- [ ] `src/lib/utils/internalFetch.ts` 수정 — 호스트가 `BASE_URL`과 같으면 디스패처 위임, 다르면 기존 fetch. **시그니처 불변**
+- [ ] `ROUTE_ENTRIES`에 누락 3개 추가 (`image/generation/persona`·`image/process/persona`·`dodo/process`)
+- [ ] 실패를 DB 상태로 기록 (`status='failed'` + code·message)
+- [ ] `api/webhook/fungies/route.ts` 죽은 호출 삭제 (대상 라우트 부재)
+- [ ] dev 검증: creative 1·비율 1개 / creative 4·비율 2개 / persona / 실패 유도
+- [ ] prod 스모크: trial로 1장 완주 + Replicate 신규 예측 확인
+- [ ] develop 커밋 → master `--no-ff` 머지 → 배포
+
+**Phase 2 — Cloudflare Queues (1일, Phase 1 안정화 후)**
+- [ ] 메시지 스키마 + 컨슈머 구성 (단계 로직은 기존 핸들러 재사용)
+- [ ] 단계별 idempotency (`UPDATE … WHERE status='expected'`)
+- [ ] DLQ + 실패 알림 + `queued` 장기 정체 Cron 감시
+
 
 ### A. 결제 검증 (제품 트랙 최우선)
 - [ ] prod Pricing에서 Starter 실결제 1건 ($9.50, `FIRSTORDER50`) → `subscription_grants` 유료 1건 + 100장 확인 → 웹훅 적립 → 환불
