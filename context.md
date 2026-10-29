@@ -1,4 +1,4 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-10-30 05:15)
+# TailoredAd — 작업 기록 (Last Updated: 2026-10-30 05:55)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
@@ -17,6 +17,18 @@
 - **상대 경로 호출(`/foo`)은 불가** 실측: `fetch`는 절대 URL만 받아 `TypeError: Failed to parse URL`. 우회 불가 확인.
 
 
+### 실행 모델·플랫폼 정리 (10-30, 사장님 논의 — 문서화만)
+- **"Workers 런타임 1개에서 전부 돌려야 한다"는 전제는 틀렸다.** 정확히는 **1 코드(워커 스크립트) = N invocation**. 단계마다 새 실행이 깨어나고 **각자 새 시간 예산**을 받는다. 체인 전체가 한 예산에 들어갈 필요 없음.
+- **오케스트레이터는 상주 프로세스가 아니다.** 매 단계 `DB 상태 읽기 → 다음 단계 판단 → 함수 호출 → 상태 쓰기 → 종료`를 반복하는 **평범한 함수**. Temporal·Inngest·CF Workflows 전부 이 구조.
+- **suspend/resume은 "잠들었다 깨는" 게 아니라 "처음부터 재생(replay) + 완료 단계 건너뛰기"** 다. isolate는 죽고, 재개 시 함수가 처음부터 다시 돌며 완료된 step 결과를 캐시에서 받는다.
+  → **실무 규칙: 부수효과(API 호출·DB 쓰기·결제)는 반드시 step 안에.** step 밖에 있으면 재실행 때 중복 실행된다. `Math.random()`·`Date.now()`도 step 밖에서는 재실행마다 값이 달라져 분기가 어긋난다.
+- **타임아웃은 "코드 한 줄"이 아니라 "실행 1회(invocation)" 단위**이고, 실제 계정은 CPU 시간이다. 네트워크 대기가 대부분인 우리 단계(2~8초)는 CPU를 거의 쓰지 않는다.
+- **Phase 1에는 suspend/resume 개념이 없다.** `waitUntil`은 "응답 후 한 번 깨어나 체인을 쭉 이어서 실행(최대 30초)"일 뿐이다. 사장님이 그린 "단계마다 잘려 실행되는" 그림은 **Phase 2(Queues)** 다.
+- **자기 zone fetch가 원래 안 좋은 패턴인 이유**(CF 이전부터): 컴퓨트 2배, 타입 소실, 인증 컨텍스트 단절, 느림. Next.js 공식 문서도 "서버 컴포넌트에서 자기 Route Handler를 fetch하지 말고 로직을 함수로 빼라"고 명시. **CF는 원래 안 좋은 패턴을 아예 불가능하게 만들었을 뿐.**
+- **`BASE_URL`의 정확한 용도**: OAuth 리다이렉트·웹훅 수신·이메일 링크·DB에 저장하는 URL = **외부인이 우리를 부르는 주소**. **내부 통신용이 아니다.** 브라우저→서버 호출은 진짜 외부 요청이라 문제없다(client-gateway가 정상인 이유). 문제는 서버→자기 자신뿐.
+- **호스팅 결론**: 지금 CF 유지. 버그 1개 때문에 이전하는 건 비용 낭비이고, 30초·유실 문제는 플랫폼을 바꿔도 남는다(큐가 답). 분리가 필요해지면 **CF 방패 + 단일 컨테이너(Fly/Railway, 1일/$10~20)**. AWS·Azure·GCP는 이 규모에서 2~4일 + 상시 운영 부담이라 비추천. Heroku는 방향 아님. **WAF(방패)는 지금 필요 없다** — 트래픽·어뷰징이 없고, 백엔드를 CF 밖으로 빼면 오히려 원본 IP 노출로 방어가 약해져 mTLS·IP 은닉이 추가로 필요해진다.
+- **env 정리(개선 후보, 미착수)**: `getServerEnv`의 `process.env` 폴백이 **조용히 동작하는 것**이 DODO_ENV 사고의 원인. 운영에서 폴백 발생 시 경고 + `wrangler types` 기반 타입 env(문자열 키 제거) 후보. **버그는 아니므로 A0 이후.**
+
 ### prod 생성 경로 버그 발견 (10-30) — 3장 생성 시도 중
 - 3단계 크리에이티브 3장을 prod에서 만들려다 **"Preparing concept"에서 영구 정지**. 3면 실측으로 원인 확정:
   `ad_creative_specs=[]`·`status=queued`·`updated_at=null` (DB) + **Replicate 예측 10-09 이후 0건** + 10-20 배치도 10일째 queued.
@@ -25,6 +37,7 @@
   dev는 `BASE_URL=dev.tailoredad.com`(터널)이라 진짜 외부 요청 → 동작. **출시 이후 생성 성공 0건.**
 - **부작용 없음**: 실패 배치는 완성 이미지가 없어 크레딧 차감 0 (10장 유지).
 - 수정 방향: internalFetch 3곳(specs·prompt·persona)을 게이트웨이식 **in-process 직접 호출**로 교체. **미착수.**
+  **10-30 정정**: 실제는 **호출부 19곳 / 대상 라우트 11개**이며, 결제 웹훅도 같은 원인으로 죽어 있다. `PIPELINE_AUDIT.md` 참조.
 - 같은 이유로 **PH 런치·유료 집행은 여전히 보류**가 맞다 (결제 이전에 생성이 안 된다).
 
 ### 3단계 시딩 — 크리에이티브 3장 준비 (10-30)
@@ -251,6 +264,8 @@ cloudflared tunnel run dev   # dev.* 4개 도메인 터널 (사장님 Warp 탭)
 - **Shopify 리드 수집** (10-28): `/products.json`은 **IP당 429가 쉽게 걸린다**(수십 건이면 차단). `cdn.shopify.com`/`myshopify.com` 문자열로 Shopify 판별. **Meta 픽셀은 Web Pixels API(서버측)로 심겨 HTML에 `fbq`가 없다 → 픽셀 부재를 "광고 안 함"으로 해석하면 오판.** Ad Library는 비로그인 403.
 - **macOS 프레임워크 파이썬 SSL**: `CERTIFICATE_VERIFY_FAILED`로 urllib 전면 실패. `ssl.create_default_context(cafile="/etc/ssl/cert.pem")`로 해결 (certifi 미설치 환경).
 - **Cloudflare Email Routing은 수신 전용**: MX가 `route*.mx.cloudflare.net`인 도메인은 그 주소로 **발송 불가**. 콜드 아웃리치 전 발송 수단(Gmail Workspace 등) + DMARC 확인 필수.
+- **durable 실행의 replay 규칙** (10-30, Phase 2 필독): 워크플로/큐의 "잠들었다 깨기"는 **처음부터 재실행 + 완료 단계 결과 재사용**이다. 그래서 **step 밖의 부수효과(API 호출·DB 쓰기·결제)는 재실행 때 중복 실행**되고, step 밖의 `Math.random()`·`Date.now()`는 값이 달라져 분기가 어긋난다. 부수효과는 전부 step 안에 넣는다.
+- **`BASE_URL`은 내부 통신 주소가 아니다**: 자기 zone fetch는 CF 이전에도 나쁜 패턴(컴퓨트 2배·타입 소실·인증 단절). Next.js 공식 문서도 서버 컴포넌트에서 자기 Route Handler fetch 금지. **내부는 함수 호출, `BASE_URL`은 외부(웹훅·OAuth·이메일 링크)용.**
 
 ## 10. 다음 작업 상세 — 크리에이티브 3장 (3단계 첫 발송)
 
@@ -384,6 +399,8 @@ prod의 `BASE_URL=https://tailoredad.com` = **워커가 자기 zone을 fetch** �
 - [ ] 메시지 스키마 + 컨슈머 구성 (단계 로직은 기존 핸들러 재사용)
 - [ ] 단계별 idempotency (`UPDATE … WHERE status='expected'`)
 - [ ] DLQ + 실패 알림 + `queued` 장기 정체 Cron 감시
+- [ ] **replay 규칙 준수 확인** — 부수효과는 전부 step 안으로. step 밖 API 호출·DB 쓰기·랜덤/시각 의존 금지 (`context.md` §9)
+- [ ] Phase 2 진입 판단 기준: Phase 1 배포 후 **4-creative 배치가 30초를 넘거나, 유실이 1건이라도 관측되면** 즉시 착수
 
 
 ### A. 결제 검증 (제품 트랙 최우선)
