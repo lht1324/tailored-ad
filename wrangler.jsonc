@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "tailored-ad",
-  "main": ".open-next/worker.js",
+  "main": "./worker.ts",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
   // 비밀이 아닌 값만 여기에 둠 (git 추적됨). 키·토큰류는 대시보드 Secrets 전용 — deploy가 Secrets는 건드리지 않음.
@@ -17,6 +17,15 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  // 파이프라인 오케스트레이터 (10-31) — 상세 `PIPELINE_ARCHITECTURE.md`
+  // 클래스는 worker.ts가 export 하고, binding 이름은 코드에서 env.BATCH_PIPELINE 으로 접근한다.
+  "workflows": [
+    {
+      "binding": "BATCH_PIPELINE",
+      "name": "batch-pipeline",
+      "class_name": "BatchPipeline"
+    }
+  ],
   "observability": {
     "logs": {
       "enabled": true,

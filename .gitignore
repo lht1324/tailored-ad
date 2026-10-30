@@ -42,7 +42,9 @@ yarn-error.log*
 # cloudflare
 .open-next/
 .wrangler/
-cloudflare-env.d.ts
+# cloudflare-env.d.ts는 **추적한다** (10-31). 워커 코드가 CloudflareEnv를 타입으로 참조하는데
+# 이 파일이 없으면 tsc가 실패한다. 값이 아니라 env 이름만 담긴 생성물이며,
+# wrangler.jsonc 변경 시 `npm run cf-typegen`으로 갱신한다.
 
 # typescript
 *.tsbuildinfo

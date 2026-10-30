@@ -9,7 +9,9 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 export async function getServerEnv(key: string): Promise<string | undefined> {
     try {
         const { env } = await getCloudflareContext();
-        const value = (env as Record<string, unknown> | undefined)?.[key];
+        // CloudflareEnv는 wrangler가 생성한 구체 인터페이스라 문자열 인덱싱이 없다.
+        // 동적 키 조회이므로 unknown을 거쳐 캐스팅한다 (10-31: generated types 도입에 따른 조정).
+        const value = (env as unknown as Record<string, unknown> | undefined)?.[key];
         if (typeof value === 'string' && value.length > 0) {
             return value;
         }
