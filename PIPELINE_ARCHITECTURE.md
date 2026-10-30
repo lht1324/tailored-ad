@@ -114,62 +114,43 @@ worker.ts                ← custom worker (Queue consumer export). OpenNext 공
 
 ---
 
-## 5. 오케스트레이터 와꾸
+## 5. 오케스트레이터 와꾸 — Workflow 클래스가 순서를 소유한다
 
-### 5.1 `planNextSteps(batch)` — 순수 함수
-
-```ts
-// DB 상태만 보고 "다음에 뭘 해야 하는지" 계산한다. 부수효과 0. 네트워크 0.
-export function planNextSteps(batch: AdGenerationBatch): PlannedStep[] {
-  if (batch.status === 'queued') {
-    return [steps.assignSpecs];
-  }
-  if (!allSpecsHavePrompt(batch)) {
-    return missingCreatives(batch).map(steps.prepareCreativePrompt);
-  }
-  if (!allBasesSubmitted(batch)) {
-    return missingCreatives(batch).map(steps.submitBaseImage);
-  }
-  if (!allImagesComplete(batch)) {
-    return [];                                  // Replicate 대기. 할 일 없음
-  }
-  if (batch.status === 'designing' && !allScored(batch)) {
-    return unanalyzedCreatives(batch).map(steps.analyzeCreative);
-  }
-  if (allScored(batch)) {
-    return [steps.finalizeBatch];
-  }
-  return [];
-}
-```
-
-**이 함수가 "다음 단계로 넘겨주는 일"의 유일한 소유자다.** route도, 다른 step도 아니다.
-
-### 5.2 `advanceBatch(batchId)` — 실행기
+> **10-31 정정**: 이전 판의 `planNextSteps` + `advanceBatch` 상태머신은 **불필요해졌다**.
+> Workflows의 `step.do`가 결과를 저장하고 실패 시 그 step부터 재개하므로, DB 상태를 읽어
+> "다음 할 일"을 매번 계산하는 장치가 필요 없다. **오케스트레이터 = Workflow의 `run()`**
 
 ```ts
-export async function advanceBatch(batchId: string): Promise<void> {
-  const batch = await loadBatch(batchId);       // 상태는 읽기만 (RPC가 쓴다)
+// src/workflows/batchPipeline.ts
+export class BatchPipeline extends WorkflowEntrypoint<CloudflareEnv, { batchId: string }> {
+  async run(event: WorkflowEvent<{ batchId: string }>, step: WorkflowStep) {
+    const { batchId } = event.payload;
 
-  for (const step of planNextSteps(batch)) {
-    try {
-      await step.run(batch);                    // 각 step은 멱등 가드를 통과해야 실행
-    } catch (error) {
-      await recordStepFailure(batchId, step.id, error);   // last_error 기록 (조용한 실패 금지)
-      throw error;                                        // 재시도는 엔진이 담당
+    await step.do('assign-specs', () => assignSpecs({ batchId }));
+
+    for (const c of creatives) {
+      await step.do(`prompt-${c}`, () => prepareCreativePrompt({ batchId, creativeIndex: c }));
+      await step.do(`submit-base-${c}`, () => submitBaseImage({ batchId, creativeIndex: c }));
     }
+
+    // Replicate가 일하는 동안 워크플로는 waiting (동시성 슬롯도 소모하지 않음)
+    const ev = await step.waitForEvent('replicate', { type: 'replicate', timeout: '20 minutes' });
+    await step.do('handle-base', () => handleBaseResult({ batchId, ...ev.payload }));
+
+    await step.do('submit-ratios', () => submitRatios({ batchId }));
+    // ... ratios 대기 → analyzeCreative → 종료
   }
 }
 ```
 
-### 5.3 호출 지점은 4곳뿐
+### 호출 지점은 2종류의 문뿐
 
-| 호출자 | 언제 | 방식 |
-|---|---|---|
-| `POST /api/image` | 업로드 직후 | 큐 enqueue → 즉시 응답 |
-| Replicate 웹훅 3종 | 결과 도착 | 큐 enqueue → 즉시 200 |
-| `POST /api/webhook/dodo` | 적립 | 큐 enqueue → 즉시 200 |
-| **크론 (신규)** | 10분 정체 배치 | 큐 enqueue |
+| 문 | 하는 일 |
+|---|---|
+| `POST /api/image` | 배치 생성 → `env.BATCH_PIPELINE.create({ id: batchId, params })` → **202** |
+| `POST /api/webhook/replicate/*` | 서명검증 → `env.BATCH_PIPELINE.get(batchId).sendEvent({ type:'replicate', payload })` → **200** |
+| `POST /api/webhook/dodo` | 서명검증 → step 함수 직접 or 별도 워크플로 (W3에서 결정) |
+
 
 ---
 
@@ -198,25 +179,39 @@ export async function advanceBatch(batchId: string): Promise<void> {
 
 ---
 
-## 7. 실행 엔진 — 결정: **Cloudflare Queues**
+## 7. 실행 엔진 — 결정: **Cloudflare Workflows**
 
-| | 1안 `waitUntil` | **2안 Queue (채택)** | 3안 Workflows |
+> **10-31 변경**: 이전 판은 Queue였다. 공식 문서 재확인 후 **Workflows**로 정정.
+
+| | 1안 `waitUntil` | 2안 Queue | **3안 Workflows (채택)** |
 |---|---|---|---|
-| 새 인프라 | 0 | 큐 1 + custom worker | 워크플로 1 + custom worker |
-| 웹훅 응답 지연 | 없음 | 없음 (별도 invocation) | 없음 |
-| **30초 컷 위험** | **있음** — 분석(이미지 5장 LLM)이 길면 조용히 잘림 | **없음** | 없음 |
-| 재시도 | 직접 구현 | **자동 + DLQ** | 자동 + step별 |
-| 관측 | 로그뿐 | 큐 메트릭 | step별 조회 |
-| 복잡도 | 낮음 | 중간 | 중간~높음 |
+| wall clock | **30초 후 취소** | 15분/invocation | **step당 무제한** |
+| 재시도 | 직접 구현 | 자동 + DLQ | **자동 + step별 설정** |
+| 재실행 비용 | 전부 재실행 | 중복 실행 위험 | **step 결과 재사용(과금 중복 없음)** |
+| 상태 조회 | 없음 | 큐 메트릭 | **instance id로 상태 조회** |
+| 외부 이벤트 대기 | 불가 | 별도 구현 | **`step.waitForEvent`** |
+| 새 인프라 | 0 | 큐 + custom worker | 워크플로 + custom worker |
 
-**채택 근거**
-1. 우리 파이프라인의 모든 경계가 **이미 외부 이벤트**(Replicate 웹훅)다. Workflows의 핵심 무기인 `waitForEvent`가 필요 없다 (Replicate가 대신 기다린다)
-2. 큐 메시지 = `{ batchId }` 한 개. "이 배치를 한 칸 전진시켜라"라는 뜻이라 **오케스트레이터가 순수 함수로 유지**된다
-3. 1안은 매력적이지만 **분석 단계가 30초를 넘으면 조용히 잘린다.** 이번 사고와 같은 종류의 실패(조용한 유실)를 또 만든다
+**공식 근거**
+> Cloudflare Workers Best Practices (2026-02-15): "Use **Queues for simple fan-out and buffering**, and **Workflows for multi-step durable processes**."
 
-**부수 효과**: Queue consumer를 붙이려면 OpenNext의 **custom worker**가 필요하다 (공식 문서: `opennext.js.org/cloudflare/howtos/custom-worker`). `main`을 `worker.ts`로 바꾸고 생성된 fetch 핸들러를 재사용한다.
+**우리 케이스가 Workflows인 이유** (Ryan Lindsey의 판단 기준 그대로)
+- step 비용이 비쌈(LLM·Replicate) → **재시도 시 결과를 재사용해야** 함
+- 대기가 대부분(모델 응답)
+- `batchId`로 상태를 조회할 일이 있음
+- 실패가 조용히 사라지면 안 됨
 
-**Workflows를 쓰지 않는 이유를 정확히**: 불필요해서지, 불가능해서가 아니다. 나중에 **사람 승인·며칠짜리 대기**가 생기면 그때 Workflows로 올린다. step 함수는 그대로 재사용된다.
+**Workflows 한도 (실측, Workers Paid)**
+| 항목 | 값 |
+|---|---|
+| step wall clock | **무제한** (네트워크 대기 포함) |
+| step CPU | 30초 기본 / 최대 5분 (`limits.cpu_ms`) |
+| step 반환값 | **1MiB** ← 이미지 base64 반환 금지, R2 키만 |
+| steps per workflow | 10,000 (최대 25,000) |
+| `step.sleep` | 최대 365일 |
+| workflow instance ID | 최대 100자, `^[a-zA-Z0-9_][a-zA-Z0-9-_]*$` |
+
+→ **프롬프트 LLM 대기는 wall clock 무제한이라 잘리지 않는다.** CPU만 30초인데 우리 단계는 대기 위주다.
 
 ---
 
@@ -240,14 +235,17 @@ export async function advanceBatch(batchId: string): Promise<void> {
 
 | # | 결정 | 이유 |
 |---|---|---|
-| D1 | 엔진 = **Queue** | 30초 컷 회피 + 재시도·DLQ. waitForEvent 불필요 |
+| D1 | 엔진 = **Workflows** (10-31 변경, 이전 Queue) | 공식 권고: "multi-step durable processes → Workflows". 재시도 시 step 결과 재사용으로 **과금 중복 방지** |
 | D2 | `rendering` 상태 **삭제** | 미사용 (타입에만 존재) |
-| D3 | 상태 쓰기 = **RPC 유지**, 오케스트레이터는 읽기 전용 + `last_error` 별도 기록 | RPC와 경쟁하면 last-writer-wins 사고 |
+| D3 | 상태 쓰기 = **RPC 유지**, 오케스트레이터는 읽기 전용 | RPC와 경쟁하면 last-writer-wins 사고 |
 | D4 | 내부 라우트 10개 + fungies **삭제** | 클라이언트 미사용 확인, 오케스트레이터가 대체 |
-| D5 | 크론 감시 **추가** | `queued`/`generating` 10분 정체 = 이번 사고의 재발 감지 |
+| D5 | 정체 감시 **추가** | `waitForEvent` 타임아웃·워크플로 실패를 놓치지 않기 위해 |
 | D6 | 서비스 위치 = `src/lib/pipeline` | 기존 `lib/*` 관례 유지 |
 | D7 | `lib/api/server/ad/*` **유지** | 이미 올바른 계층. 건드리면 위험만 늘어남 |
-| D8 | **S2(서비스 바인딩 임시 복구) 생략** (10-30, 사장님) | S3가 들어오면 self-fetch가 사라져 S2는 버려질 코드. 단 prod는 S3 배포 전까지 죽어 있고, **S5 prod 스모크가 첫 실검증**이 된다 |
+| D8 | ~~S2(서비스 바인딩 임시 복구) 생략~~ → **불필요해짐** | Workflows 도입으로 self-fetch 자체가 사라짐 |
+| D9 | `planNextSteps`/`advanceBatch` 상태머신 **불필요** | Workflows의 step 저장·재개가 그 역할을 대체 |
+| D10 | `cloudflare:workers` 타입은 **최소 수기 선언** | `wrangler types --include-runtime true`가 기존 코드 84곳을 깨뜨림(실측) |
+| D11 | `cloudflare-env.d.ts` **git 추적** | 없으면 fresh clone에서 tsc 실패. 값이 아닌 env 이름만 담김 |
 
 ---
 
@@ -255,33 +253,35 @@ export async function advanceBatch(batchId: string): Promise<void> {
 
 | 단계 | 내용 | 끝나면 | 예상 | 상태 |
 |---|---|---|---|---|
-| ~~**S2**~~ | ~~`WORKER_SELF_REFERENCE` + `internalFetch` 수정~~ | ~~prod 생성 복구 (임시)~~ | 1시간 | ⛔ **건너뜀 (10-30 결정)** |
-| **S0** | `prepareCreativePrompt` 1개만 추출 + 라우트 얇게 | 동작 동일, 그릇 확정 | 1~2시간 | ⬜ |
-| **S1** | 나머지 10개 step 추출 | 라우트 전부 얇아짐 | 반나절~1일 | ⬜ |
-| **S3** | `planNextSteps` + `advanceBatch` + Queue + custom worker | **오케스트레이터 가동**, self-fetch 0 | 1일 | ⬜ |
-| **S4** | 내부 라우트 11개 삭제 + 크론 감시 + `rendering` 제거 | 구조 정리 완료 | 반나절 | ⬜ |
-| **S5** | master `--no-ff` 머지 → 배포 → **prod 스모크** | 실사용 가능 | 1시간 | ⬜ |
+| **W0** | custom worker(`worker.ts`) + `BatchPipeline` 골격 + workflows 바인딩 + 타입 기반 | 배포 가능한 골격 (dry-run 검증) | 1~2시간 | ✅ **완료 (10-31, `f504766`)** |
+| **W1** | `assignSpecs`·`prepareCreativePrompt`·`submitBaseImage`·`handleBaseResult` 이동 + 워크플로 연결 + 라우트 4개 삭제 | ★ **1장 생성 end-to-end 동작** | 3~4시간 | ⬜ |
+| **W2** | `submitRatios`·`handleRatioResult`·`analyzeCreative` 이동 | 다중 포맷 완주 | 2~3시간 | ⬜ |
+| **W3** | `submitPersona`·`handlePersonaResult`·`grantCredits` 이동 | 내부 라우트 전부 소멸 | 2~3시간 | ⬜ |
+| **W4** | `npm run deploy` → **prod 스모크**(1장 완주 + Replicate 신규 예측) | 실사용 가능 | 1시간 | ⬜ |
+| **W5** | 정체 감시(워크플로 실패/타임아웃) + `next/server` import lint + `rendering` 제거 | 마감 | 반나절 | ⬜ |
 
-**S2를 건너뛰는 이유 (사장님 10-30)**: S3가 들어오면 self-fetch 자체가 사라져 S2는 **버려질 코드**다. 임시 다리를 놓았다가 걷는 1시간을 아낀다.
+**W0에서 실측한 것 (10-31)**
+- `wrangler deploy --dry-run`이 **`env.BATCH_PIPELINE (BatchPipeline) → Workflow`** 바인딩을 인식했다
+- `main: "./worker.ts"`로 바꿔도 OpenNext 산출물(`.open-next/worker.js`)을 정상 번들한다
+- `wrangler types --include-runtime true`는 **기존 코드 84곳을 깨뜨린다**(`request.json()` → `unknown`). 그래서 `--include-runtime false` + 최소 수기 선언(`src/types/cloudflare-workers.d.ts`)으로 간다
+- `.open-next`는 next build가 아니라 **opennextjs-cloudflare build** 산출물이다. `worker.ts`의 import는 그때만 존재하므로 `@ts-ignore`(expect-error 아님)를 쓴다
 
-**그래서 생기는 제약 (반드시 인지)**:
-1. **S3 배포 전까지 prod 생성은 계속 죽어 있다.** 지금 사용자가 0명이라 영향은 없지만, 이 기간에 유입을 만들면 안 된다(시딩·PH 보류 유지).
-2. **dev 검증이 prod를 보증하지 않는다** — 이번 사고의 원인이 정확히 그것이었다(dev는 터널을 거치는 진짜 외부 요청). 그래서 **S5의 prod 스모크가 이 파이프라인의 첫 실검증**이다. 여기서 1장 완주를 반드시 확인한다.
-3. S0·S1 동안 dev 파이프라인 테스트에는 **터널이 필요**하다 (Replicate 웹훅이 공개 URL로 돌아와야 함). `BASE_URL=dev.tailoredad.com` 유지 + `cloudflared tunnel run dev` 켜둘 것.
-
-> **순서 원칙**: S0(그릇 1개) → S1(나머지 복사) → S3(오케스트레이터) → S4(청소) → S5(배포·검증). S2는 제거됨.
+**W1이 이 계획의 핵심이다.** 4개 step이 붙는 순간 파이프라인이 prod에서 처음으로 완주하므로, "다 옮기고 나서 테스트"가 아니라 **첫 사이클에서 검증**한다.
 
 ---
 
 ## 11. 함정 (구현 전 필독)
 
 1. **`step` 밖 부수효과 금지** — 재실행 시 중복. `Math.random()`·`Date.now()`도 step 안에서
-2. **RPC와 상태 쓰기 경쟁 금지** — `designing`/`completed`는 SQL RPC가 쓴다. 오케스트레이터가 같은 컬럼을 쓰면 안 된다
-3. **웹훅은 즉시 200** — 큐 enqueue만 하고 무거운 일은 consumer에서
-4. **멱등키** — Replicate 웹훅은 재전송된다. `imageResults[ratioKey]` 존재 여부로 차단
-5. **custom worker 도입 시** `DOQueueHandler`·`DOShardedTagCache` re-export 유지 (ISR 캐시가 쓰고 있음)
-6. **큐 메시지 크기** — `{ batchId }`만 넣는다. 이미지 base64를 메시지에 넣으면 안 된다
-7. **삭제는 마지막** — 대체 함수가 prod에서 검증된 뒤에 라우트를 지운다
+2. **step 반환값 1MiB** — 이미지 base64를 반환하면 초과한다. **R2에 쓰고 키만** 반환
+3. **RPC와 상태 쓰기 경쟁 금지** — `designing`/`completed`는 SQL RPC가 쓴다. 워크플로가 같은 컬럼을 쓰면 안 된다
+4. **웹훅은 즉시 200** — `sendEvent`만 하고 무거운 일은 워크플로에서
+5. **`waitForEvent` 타임아웃은 throw** → 워크플로 인스턴스가 실패로 끝난다. `try/catch`로 감싸 재시도/실패 처리
+6. **`waitForEvent`의 `type`은 문자·숫자·`-`·`_`만** (`.` 불가)
+7. **instance id = batchId** — `create({ id: batchId })`로 만들면 웹훅이 `get(batchId)`로 찾을 수 있다
+8. **custom worker 도입 시** `DOQueueHandler`·`DOShardedTagCache` re-export 유지 (ISR 캐시가 쓴다)
+9. **`cloudflare-env.d.ts` 갱신** — `wrangler.jsonc` 바인딩을 바꾸면 `npm run cf-typegen` 재실행
+10. **삭제는 마지막** — 대체 함수가 prod에서 검증된 뒤에 라우트를 지운다
 
 ---
 
