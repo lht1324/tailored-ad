@@ -1,13 +1,15 @@
-import { getServerEnv } from "@/lib/serverEnv";
 import { NextRequest } from "next/server";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
-import { internalFireAndForgetFetch } from "@/lib/utils/internalFetch";
+import { sendReplicateBaseEvent } from "@/lib/workflows/batchPipelineClient";
 
 /**
  * Replicate 웹훅 배달부 — 기준(base) 이미지 prediction 전용.
- * webhook_url에 batchId·creativeIndex·ratioKey가 query로 박혀 제출 시점에 전달된다.
- * 역할은 수신→전달뿐: 파싱해서 process/base로 넘기고 즉시 200 응답.
- * (절대 에러 상태로 응답하지 않는다 — 재시도 폭풍 방지, fal 웹훅 선례와 동일)
+ *
+ * **10-31 변경**: 예전에는 `internalFireAndForgetFetch(.../api/image/process/base)`로
+ * 다음 라우트를 불렀다. 이제는 **워크플로 인스턴스로 이벤트만 전달**하고 즉시 200을 준다.
+ * 후처리는 워크플로의 `handleBaseResult` step이 맡는다 (HTTP 왕복 없음).
+ *
+ * 원칙: 절대 에러 상태로 응답하지 않는다 — Replicate 재시도 폭풍 방지.
  */
 export async function POST(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
@@ -16,7 +18,6 @@ export async function POST(request: NextRequest) {
     const ratioKey = searchParams.get('ratioKey');
 
     if (!batchId || creativeIndexParam === null) {
-        // 식별 불가 웹훅 — 버릴 수밖에 없지만 Replicate에는 성공으로 응답
         return getNextBaseResponse({
             success: true,
             status: 200,
@@ -24,11 +25,20 @@ export async function POST(request: NextRequest) {
         });
     }
 
+    const creativeIndex = Number.parseInt(creativeIndexParam, 10);
+    if (Number.isNaN(creativeIndex) || creativeIndex < 0) {
+        return getNextBaseResponse({
+            success: true,
+            status: 200,
+            error: "Invalid creativeIndex query param.",
+        });
+    }
+
     try {
         const payload = await request.json();
 
         if (!payload || typeof payload.id !== 'string' || typeof payload.status !== 'string') {
-            console.warn(`[webhook/ad/replicate/image/base] invalid payload (batch=${batchId}, creative=${creativeIndexParam}): missing id or status`);
+            console.warn(`[webhook/replicate/image/base] invalid payload (batch=${batchId}, creative=${creativeIndex}): missing id or status`);
             return getNextBaseResponse({
                 success: true,
                 status: 200,
@@ -36,29 +46,23 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        // ratioKey는 webhook query가 1순위, 없으면 payload.input.aspect_ratio에서 fallback
-        let effectiveRatioKey = ratioKey;
-        if (!effectiveRatioKey && payload.input?.aspect_ratio && typeof payload.input.aspect_ratio === 'string') {
-            effectiveRatioKey = (payload.input.aspect_ratio as string).replace(':', '_');
-        }
-
-        internalFireAndForgetFetch(
-            `${await getServerEnv('BASE_URL')}/api/image/process/base?batchId=${batchId}&creativeIndex=${creativeIndexParam}${effectiveRatioKey ? `&ratioKey=${effectiveRatioKey}` : ""}${searchParams.get('attempt') ? `&attempt=${encodeURIComponent(searchParams.get('attempt') as string)}` : ""}`,
-            { method: "POST" },
-            {
-                replicatePayload: payload,
-            },
-        );
+        await sendReplicateBaseEvent({
+            batchId,
+            creativeIndex,
+            ratioKey,
+            attempt: Number.parseInt(searchParams.get('attempt') ?? '1', 10) || 1,
+            payload,
+        });
 
         return getNextBaseResponse({
             success: true,
             status: 200,
-            message: "Received base image webhook successfully",
+            message: "Base image event delivered to pipeline.",
         });
     } catch (error) {
-        console.error(`[webhook/ad/replicate/image/base] processing error (batch=${batchId}):`, error);
+        // 워크플로 인스턴스가 없거나 종료된 경우 — 재시도 폭풍을 막기 위해 200 유지, 로그만
+        console.error(`[webhook/replicate/image/base] delivery failed (batch=${batchId}):`, error);
 
-        // 에러가 나도 Replicate에는 200으로 응답 (재시도 폭풍 방지)
         return getNextBaseResponse({
             success: true,
             status: 200,

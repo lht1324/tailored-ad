@@ -1,24 +1,27 @@
 import { getServerEnv } from "@/lib/serverEnv";
 // ad 하위 기준
 //
-// 1. image/route.ts — multipart 1요청으로 주문+원본을 함께 받는다:
-//    검증 → batch 생성 → Storage 업로드 → specs 체이닝. 한 함수 안에서 순서대로라
+// ▶ 10-31 이후: 순서는 **워크플로(오케스트레이터)** 가 소유한다 — `src/workflows/batchPipeline.ts`.
+//    이 라우트는 "문"이다: 검증 → batch 생성 → Storage 업로드 → **워크플로 시작** → 즉시 응답.
+//    아래는 워크플로가 호출하는 순서(참고용)이며, 괄호는 담당 파일.
+//
+// 1. image/route.ts (이 파일) — multipart 1요청으로 주문+원본을 함께 받는다. 순서대로라
 //    prompt가 Storage를 읽는 시점에 파일 존재가 보장된다 (경합 원천 제거).
-//    (구: batch 생성(/image)과 업로드(.../batches/{id}/images)가 별도 요청이라 역전 가능했음)
-// 2. creative/specs/route.ts (전체 Creative 조합 뽑아서 한 번에 ad_creative_specs 저장)
-// 3. creative/[creative-index]/prompt/route.ts (POST, OpenRouter로 LLM 호출), 비율이 하나면 4-2-1, 비율이 두 개 이상이면 4-1-1.
-// 4-1-1. image/generation/base/route.ts (POST, I2I 호출)
-// 4-1-2. app/webhook/replicate/image/base/route.ts (받고 바로 image/process/base/route.ts로 넘기기)
-// 4-1-3. image/process/base/route.ts (POST, payload 검사, 이미지 Supabase 저장 및 RPC 처리), 성공 시 4-2-1로 이동
-// 4-2-1. image/generation/ratios/route.ts (POST, I2I 호출, AdGenerationBatch의 aspect_ratios length 보고 3과 4-1 중 어디서 온 건지 판별)
-// 4-2-2. app/webhook/replicate/image/ratios/route.ts (받고 바로 image/process/ratios/route.ts로 넘기기)
-// 4-2-3. image/process/ratios/route.ts (POST, payload 검사, 이미지 Supabase 저장 및 RPC 처리), isLastCreative=true일 때 5로 이동
-// 5. RPC 검사 후 특정 Creative 완료 시 creative/[creative-index]/analysis/route.ts 호출, 개별 Creative 데이터 DB 업데이트 (RPC 필요한가?)
+// 2. assignSpecs              (lib/pipeline/steps/assignSpecs.ts)
+// 3. prepareCreativePrompt    (lib/pipeline/steps/prepareCreativePrompt.ts)
+// 4. submitBaseImage          (lib/pipeline/steps/submitBaseImage.ts)
+//    → Replicate 웹훅(webhook/replicate/image/base)이 워크플로에 이벤트 전달
+// 5. handleBaseResult         (lib/pipeline/steps/handleBaseResult.ts)
+// 6. submitRatios / analysis  ← W2에서 이관 예정 (그때까지 기존 라우트 사용)
+// 7. grantCredits (Dodo)      ← W3에서 이관 예정
+//
+// persona(가상 모델) 경로는 W3에서 이관 예정 — 그때까지 기존 체인 유지.
 
 import { NextRequest } from "next/server";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
 import { internalFireAndForgetFetch } from "@/lib/utils/internalFetch";
+import { startBatchPipeline } from "@/lib/workflows/batchPipelineClient";
 import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatchServerAPI";
 import { adImageServerAPI } from "@/lib/api/server/ad/imageServerAPI";
 import { usersServerAPI } from "@/lib/api/server/usersServerAPI";
@@ -272,16 +275,16 @@ export async function POST(request: NextRequest) {
             ? personaBriefRaw.trim()
             : null;
         if (!hasPersonFile && personaRequested) {
+            // persona 경로는 W3에서 워크플로로 이관 예정 — 그때까지 기존 호출 유지
             internalFireAndForgetFetch(
                 `${await getServerEnv('BASE_URL')}/api/image/generation/persona?batchId=${createdAdGenerationBatch.id}`,
                 { method: "POST" },
                 { personaBrief },
             );
         } else {
-            internalFireAndForgetFetch(
-                `${await getServerEnv('BASE_URL')}/api/creative/specs?batchId=${createdAdGenerationBatch.id}`,
-                { method: "POST" },
-            );
+            // 파이프라인 시작 = 워크플로 인스턴스 생성 (instance id = batchId)
+            // 이후 순서는 BatchPipeline이 소유한다. 문은 여기서 끝난다.
+            await startBatchPipeline(createdAdGenerationBatch.id);
         }
 
         return getNextBaseResponse({

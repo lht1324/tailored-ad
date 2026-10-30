@@ -13,6 +13,7 @@ export type StepCode =
     | 'BATCH_NOT_FOUND'
     | 'SPEC_NOT_FOUND'
     | 'PROMPT_LLM_FAILED'
+    | 'PROMPT_MISSING'
     | 'STEP_INTERNAL_ERROR';
 
 export class StepError extends Error {

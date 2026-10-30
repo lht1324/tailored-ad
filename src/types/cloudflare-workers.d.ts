@@ -8,7 +8,8 @@
  *   API만 여기서 선언한다.
  *
  * ⚠️ 여기 없는 API를 쓰려면 **이 파일에 추가**할 것 (임의 캐스팅 금지).
- * 공식 타입이 필요해지면 `@cloudflare/workers-types` 도입을 검토한다.
+ * ⚠️ 이 파일은 **모듈이 아니어야** 한다(import/export 금지). 모듈이 되면
+ *    `declare module "cloudflare:workers"`가 선언이 아니라 증강이 되어 모듈을 못 찾는다.
  */
 
 declare module "cloudflare:workers" {

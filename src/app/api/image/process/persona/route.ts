@@ -1,8 +1,6 @@
-import { getServerEnv } from "@/lib/serverEnv";
 import { NextRequest } from "next/server";
 import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
 import { getIsValidRequestS2S } from "@/lib/utils/getIsValidRequest";
-import { internalFireAndForgetFetch } from "@/lib/utils/internalFetch";
 import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatchServerAPI";
 import {
     adImageServerAPI,
@@ -130,11 +128,10 @@ export async function POST(request: NextRequest) {
             },
         });
 
-        // 조합 배분 단계로 체이닝 (페르소나 파일 존재 보장됨)
-        internalFireAndForgetFetch(
-            `${await getServerEnv('BASE_URL')}/api/creative/specs?batchId=${batchId}`,
-            { method: "POST" },
-        );
+        // ⚠️ W1 임시: 조합 배분은 이제 워크플로가 소유한다. persona 경로는 W3에서 이관 예정이며,
+        //   그때까지 이 체인은 동작하지 않는다(대상 라우트 `/api/creative/specs` 삭제됨).
+        //   persona 배치를 쓰기 전에 W3를 먼저 끝낼 것.
+        console.warn(`[process/persona] persona→specs chaining is disabled until W3 (batch=${batchId})`);
 
         return getNextBaseResponse({
             success: true,
