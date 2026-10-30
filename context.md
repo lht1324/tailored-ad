@@ -385,7 +385,8 @@ prod의 `BASE_URL=https://tailoredad.com` = **워커가 자기 zone을 fetch** �
 
 > **설계 확정: `PIPELINE_ARCHITECTURE.md`** (10-30). route는 문, 파이프라인은 오케스트레이터(`advanceBatch`) 소유.
 > 엔진 = **Cloudflare Queues**, 내부 라우트 11개 삭제, 상태 쓰기는 RPC 유지(오케스트레이터는 읽기 전용).
-> 구현 순서: **S2(1h, prod 복구) → S0(1~2h) → S1(0.5~1일) → S3(1일) → S4(0.5일)**.
+> 구현 순서: **S0(1~2h) → S1(0.5~1일) → S3(1일) → S4(0.5일) → S5(배포·prod 스모크)**.
+> **S2(서비스 바인딩 임시 복구)는 생략** (사장님 10-30) — S3가 대체. → **S5 배포 전까지 prod 생성은 죽어 있는 상태 유지, 유입 금지**
 > 근거·조사 결과·리스크·검증 계획 전부 `PIPELINE_AUDIT.md`. 여기는 실행 체크리스트만.
 
 **Phase 1 — in-process 디스패치 (2~3시간)**
