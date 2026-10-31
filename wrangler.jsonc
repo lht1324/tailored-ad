@@ -1,37 +1,21 @@
 {
-  "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "tailored-ad",
-  "main": "./worker.ts",
-  "compatibility_date": "2026-09-01",
-  "compatibility_flags": ["nodejs_compat"],
-  // 비밀이 아닌 값만 여기에 둠 (git 추적됨). 키·토큰류는 대시보드 Secrets 전용 — deploy가 Secrets는 건드리지 않음.
-  // 주의: 로컬 deploy가 대시보드 plain Variables를 이 값으로 덮어씀. 대시보드 수정 후 여기에도 반영할 것.
-  // DODO_ENV는 반드시 파일에 둘 것 — 빠지면 deploy 때 대시보드 값이 날아가 test 고착 → live 키 401.
-  "vars": {
-    "BASE_URL": "https://tailoredad.com",
-    "DODO_ENV": "live",
-    "NEXT_PUBLIC_BASE_URL": "https://tailoredad.com",
-    "NEXT_PUBLIC_DODO_ENV": "live"
-  },
-  "assets": {
-    "directory": ".open-next/assets",
-    "binding": "ASSETS"
-  },
-  // 파이프라인 오케스트레이터 (10-31) — 상세 `PIPELINE_ARCHITECTURE.md`
-  // 클래스는 worker.ts가 export 하고, binding 이름은 코드에서 env.BATCH_PIPELINE 으로 접근한다.
-  "workflows": [
-    {
-      "binding": "BATCH_PIPELINE",
-      "name": "batch-pipeline",
-      "class_name": "BatchPipeline"
+    "$schema": "./node_modules/wrangler/config-schema.json",
+    // 워커 이름은 **기존과 동일**하게 유지해야 같은 워커에 배포된다 (도메인·Secrets 승계).
+    "name": "tailored-ad",
+    "compatibility_date": "2026-09-01",
+    "compatibility_flags": ["nodejs_compat"],
+    "main": "./worker/index.ts",
+    "upload_source_maps": true,
+    "assets": {
+        // SPA 라우팅: 없는 경로는 index.html
+        "not_found_handling": "single-page-application",
+        // /api/* 는 항상 워커로
+        "run_worker_first": ["/api/*"]
+    },
+    "observability": {
+        "logs": {
+            "enabled": true,
+            "head_sampling_rate": 1
+        }
     }
-  ],
-  "observability": {
-    "logs": {
-      "enabled": true,
-      "head_sampling_rate": 1,
-      "invocation_logs": true,
-      "persist": true
-    }
-  }
 }

@@ -1,58 +1,29 @@
 {
-  "name": "tailored-ad",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev -p 3002",
-    "dev:worker": "next dev --webpack -p 3003",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "cf-typegen": "wrangler types --include-runtime false --env-interface CloudflareEnv cloudflare-env.d.ts"
-  },
-  "dependencies": {
-    "@aws-sdk/client-s3": "^3.1128.0",
-    "@aws-sdk/s3-request-presigner": "^3.1128.0",    "@dodopayments/nextjs": "^0.3.9",
-    "@fungies/fungies-js": "^0.7.3",
-    "@neon/config": "^1.7.2",
-    "@neon/env": "^1.4.3",
-    "@neondatabase/auth": "0.5.0-beta",
-    "@neondatabase/serverless": "^1.2.0",
-    "@remotion/player": "4.0.458",
-    "@supabase/auth-js": "2.79.0",
-    "@tailwindcss/typography": "^0.5.20",
-    "@upstash/ratelimit": "^2.0.8",
-    "@upstash/redis": "^1.38.4",
-    "dodopayments": "^2.52.0",
-    "drizzle-orm": "^0.45.3",
-    "framer-motion": "^13.2.0",
-    "html-to-image": "^1.11.13",
-    "jsonrepair": "^3.15.0",
-    "jszip": "^3.10.2",
-    "lucide-react": "^1.42.0",
-    "next": "16.3.4",
-    "openai": "^7.10.0",
-    "react": "19.2.8",
-    "react-colorful": "^5.8.1",
-    "react-dom": "19.2.8",
-    "react-markdown": "^10.1.0",
-    "remotion": "4.0.458",
-    "replicate": "^1.4.0",
-    "standardwebhooks": "^1.1.1"
-  },
-  "devDependencies": {
-    "@opennextjs/cloudflare": "^1.20.6",
-    "@tailwindcss/postcss": "^4",
-    "@types/jszip": "^3.4.1",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.3.4",
-    "tailwindcss": "^4",
-    "typescript": "^5",
-    "wrangler": "^4.129.0"
-  }
+    "name": "tailored-ad",
+    "private": true,
+    "version": "0.1.0",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "npm run typecheck && vite build",
+        "preview": "vite preview",
+        "deploy": "npm run build && wrangler deploy",
+        "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.worker.json --noEmit",
+        "cf-typegen": "wrangler types --include-runtime false --env-interface CloudflareEnv cloudflare-env.d.ts"
+    },
+    "dependencies": {
+        "hono": "^4.13.14",
+        "react": "^19.3.1",
+        "react-dom": "^19.3.1"
+    },
+    "devDependencies": {
+        "@cloudflare/vite-plugin": "^1.66.0",
+        "@cloudflare/workers-types": "^5.20261031.1",
+        "@types/react": "^19.3.0",
+        "@types/react-dom": "^19.3.0",
+        "@vitejs/plugin-react": "^6.1.2",
+        "typescript": "^5.9.3",
+        "vite": "^8.3.5",
+        "wrangler": "^4.156.0"
+    }
 }

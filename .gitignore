@@ -1,68 +1,22 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/.next-dev/
-/.next-docker/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-.idea/
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
-.vercel
-
-# cloudflare
-.open-next/
-.wrangler/
-# cloudflare-env.d.ts는 **추적한다** (10-31). 워커 코드가 CloudflareEnv를 타입으로 참조하는데
-# 이 파일이 없으면 tsc가 실패한다. 값이 아니라 env 이름만 담긴 생성물이며,
-# wrangler.jsonc 변경 시 `npm run cf-typegen`으로 갱신한다.
-
-# typescript
+# deps / build
+node_modules
+dist
+.wrangler
+.dev.vars*
+.env
+.env.local
 *.tsbuildinfo
-next-env.d.ts
-.neon
 
-# Agents
+# generated types (워커 바인딩)
+cloudflare-env.d.ts
+
+# agents (설치형 스킬은 PC별로 각자 설치) — 프로젝트 문서는 추적
 .agents/*
-# 프로젝트 문서는 추적 (설치형 스킬·락파일은 PC별로 각자 설치)
 !.agents/product-marketing.md
 skills-lock.json
 
-# one-off seed scripts (may reference live env files)
-scripts/
-
-# 시딩 아웃리치 산출물 — 타사 브랜드 자산 · git 미추적 · public 금지
+# 시딩 아웃리치 산출물 (타사 브랜드 자산)
 seed-outreach/
 
-
-# local-only opencode MCP config (holds real API keys — never commit)
-opencode.json
+# one-off scripts (live env 참조 가능)
+scripts/
