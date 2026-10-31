@@ -70,3 +70,15 @@ npm run dev
 - **Next.js**: 짝수(클라) + 홀수(서버) 쌍으로 쓴다
 - 프로젝트를 Vite + Hono로 옮기면 홀수 포트가 자동으로 비워진다 (**번호 재배치 불필요**)
 - `strictPort: true` — 포트가 점유돼 있으면 조용히 옆 번호로 넘어가지 않고 **실패**한다
+
+## 타입체크 구조 (2개 프로그램)
+
+| | 대상 | lib | types |
+|---|---|---|---|
+| `tsconfig.json` | 클라 (`src`, `vite.config.ts`) | ES2022 + DOM | `vite/client` |
+| `tsconfig.worker.json` | 서버 (`worker`, `src/lib`, `src/workflows`, `src/types`) | ES2022 + DOM | `node` |
+
+- `src/lib`은 **워커 프로그램에만** 속한다 (`tsconfig.json`에서 `exclude`). 서버 코드를 클라 타입으로 검사하면 `process`/`Buffer`가 없는 것처럼 보인다.
+- **`@cloudflare/workers-types`는 쓰지 않는다.** 실측: 위 구성만으로 `src/lib` 63파일이 통과했다. Cloudflare 전용 전역(`Workflow`, `WorkflowEntrypoint` 등)은 `src/types/*.d.ts`에 **수기 선언**한다.
+  - 이유: `wrangler types --include-runtime true`는 런타임 전역을 덮어써 기존 코드를 대량으로 깨뜨린다(구 프로젝트에서 84곳 실측).
+- `process`/`Buffer`는 Workers에서 `nodejs_compat` 플래그로 실제 제공되므로 `@types/node`로 타입만 맞춘다.

@@ -1,15 +1,19 @@
 {
     "compilerOptions": {
         "target": "ES2022",
-        "lib": ["ES2022"],
+        "lib": ["ES2022", "DOM", "DOM.Iterable"],
         "module": "ESNext",
         "moduleResolution": "bundler",
         "strict": true,
         "noEmit": true,
         "skipLibCheck": true,
         "esModuleInterop": true,
+        "resolveJsonModule": true,
         "isolatedModules": true,
-        "types": ["@cloudflare/workers-types/2023-07-01"]
+        "types": ["node"],
+        "paths": {
+            "@/*": ["./src/*"]
+        }
     },
-    "include": ["worker", "src/lib", "src/workflows"]
+    "include": ["worker", "src/lib", "src/workflows", "src/types"]
 }
