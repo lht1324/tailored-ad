@@ -15,5 +15,5 @@
             "@/*": ["./src/*"]
         }
     },
-    "include": ["worker", "src/lib", "src/workflows", "src/types"]
+    "include": ["worker", "src/lib", "src/workflows", "src/types", "cloudflare-env.d.ts"]
 }

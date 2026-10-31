@@ -6,10 +6,36 @@
     "compatibility_flags": ["nodejs_compat"],
     "main": "./worker/index.ts",
     "upload_source_maps": true,
+    // 비밀이 아닌 값만 여기에 둔다 (git 추적됨).
+    // ⚠️ 이 블록을 빠뜨리고 배포하면 **대시보드의 plain 변수가 지워진다** (구 프로젝트에서 실제 발생).
+    //    값을 바꾸면 반드시 이 파일에도 반영할 것.
+    "vars": {
+        "BASE_URL": "https://tailoredad.com",
+        // dev/prod 구분자 — Dodo 환경(live_mode/test_mode) 선택 등에 쓴다.
+        // 로컬에서는 .dev.vars가 "development"로 덮어쓴다.
+        "ENVIRONMENT": "production"
+    },
+    // 비밀값 **이름만** 선언한다 (값 아님). `wrangler types`가 이 목록으로 타입을 만든다.
+    // ⚠️ 선언하면 `.dev.vars`에서 **여기 있는 키만** 로컬 env로 들어간다.
+    //    키를 추가할 때 : ①여기 ②대시보드 Secret ③`.dev.vars`(로컬) 세 곳.
+    "secrets": {
+        "required": [
+            "NEON_DATABASE_URL",
+            "DODO_PAYMENTS_API_KEY",
+            "OPENROUTER_API_KEY",
+            "REPLICATE_API_TOKEN",
+            "CLOUDFLARE_R2_ACCESS_KEY_ID",
+            "CLOUDFLARE_R2_SECRET_ACCESS_KEY",
+            "CLOUDFLARE_R2_BUCKET",
+            "CLOUDFLARE_R2_ENDPOINT",
+            "UPSTASH_REDIS_REST_URL",
+            "UPSTASH_REDIS_REST_TOKEN"
+        ]
+    },
     "assets": {
         // SPA 라우팅: 없는 경로는 index.html
         "not_found_handling": "single-page-application",
-        // /api/* 는 항상 워커로
+        // /api/* 는 항상 워커로 (웹훅도 /api/webhook/* 로 옮겨 이 규칙 하나로 커버한다)
         "run_worker_first": ["/api/*"]
     },
     "observability": {
