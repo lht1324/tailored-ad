@@ -25,7 +25,12 @@ export default defineConfig({
     },
     // 포트 고정 — TailoredAd = 3002 (ShortReal 3000/3001, LocalAgentsLink 3004/3005, jaeholee 3006/3007)
     // strictPort: 점유 시 조용히 다른 포트로 넘어가지 않고 **실패**한다(포트 착각 방지).
-    server: { port: 3002, strictPort: true },
+    server: {
+        port: 3002,
+        strictPort: true,
+        // Cloudflare Tunnel로 접속할 때 Vite가 Host 헤더를 막지 않게 한다 (dev 전용 설정).
+        allowedHosts: ["dev.tailoredad.com"],
+    },
     preview: { port: 3002, strictPort: true },
     resolve: {
         alias: {

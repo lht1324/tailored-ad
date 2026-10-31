@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { proxyAuthRequest } from "@/lib/auth/server";
+import { exchangeOAuthCallback, proxyAuthRequest } from "@/lib/auth/server";
 import type { AppEnv } from "../env";
 
 /**
@@ -11,6 +11,21 @@ import type { AppEnv } from "../env";
  * ⚠️ 이 라우터는 인증 미들웨어보다 **앞에** 마운트한다 (로그인 전에도 호출되므로).
  */
 const authRoutes = new Hono<{ Bindings: AppEnv }>();
+
+/**
+ * OAuth 귀환 — 반드시 catch-all보다 **먼저** 등록한다.
+ * `verifier`를 세션 쿠키로 교환하고 `/`로 되돌린다.
+ */
+authRoutes.get("/callback", async (context) => {
+    const { setCookies } = await exchangeOAuthCallback(context.req.raw);
+
+    const headers = new Headers({ Location: "/" });
+    for (const cookie of setCookies) {
+        headers.append("Set-Cookie", cookie);
+    }
+    // 리다이렉트 응답에 직접 헤더를 붙인다 (Hono의 prepared header 병합에 의존하지 않는다).
+    return new Response(null, { status: 302, headers });
+});
 
 authRoutes.all("/*", async (context) => {
     // "/api/auth/get-session" → "get-session"

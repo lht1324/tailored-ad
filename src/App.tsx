@@ -83,10 +83,11 @@ export default function App() {
     const onSignIn = useCallback(async () => {
         setBusy(true);
         setNotice("Redirecting to Google…");
-        // OAuth 귀환은 루트로. 세션 쿠키는 프록시가 실어 보내므로 도착 시점에 이미 로그인 상태다.
+        // OAuth 귀환은 워커가 verifier를 세션 쿠키로 교환한 뒤 "/"로 되돌린다.
+        // (페이지 요청은 워커에 도달하지 않으므로 콜백을 API 경로에 둔다 — `src/lib/auth/server.ts` 참고)
         const { error } = await authClient.signIn.social({
             provider: "google",
-            callbackURL: `${window.location.origin}/`,
+            callbackURL: `${window.location.origin}/api/auth/callback`,
         });
         if (error) {
             setNotice(`Sign-in failed: ${error.message ?? String(error)}`);

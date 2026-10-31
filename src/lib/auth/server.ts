@@ -1,7 +1,9 @@
 import {
     createAuthServer,
+    DEFAULT_AUTH_SKIP_ROUTES,
     extractNeonAuthCookies,
     handleAuthProxyRequest,
+    processAuthMiddleware,
     serializeSetCookie,
 } from "@neondatabase/auth/server";
 import { requireServerEnv } from "@/lib/serverEnv";
@@ -83,4 +85,35 @@ export async function getAuthForRequest({ request, setCookies }: AuthRequestInpu
 export async function proxyAuthRequest(request: Request, path: string): Promise<Response> {
     const { baseUrl, cookieSecret } = await readAuthEnv();
     return handleAuthProxyRequest({ request, path, baseUrl, cookieSecret });
+}
+
+/**
+ * OAuth 귀환 처리 — `GET /api/auth/callback?neon_auth_session_verifier=...`
+ *
+ * ## 왜 필요한가
+ * 소셜 로그인은 세션 쿠키를 **Neon Auth 도메인**에 심는다. 우리 오리진에는 안 온다.
+ * 그 간극을 메우는 게 `neon_auth_session_verifier`이고, 이걸 세션으로 **교환**해야 한다.
+ *
+ * ## 왜 워커에서 하나
+ * 교환은 **서버 코드**에서 해야 한다(쿠키 서명·Set-Cookie 발급). SDK는 보통 "페이지 요청"에
+ * 붙는 프레임워크 미들웨어에서 처리하지만, 우리 워커는 `run_worker_first: ["/api/*"]`라
+ * 페이지 요청을 받지 못한다. 그래서 `callbackURL`을 **API 경로**로 두고 여기서 교환한다.
+ *
+ * 반환값의 `setCookies`를 호출부가 응답 헤더에 붙이고 `/`로 리다이렉트하면 끝이다.
+ * (구 프로젝트의 `/callback/auth` + `/callback/session` 2단 구성이 이 한 곳으로 합쳐졌다.)
+ */
+export async function exchangeOAuthCallback(request: Request): Promise<{ setCookies: string[] }> {
+    const { baseUrl, cookieSecret } = await readAuthEnv();
+
+    const result = await processAuthMiddleware({
+        request,
+        pathname: new URL(request.url).pathname,
+        // /api/auth 는 인증 대상이 아니므로 "allow"로 떨어지고, 그 전에 verifier 교환이 수행된다.
+        skipRoutes: DEFAULT_AUTH_SKIP_ROUTES,
+        loginUrl: "/",
+        baseUrl,
+        cookieSecret,
+    });
+
+    return { setCookies: result.cookies ?? [] };
 }
