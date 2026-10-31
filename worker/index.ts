@@ -4,6 +4,11 @@ import { getBaseResponse } from "@/lib/utils/getBaseResponse";
 import type { AppEnv } from "./env";
 import authRoutes from "./routes/auth";
 import batchRoutes from "./routes/batches";
+import creativeRoutes from "./routes/creative";
+import dodoRoutes from "./routes/dodo";
+import profileRoutes from "./routes/profile";
+import publicRoutes from "./routes/public";
+import userRoutes from "./routes/user";
 import { requireSession, type AuthVariables } from "./middleware/auth";
 
 /**
@@ -31,6 +36,7 @@ app.use("*", async (context, next) => {
 
 // 2) 인증이 필요 없는 라우트
 app.route("/api/auth", authRoutes); // 로그인·OAuth·세션 갱신 (세션 이전에 호출됨)
+app.route("/api", publicRoutes); // 공개 카탈로그 (비로그인 랜딩에서 가격 표시)
 app.get("/api/health", (context) =>
     context.json({
         success: true,
@@ -49,6 +55,10 @@ app.use("/api/*", requireSession);
 
 // 4) 인증된 라우트
 app.route("/api", batchRoutes);
+app.route("/api", userRoutes);
+app.route("/api", profileRoutes);
+app.route("/api", creativeRoutes);
+app.route("/api", dodoRoutes);
 
 // 5) 응답 봉투 통일 — 프레임워크 기본 응답(텍스트)을 우리 규격으로 바꾼다.
 //    없으면 "비로그인 401(JSON) / 로그인 404(plain text)" 처럼 같은 URL이 상태에 따라
