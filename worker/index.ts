@@ -6,6 +6,8 @@ import authRoutes from "./routes/auth";
 import batchRoutes from "./routes/batches";
 import creativeRoutes from "./routes/creative";
 import dodoRoutes from "./routes/dodo";
+import eventsRoutes from "./routes/events";
+import imageRoutes from "./routes/image";
 import profileRoutes from "./routes/profile";
 import publicRoutes from "./routes/public";
 import userRoutes from "./routes/user";
@@ -59,6 +61,8 @@ app.route("/api", userRoutes);
 app.route("/api", profileRoutes);
 app.route("/api", creativeRoutes);
 app.route("/api", dodoRoutes);
+app.route("/api", imageRoutes);
+app.route("/api", eventsRoutes);
 
 // 5) 응답 봉투 통일 — 프레임워크 기본 응답(텍스트)을 우리 규격으로 바꾼다.
 //    없으면 "비로그인 401(JSON) / 로그인 404(plain text)" 처럼 같은 URL이 상태에 따라
