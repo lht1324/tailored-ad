@@ -3,7 +3,7 @@ import { Hono } from "hono";
 /**
  * API 워커 (Hono).
  *
- * 기존 Next의 `src/app/api/**/route.ts` 34개를 이 앱으로 포팅한다.
+ * 기존 Next의 `app/api` 아래 route.ts 34개를 이 앱으로 포팅한다.
  * 지금은 스캐폴드 확인용 health 라우트만 있다.
  *
  * 설계 원칙 (`PIPELINE_ARCHITECTURE.md`):
