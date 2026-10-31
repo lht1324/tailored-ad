@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatchServerAPI";
-import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
+import { getBaseResponse } from "@/lib/utils/getBaseResponse";
 import type { AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
 import type { AppEnv } from "../env";
 import type { AuthVariables } from "../middleware/auth";
@@ -76,7 +76,7 @@ batchRoutes.get("/ad-generation-batches", async (context) => {
             }),
         );
 
-        return getNextBaseResponse({
+        return getBaseResponse({
             success: true,
             status: 200,
             data: {
@@ -88,7 +88,7 @@ batchRoutes.get("/ad-generation-batches", async (context) => {
         });
     } catch (error) {
         console.error("Error in GET /api/ad-generation-batches:", error);
-        return getNextBaseResponse({
+        return getBaseResponse({
             success: false,
             status: 500,
             error: error instanceof Error ? error.message : "Failed to list batches",

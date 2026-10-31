@@ -1,7 +1,7 @@
 import { createMiddleware } from "hono/factory";
 import { usersServerAPI } from "@/lib/api/server/usersServerAPI";
 import { getAuthForRequest } from "@/lib/auth/server";
-import { getNextBaseResponse } from "@/lib/utils/getNextBaseResponse";
+import { getBaseResponse } from "@/lib/utils/getBaseResponse";
 import type { User } from "@/lib/api/types/supabase/Users";
 import type { AppEnv } from "../env";
 
@@ -43,7 +43,7 @@ export const requireSession = createMiddleware<{
         sessionUser = (data?.user ?? null) as SessionUser | null;
     } catch (error) {
         console.error("[middleware/auth] session check failed:", error);
-        return getNextBaseResponse({
+        return getBaseResponse({
             success: false,
             status: 401,
             error: "Unauthorized: Session check failed.",
@@ -57,7 +57,7 @@ export const requireSession = createMiddleware<{
 
     const email = sessionUser?.email;
     if (!email) {
-        return getNextBaseResponse({
+        return getBaseResponse({
             success: false,
             status: 401,
             error: "Unauthorized: Sign-in required.",
@@ -78,7 +78,7 @@ export const requireSession = createMiddleware<{
     }
 
     if (!user) {
-        return getNextBaseResponse({
+        return getBaseResponse({
             success: false,
             status: 500,
             error: "Failed to resolve user profile.",

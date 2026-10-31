@@ -14,7 +14,7 @@ import { StepError } from "@/lib/pipeline/types";
  * 동작 변화 0 — 입력·출력·DB 쓰기·로그가 이전과 동일하다.
  *
  * 옮기면서 바꾼 것 2가지 (둘 다 계층 규칙 때문):
- * 1. `return getNextBaseResponse({ status: 400|500 })` → `throw new StepError(code)`
+ * 1. `return getBaseResponse({ status: 400|500 })` → `throw new StepError(code)`
  *    (HTTP 상태 매핑은 route가 담당한다 — `PIPELINE_ARCHITECTURE.md` §2 R4)
  * 2. "다음 단계로 넘기는" `internalFireAndForgetFetch`는 여기 두지 않는다.
  *    지금은 route에 임시로 남아 있고, S3에서 오케스트레이터로 이동한다.
