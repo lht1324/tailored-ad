@@ -23,6 +23,10 @@ export default defineConfig({
     environments: {
         worker: { build: { sourcemap: true } },
     },
+    // 포트 고정 — TailoredAd = 3002 (ShortReal 3000/3001, LocalAgentsLink 3004/3005, jaeholee 3006/3007)
+    // strictPort: 점유 시 조용히 다른 포트로 넘어가지 않고 **실패**한다(포트 착각 방지).
+    server: { port: 3002, strictPort: true },
+    preview: { port: 3002, strictPort: true },
     resolve: {
         alias: {
             // 기존 코드가 쓰던 "@/..." 경로를 그대로 유지 (포팅 비용 절감)
