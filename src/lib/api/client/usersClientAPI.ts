@@ -82,21 +82,6 @@ export const usersClientAPI = {
         }
     },
 
-    async patchUserApiKey(userId: string, falAiApiKey: string): Promise<{ success: boolean; message?: string; error?: string }>
-    {
-        try {
-            const response = await patchFetch(`/api/user/${userId}/api-key`, { fal_ai_api_key: falAiApiKey });
-            const patchUserApiKeyResult = await response.json();
-            return patchUserApiKeyResult;
-        } catch (error) {
-            console.error('Error patching user API key:', error);
-            return {
-                success: false,
-                error: error instanceof Error ? error.message : 'Unknown error occurred'
-            };
-        }
-    },
-
     async getProfileLogo(): Promise<ProfileLogo | null> {
         try {
             const response = await getFetch(`/api/profile/logo`);

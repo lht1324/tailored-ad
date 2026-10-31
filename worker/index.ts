@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { bindEnv } from "@/lib/serverEnv";
+import { getBaseResponse } from "@/lib/utils/getBaseResponse";
 import type { AppEnv } from "./env";
 import authRoutes from "./routes/auth";
 import batchRoutes from "./routes/batches";
@@ -48,6 +49,26 @@ app.use("/api/*", requireSession);
 
 // 4) 인증된 라우트
 app.route("/api", batchRoutes);
+
+// 5) 응답 봉투 통일 — 프레임워크 기본 응답(텍스트)을 우리 규격으로 바꾼다.
+//    없으면 "비로그인 401(JSON) / 로그인 404(plain text)" 처럼 같은 URL이 상태에 따라
+//    다른 형식으로 나가고, 클라의 ensureOk가 원인을 못 읽는다.
+app.notFound((context) =>
+    getBaseResponse({
+        success: false,
+        status: 404,
+        error: `Not found: ${context.req.method} ${new URL(context.req.url).pathname}`,
+    }),
+);
+
+app.onError((error, context) => {
+    console.error(`[worker] unhandled error on ${context.req.method} ${context.req.path}:`, error);
+    return getBaseResponse({
+        success: false,
+        status: 500,
+        error: "Internal server error.",
+    });
+});
 
 // TODO(포팅): user · profile · creative · image · dodo · events
 //   /api/webhook/* 은 인증 미들웨어보다 **앞에** 마운트한다 (세션 없음).
