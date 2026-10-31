@@ -21,6 +21,8 @@
     "secrets": {
         "required": [
             "NEON_DATABASE_URL",
+            "NEON_AUTH_BASE_URL",
+            "NEON_AUTH_COOKIE_SECRET",
             "DODO_PAYMENTS_API_KEY",
             "OPENROUTER_API_KEY",
             "REPLICATE_API_TOKEN",

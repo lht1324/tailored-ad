@@ -71,7 +71,7 @@
 
 ### 개발 포트 변경 + docker compose 부활 (10-25, `ec9e5ef`·`cdf0bdb`)
 - **TailoredAd = 클라 3002 / 서버 3003.** 전체 배치(사장님 확정): ShortReal 3000/3001 · TailoredAd 3002/3003 · LocalAgentsLink 3004/3005 · jaeholee.xyz 3006/3007
-- 변경 6곳: `package.json` scripts(`-p 3002`/`-p 3003`) · `docker-compose.yml`(3003:3003) · `.env.local`(`NEXT_PUBLIC_BASE_URL=localhost:3003`) · `next.config.ts` dev CORS · `callback/auth/route.ts` 리다이렉트 2곳 · baseFetch 주석
+- 변경 6곳: `package.json` scripts(`-p 3002`/`-p 3003`) · `docker-compose.yml`(3003:3003) · `.env.local`(`VITE_BASE_URL=localhost:3003`) · `next.config.ts` dev CORS · `callback/auth/route.ts` 리다이렉트 2곳 · baseFetch 주석
 - **docker compose 정상 동작 확인** — 과거 "브릿지 veth 고장"은 해소됨. `docker compose up`으로 서버 기동(컨테이너 내부도 3003). 기록상의 네이티브 폴백(`DOCKER=true npm run dev:worker`)은 예비 경로로만 유지
 
 ### Cloudflare Tunnel 전환 — ngrok 은퇴 (10-25/26)
@@ -79,7 +79,7 @@
 - ingress (`~/.cloudflared/config.yml`): dev.tailoredad.com→3003 · dev.shortreal.ai→3001 · dev.localagents.link→3005 · **dev.jaeholee.xyz**→3007
 - **철자 주의**: 4번째 도메인은 `jaeholee.xyz`(홑 o). `jaehoolee.xyz`(겹 o)는 NS 없는 미위임 이름
 - **cert.pem은 1영역 스코프** — 로그인 화면의 다중 선택은 인증서에 반영 안 됨. 영역별 `cert.pem.<영역>` 백업 4개 확보 → 새 서브도메인은 **재로그인 없이** 백업 교체 + `route dns` 한 줄로 가능
-- **`BASE_URL` 4개 프로젝트 전부 dev.* 도메인으로 교체** (서버 self-fetch·웹훅 수신용). `NEXT_PUBLIC_BASE_URL`은 localhost 유지(브라우저 직행)
+- **`BASE_URL` 4개 프로젝트 전부 dev.* 도메인으로 교체** (서버 self-fetch·웹훅 수신용). `VITE_BASE_URL`은 localhost 유지(브라우저 직행)
 - **prod Worker 라우트가 서브도메인을 침범하지 않음** 실측 (dev.*에 Web Analytics beacon 0건 = 워커 아닌 터널이 서빙)
 - 검증: dev.tailoredad.com 200 · 나머지 3개 502(터널 도달, 서버 미기동 상태)
 
@@ -235,8 +235,8 @@ cloudflared tunnel run dev   # dev.* 4개 도메인 터널 (사장님 Warp 탭)
 
 ## 8. 대시보드 작업 메모
 
-- Cloudflare Variables/Secrets: `NEXT_PUBLIC_*` 3개는 Variable, 나머지 전부 Secret.
-- `NEXT_PUBLIC_*`은 빌드타임에 박히므로 변수 변경 후 리빌드 필수.
+- Cloudflare Variables/Secrets: `VITE_*` 3개는 Variable, 나머지 전부 Secret.
+- `VITE_*`은 빌드타임에 박히므로 변수 변경 후 리빌드 필수.
 - Neon Auth trusted domains: localhost 기본. **dev.tailoredad.com·prod 도메인 등록 필요할 수 있음 (미확인)**
 - Google OAuth: prod·GitHub는 자체 앱 (GitHub 앱 재사용可 — 콜백 URL 추가). localhost 포트가 3000→3002로 바뀌었으니 **OAuth 콜백 등록도 확인 필요**
 - Upstash: `tailored-ad-ratelimit` (AWS 도쿄, Free). 월 명령어 40만 전후로 PAYG + budget cap
