@@ -1,7 +1,8 @@
-import { BrowserRouter } from "react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router";
 import App from "./App";
+import { AuthProvider } from "./context/AuthContext";
 import "./index.css";
 
 /**
@@ -14,11 +15,16 @@ import "./index.css";
  *
  * ⚠️ 그래서 **서버가 HTML을 만들지 않는다.** SEO가 필요한 페이지(블로그·약관)는
  *    별도 정적 프리렌더로 처리해야 한다 (계획: 빌드 타임 프리렌더).
+ *
+ * ⚠️ `AuthProvider`는 필수다. 랜딩 헤더·가격 섹션이 `useAuth()`를 부르는데,
+ *    Provider가 없으면 그 훅이 throw해서 **화면 전체가 빈 채로 남는다**(에러 바운더리 없음).
  */
 createRoot(document.getElementById("root")!).render(
     <StrictMode>
         <BrowserRouter>
-            <App />
+            <AuthProvider>
+                <App />
+            </AuthProvider>
         </BrowserRouter>
     </StrictMode>,
 );
