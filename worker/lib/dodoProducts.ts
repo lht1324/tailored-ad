@@ -1,4 +1,4 @@
-import { getDodoClient } from "@/lib/dodoClient";
+import { getDodoClient } from "@worker/lib/dodoClient";
 import type { DodoPaidPlan } from "@shared/lib/dodo";
 import { SubscriptionPlan } from "@shared/types/supabase/Users";
 import type { ProductData } from "@shared/types/api/dodo/products/ProductData";

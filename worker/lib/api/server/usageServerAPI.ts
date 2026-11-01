@@ -1,7 +1,7 @@
 import { and, count, desc, eq, gte, lt } from "drizzle-orm";
-import { getNeonDb, isNeonUniqueViolation, neonErrorMessage } from "@/lib/db/neon";
-import { publishUserEvent } from "@/lib/batchEvents";
-import { subscriptionGrants, usageLedger } from "@/lib/db/schema";
+import { getNeonDb, isNeonUniqueViolation, neonErrorMessage } from "@worker/lib/db/neon";
+import { publishUserEvent } from "@worker/lib/batchEvents";
+import { subscriptionGrants, usageLedger } from "@worker/lib/db/schema";
 import { User } from "@shared/types/supabase/Users";
 
 /**

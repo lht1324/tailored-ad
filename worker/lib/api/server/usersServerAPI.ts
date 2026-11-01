@@ -1,8 +1,8 @@
 import {User} from "@shared/types/supabase/Users";
 import { eq } from "drizzle-orm";
-import { getNeonDb } from "@/lib/db/neon";
-import { publishUserEvent } from "@/lib/batchEvents";
-import { users } from "@/lib/db/schema";
+import { getNeonDb } from "@worker/lib/db/neon";
+import { publishUserEvent } from "@worker/lib/batchEvents";
+import { users } from "@worker/lib/db/schema";
 
 /** undefined 값 제거 — drizzle이 DEFAULT를 쓰게 (Supabase는 undefined를 무시했음) */
 function stripUndefined<T extends object>(obj: T): Partial<T> {

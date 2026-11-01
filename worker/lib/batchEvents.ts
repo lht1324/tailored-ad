@@ -1,5 +1,5 @@
 import { Redis } from "@upstash/redis/cloudflare";
-import { getServerEnv } from "@/lib/serverEnv";
+import { getServerEnv } from "@worker/lib/serverEnv";
 
 /**
  * 배치 이벤트 버스 — Supabase Realtime 대체 (Upstash Streams).

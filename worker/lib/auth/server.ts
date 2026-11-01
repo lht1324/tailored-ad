@@ -6,7 +6,7 @@ import {
     processAuthMiddleware,
     serializeSetCookie,
 } from "@neondatabase/auth/server";
-import { requireServerEnv } from "@/lib/serverEnv";
+import { requireServerEnv } from "@worker/lib/serverEnv";
 
 /**
  * Neon Auth 서버 — **Hono 어댑터** (10-31 이관).

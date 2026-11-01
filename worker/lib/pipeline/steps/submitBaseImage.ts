@@ -1,11 +1,11 @@
-import { getServerEnv } from "@/lib/serverEnv";
-import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatchServerAPI";
-import { adImageServerAPI } from "@/lib/api/server/ad/imageServerAPI";
-import { selectBaseRatio } from "@/lib/api/server/ad/creativeCombinationSampler";
-import { replicateClient } from "@/lib/ReplicateClient";
-import { selectImageModel, type ImageInputTag } from "@/lib/replicateInputMapper";
+import { getServerEnv } from "@worker/lib/serverEnv";
+import { adGenerationBatchServerAPI } from "@worker/lib/api/server/ad/adGenerationBatchServerAPI";
+import { adImageServerAPI } from "@worker/lib/api/server/ad/imageServerAPI";
+import { selectBaseRatio } from "@worker/lib/api/server/ad/creativeCombinationSampler";
+import { replicateClient } from "@worker/lib/ReplicateClient";
+import { selectImageModel, type ImageInputTag } from "@worker/lib/replicateInputMapper";
 import { AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
-import { StepError } from "@/lib/pipeline/types";
+import { StepError } from "@worker/lib/pipeline/types";
 
 /**
  * 단계: 기준(base) 이미지 Replicate 제출 (원래 `api/image/generation/base/route.ts`).

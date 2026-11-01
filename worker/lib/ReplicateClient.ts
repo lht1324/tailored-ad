@@ -1,12 +1,12 @@
 import Replicate, { WebhookEventType } from "replicate";
-import { acquireReplicateSlot } from "@/lib/replicateRateLimit";
-import { getServerEnv } from "@/lib/serverEnv";
+import { acquireReplicateSlot } from "@worker/lib/replicateRateLimit";
+import { getServerEnv } from "@worker/lib/serverEnv";
 import {
     buildReplicateImageInput,
     resolveImageInputTags,
     ReplicateModelId,
     type ImageInputTag,
-} from "@/lib/replicateInputMapper";
+} from "@worker/lib/replicateInputMapper";
 
 /**
  * Replicate 클라이언트 — ad 이미지 생성(prediction 제출) 전용 래퍼.

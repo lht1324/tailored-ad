@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { usersServerAPI } from "@/lib/api/server/usersServerAPI";
-import { usageServerAPI } from "@/lib/api/server/usageServerAPI";
-import { getBaseResponse } from "@/lib/utils/getBaseResponse";
+import { usersServerAPI } from "@worker/lib/api/server/usersServerAPI";
+import { usageServerAPI } from "@worker/lib/api/server/usageServerAPI";
+import { getBaseResponse } from "@worker/lib/utils/getBaseResponse";
 import type { User } from "@shared/types/supabase/Users";
 import type { AppEnv } from "../env";
 import type { AuthVariables } from "../middleware/auth";

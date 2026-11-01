@@ -1,4 +1,4 @@
-import { r2ServerAPI } from "@/lib/r2";
+import { r2ServerAPI } from "@worker/lib/r2";
 import {
     AdGenerationBatch,
     AdRatioKey,

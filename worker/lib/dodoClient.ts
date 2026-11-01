@@ -1,5 +1,5 @@
 import DodoPayments from "dodopayments";
-import { getServerEnv } from "@/lib/serverEnv";
+import { getServerEnv } from "@worker/lib/serverEnv";
 
 /** 서버 전용 — 라우트 핸들러에서만 import (클라 번들에 DODO_PAYMENTS_API_KEY 노출 금지) */
 let client: DodoPayments | null = null;

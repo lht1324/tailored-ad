@@ -1,7 +1,7 @@
 import { desc, eq, sql } from "drizzle-orm";
-import { getNeonDb, neonErrorMessage } from "@/lib/db/neon";
-import { publishBatchWrite } from "@/lib/batchEvents";
-import { adGenerationBatches } from "@/lib/db/schema";
+import { getNeonDb, neonErrorMessage } from "@worker/lib/db/neon";
+import { publishBatchWrite } from "@worker/lib/batchEvents";
+import { adGenerationBatches } from "@worker/lib/db/schema";
 import {
     AdBatchStatus,
     AdGenerationBatch,

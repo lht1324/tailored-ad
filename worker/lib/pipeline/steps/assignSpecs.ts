@@ -1,7 +1,7 @@
-import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatchServerAPI";
-import { assignCreativeCombinations, type CreativeMode } from "@/lib/api/server/ad/creativeCombinationSampler";
+import { adGenerationBatchServerAPI } from "@worker/lib/api/server/ad/adGenerationBatchServerAPI";
+import { assignCreativeCombinations, type CreativeMode } from "@worker/lib/api/server/ad/creativeCombinationSampler";
 import { AdCreativeResult, AdCreativeSpec, AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
-import { StepError } from "@/lib/pipeline/types";
+import { StepError } from "@worker/lib/pipeline/types";
 
 /**
  * 단계: 5축 조합 배정 (원래 `api/creative/specs/route.ts`).

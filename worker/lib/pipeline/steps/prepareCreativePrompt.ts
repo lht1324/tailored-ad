@@ -1,11 +1,11 @@
-import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatchServerAPI";
-import { adImageServerAPI } from "@/lib/api/server/ad/imageServerAPI";
-import { selectBaseRatio } from "@/lib/api/server/ad/creativeCombinationSampler";
-import { llmServerAPI } from "@/lib/api/server/ad/llmServerAPI";
+import { adGenerationBatchServerAPI } from "@worker/lib/api/server/ad/adGenerationBatchServerAPI";
+import { adImageServerAPI } from "@worker/lib/api/server/ad/imageServerAPI";
+import { selectBaseRatio } from "@worker/lib/api/server/ad/creativeCombinationSampler";
+import { llmServerAPI } from "@worker/lib/api/server/ad/llmServerAPI";
 import { AdCopySpec, AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
 import { fontMap } from "@shared/lib/fonts";
 import FONT_FAMILY_LIST from "@shared/lib/FontFamilyList";
-import { StepError } from "@/lib/pipeline/types";
+import { StepError } from "@worker/lib/pipeline/types";
 
 /**
  * 단계: creative 1장의 프롬프트(LLM) 생성.

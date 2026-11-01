@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { getServerEnv } from "@/lib/serverEnv";
+import { getServerEnv } from "@worker/lib/serverEnv";
 
 export enum OpenRouterModel {
     DEEPSEEK_V4_FLASH_0731 = "deepseek/deepseek-v4-flash-0731",

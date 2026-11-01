@@ -1,6 +1,6 @@
 import { Redis } from "@upstash/redis/cloudflare";
 import { Ratelimit } from "@upstash/ratelimit";
-import { getServerEnv } from "@/lib/serverEnv";
+import { getServerEnv } from "@worker/lib/serverEnv";
 
 /**
  * Replicate prediction 제출 스로틀 — Replicate 429(분당 600건 생성 제한)를 맞기 전에

@@ -1,7 +1,7 @@
 import { neon } from "@neondatabase/serverless";
 import { drizzle, type NeonHttpDatabase } from "drizzle-orm/neon-http";
-import { requireServerEnv } from "@/lib/serverEnv";
-import * as schema from "@/lib/db/schema";
+import { requireServerEnv } from "@worker/lib/serverEnv";
+import * as schema from "@worker/lib/db/schema";
 
 /**
  * Neon 서버 전용 싱글톤 — neon-http(fetch 기반)라 Workers·Node(dev/docker) 양쪽 동작.

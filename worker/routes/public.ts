@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { getDodoClient } from "@/lib/dodoClient";
-import { getDodoProductList } from "@/lib/dodoProducts";
-import { getBaseResponse } from "@/lib/utils/getBaseResponse";
+import { getDodoClient } from "@worker/lib/dodoClient";
+import { getDodoProductList } from "@worker/lib/dodoProducts";
+import { getBaseResponse } from "@worker/lib/utils/getBaseResponse";
 import type { AppEnv } from "../env";
 
 /**

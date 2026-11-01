@@ -82,3 +82,24 @@ npm run dev
 - **`@cloudflare/workers-types`는 쓰지 않는다.** 실측: 위 구성만으로 `src/lib` 63파일이 통과했다. Cloudflare 전용 전역(`Workflow`, `WorkflowEntrypoint` 등)은 `src/types/*.d.ts`에 **수기 선언**한다.
   - 이유: `wrangler types --include-runtime true`는 런타임 전역을 덮어써 기존 코드를 대량으로 깨뜨린다(구 프로젝트에서 84곳 실측).
 - `process`/`Buffer`는 Workers에서 `nodejs_compat` 플래그로 실제 제공되므로 `@types/node`로 타입만 맞춘다.
+
+## 디렉터리 구조 — 진영 분리 (10-31 2단계)
+
+```
+src/          클라 (브라우저)        @/...        React · React Router · API 클라이언트
+worker/       서버 (Cloudflare)     @worker/...  Hono · 라우트 · 파이프라인 step · DB · R2
+shared/       양쪽 공용             @shared/...  타입 · 순수 상수 · 순수 함수
+```
+
+**규칙**
+
+| | |
+|---|---|
+| `src/` | `worker/`를 import할 수 없다 (타입 에러) |
+| `worker/` | `src/`를 import할 수 없다 (타입 에러) |
+| `shared/` | **부수효과 없음** — 네트워크·DB·`env` 접근 금지. 타입·상수·순수 함수만 |
+| 비밀·`env` 접근 | `@worker/`에서만 |
+
+강제 방법은 tsconfig의 `include` 분리다. 클라 프로그램은 `src`+`shared`, 워커 프로그램은 `worker`+`shared`만 본다. 그래서 경계를 넘는 import는 **컴파일 단계에서** 걸린다.
+
+**왜 `shared/`가 필요한가**: 폰트 목록·가격표·색 계산은 에디터(클라)와 프롬프트 생성(서버)이 같이 쓴다. 2분할로는 안 되고 3분할이어야 한다.

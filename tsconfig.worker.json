@@ -1,5 +1,6 @@
 {
     // 서버(워커) 타입 프로그램 — Hono + Cloudflare 바인딩 + Neon/R2 등.
+    // `src/`는 여기 포함되지 않는다. 서버 코드가 클라 코드를 import하면 타입 에러로 즉시 드러난다.
     "extends": "./tsconfig.base.json",
     "compilerOptions": {
         // process·Buffer는 Workers에서 nodejs_compat으로 실제 제공된다 → 타입만 맞춘다.
@@ -8,9 +9,6 @@
     "include": [
         "worker",
         "shared",
-        "src/lib",
-        "src/workflows",
-        "src/types",
         // `npm run cf-typegen`이 wrangler.jsonc에서 생성한다 (git 미추적)
         "cloudflare-env.d.ts"
     ]

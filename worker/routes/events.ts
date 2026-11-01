@@ -1,13 +1,13 @@
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
-import { getNeonDb } from "@/lib/db/neon";
-import { adGenerationBatches } from "@/lib/db/schema";
+import { getNeonDb } from "@worker/lib/db/neon";
+import { adGenerationBatches } from "@worker/lib/db/schema";
 import {
     batchStreamKey,
     latestStreamId,
     readStream,
     userStreamKey,
-} from "@/lib/batchEvents";
+} from "@worker/lib/batchEvents";
 import type { AppEnv } from "../env";
 import type { AuthVariables } from "../middleware/auth";
 

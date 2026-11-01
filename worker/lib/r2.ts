@@ -6,7 +6,7 @@ import {
     S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { requireServerEnv } from "@/lib/serverEnv";
+import { requireServerEnv } from "@worker/lib/serverEnv";
 
 /**
  * R2 서버 전용 헬퍼 — S3 규격으로 Cloudflare R2를 본다 (AWS 아님).

@@ -1,8 +1,8 @@
 import { Hono } from "hono";
-import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatchServerAPI";
+import { adGenerationBatchServerAPI } from "@worker/lib/api/server/ad/adGenerationBatchServerAPI";
 import { fontMap } from "@shared/lib/fonts";
 import { isValidHexColor, normalizeHeadlineColor } from "@shared/lib/colorUtils";
-import { getBaseResponse } from "@/lib/utils/getBaseResponse";
+import { getBaseResponse } from "@worker/lib/utils/getBaseResponse";
 import type {
     AdCreativeResult,
     AdDesignLayout,

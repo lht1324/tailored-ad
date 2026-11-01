@@ -1,7 +1,7 @@
 import { createMiddleware } from "hono/factory";
-import { usersServerAPI } from "@/lib/api/server/usersServerAPI";
-import { getAuthForRequest } from "@/lib/auth/server";
-import { getBaseResponse } from "@/lib/utils/getBaseResponse";
+import { usersServerAPI } from "@worker/lib/api/server/usersServerAPI";
+import { getAuthForRequest } from "@worker/lib/auth/server";
+import { getBaseResponse } from "@worker/lib/utils/getBaseResponse";
 import type { User } from "@shared/types/supabase/Users";
 import type { AppEnv } from "../env";
 

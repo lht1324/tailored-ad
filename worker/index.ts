@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { bindEnv } from "@/lib/serverEnv";
-import { getBaseResponse } from "@/lib/utils/getBaseResponse";
+import { bindEnv } from "@worker/lib/serverEnv";
+import { getBaseResponse } from "@worker/lib/utils/getBaseResponse";
 import type { AppEnv } from "./env";
 import authRoutes from "./routes/auth";
 import batchRoutes from "./routes/batches";

@@ -1,14 +1,14 @@
 import { AdCopySpec, AdCreativeSpec, AdImageResult, AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
 import { AdDesignLayout } from "@shared/types/supabase/ad/AdGenerationBatch";
-import { cleanAndParseJSON } from "@/lib/utils/jsonUtils";
-import { OpenRouterClient, OpenRouterModel } from "@/lib/OpenRouterClient";
+import { cleanAndParseJSON } from "@worker/lib/utils/jsonUtils";
+import { OpenRouterClient, OpenRouterModel } from "@worker/lib/OpenRouterClient";
 import {
     POST_AD_CREATIVE_PROMPT,
     PRODUCT_ONLY_CREATIVE_PROMPT,
     PERSON_ONLY_CREATIVE_PROMPT,
-} from "@/lib/llm-prompts/POST_AD_CREATIVE_PROMPT";
-import { POST_AD_IMAGE_ANALYSIS_PROMPT } from "@/lib/llm-prompts/POST_AD_IMAGE_ANALYSIS_PROMPT";
-import { POST_AD_PERSONA_PROMPT } from "@/lib/llm-prompts/POST_AD_PERSONA_PROMPT";
+} from "@worker/lib/llm-prompts/POST_AD_CREATIVE_PROMPT";
+import { POST_AD_IMAGE_ANALYSIS_PROMPT } from "@worker/lib/llm-prompts/POST_AD_IMAGE_ANALYSIS_PROMPT";
+import { POST_AD_PERSONA_PROMPT } from "@worker/lib/llm-prompts/POST_AD_PERSONA_PROMPT";
 import { fontMap } from "@shared/lib/fonts";
 
 /**
