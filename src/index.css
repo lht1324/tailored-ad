@@ -11,9 +11,6 @@
 :root {
   --background: #0A0A0B;
   --foreground: #F4F4F5;
-  /* 폴백은 font-family 사슬에서만 붙인다 — 여기에 sans-serif를 넣으면
-     뒤에 오는 Satoshi/Roboto를 가려버린다(실제로 그랬음). */
-  --font-rajdhani: "Rajdhani";
   --font-geist-mono: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
   --ad-canvas: #0A0A0B;
   --ad-surface: #131316;
@@ -66,7 +63,9 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-rajdhani), var(--font-satoshi), var(--font-roboto), sans-serif;
+  /* 기본 서체 = Satoshi. 래퍼(main.tsx)의 `font-satoshi`와 같은 값이다.
+     예전엔 1순위가 Rajdhani였는데, next/font 전환 때 남은 잔재였다(prod에서도 렌더되지 않았다). */
+  font-family: "Satoshi", "Roboto", sans-serif;
 }
 
 /* High-End Luxury Custom Scrollbar Styles — theme aware (라이트에서 흰 썸이 안 보이던 버그 수정) */
