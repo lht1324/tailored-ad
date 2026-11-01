@@ -4,6 +4,7 @@ import { assignSpecs } from "@worker/lib/pipeline/steps/assignSpecs";
 import { prepareCreativePrompt } from "@worker/lib/pipeline/steps/prepareCreativePrompt";
 import { submitBaseImage } from "@worker/lib/pipeline/steps/submitBaseImage";
 import { handleBaseResult } from "@worker/lib/pipeline/steps/handleBaseResult";
+import { submitRatios } from "@worker/lib/pipeline/steps/submitRatios";
 import {
     REPLICATE_BASE_EVENT,
     type ReplicateBaseEventPayload,
@@ -115,10 +116,24 @@ export class BatchPipeline extends WorkflowEntrypoint<AppEnv, BatchPipelineParam
                 );
             } else {
                 pending.delete(payload.creativeIndex);
-                // TODO(W2): ratios(다중 비율) / analysis(단일 비율) 연결
-                console.log(
-                    `[BatchPipeline] creative ${payload.creativeIndex} base done → ${action.kind} (W2 pending)`,
-                );
+
+                if (action.kind === "proceed-ratios") {
+                    // base 확보 완료 → 남은 비율 전부 제출 (BRIA 확장)
+                    const ratios = await step.do(`submit-ratios-${seq}`, () =>
+                        submitRatios({ batchId, creativeIndex: payload.creativeIndex }),
+                    );
+                    console.log(
+                        `[BatchPipeline] creative ${payload.creativeIndex} ratios submitted=${ratios.submitted.length} failed=${ratios.failed.length}`,
+                    );
+                    // TODO(W2 나머지): ratios 결과는 웹훅이 handleRatioResult로 받아 이어간다.
+                    //   그때까지는 제출까지만 하고 라인을 끝낸다.
+                } else {
+                    // proceed-analysis — 비율이 1개뿐인 배치
+                    // TODO(W2 나머지): analyzeCreative 연결
+                    console.log(
+                        `[BatchPipeline] creative ${payload.creativeIndex} base done → analysis (W2 pending)`,
+                    );
+                }
             }
             seq += 1;
         }

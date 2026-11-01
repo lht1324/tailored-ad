@@ -73,7 +73,7 @@ export async function submitBaseImage(input: SubmitBaseImageInput): Promise<Subm
         throw new StepError('STEP_INTERNAL_ERROR', 'BASE_URL is not configured.');
     }
 
-    const webhookUrl = `${baseUrl}/webhook/replicate/image/base?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}&ratioKey=${encodeURIComponent(baseRatio)}&attempt=${encodeURIComponent(String(attempt))}`;
+    const webhookUrl = `${baseUrl}/api/webhook/replicate/image/base?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}&ratioKey=${encodeURIComponent(baseRatio)}&attempt=${encodeURIComponent(String(attempt))}`;
 
     const wrappedCaption = `INSTRUCTION: Use the input image ONLY to preserve the product/person identity (shape, color, material, lace, perforations, stitching). Do NOT copy its background, floor, shadows or wall — recreate the product with pixel-perfect edges on the new scene described below.\n\nSCENE: ${caption}`;
 
