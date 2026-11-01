@@ -2,7 +2,7 @@ import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatc
 import { adImageServerAPI } from "@/lib/api/server/ad/imageServerAPI";
 import { usageServerAPI } from "@/lib/api/server/usageServerAPI";
 import { selectBaseRatio } from "@/lib/api/server/ad/creativeCombinationSampler";
-import { AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+import { AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
 import { StepError } from "@/lib/pipeline/types";
 
 const MAX_SAME_RATIO_ATTEMPTS = 2; // 1회 재시도 → 총 2회 시도

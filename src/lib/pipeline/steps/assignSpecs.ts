@@ -1,6 +1,6 @@
 import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatchServerAPI";
 import { assignCreativeCombinations, type CreativeMode } from "@/lib/api/server/ad/creativeCombinationSampler";
-import { AdCreativeResult, AdCreativeSpec, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+import { AdCreativeResult, AdCreativeSpec, AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
 import { StepError } from "@/lib/pipeline/types";
 
 /**

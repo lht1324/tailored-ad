@@ -1,4 +1,4 @@
-import type { BlogPostContent } from "@/lib/content/blog/types";
+import type { BlogPostContent } from "@shared/lib/content/blog/types";
 
 /**
  * [Blog] Creatify 대안 — 비교글 2번.

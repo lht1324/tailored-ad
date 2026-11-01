@@ -1,5 +1,5 @@
-import { AdCopySpec, AdCreativeSpec, AdImageResult, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
-import { AdDesignLayout } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+import { AdCopySpec, AdCreativeSpec, AdImageResult, AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
+import { AdDesignLayout } from "@shared/types/supabase/ad/AdGenerationBatch";
 import { cleanAndParseJSON } from "@/lib/utils/jsonUtils";
 import { OpenRouterClient, OpenRouterModel } from "@/lib/OpenRouterClient";
 import {
@@ -9,7 +9,7 @@ import {
 } from "@/lib/llm-prompts/POST_AD_CREATIVE_PROMPT";
 import { POST_AD_IMAGE_ANALYSIS_PROMPT } from "@/lib/llm-prompts/POST_AD_IMAGE_ANALYSIS_PROMPT";
 import { POST_AD_PERSONA_PROMPT } from "@/lib/llm-prompts/POST_AD_PERSONA_PROMPT";
-import { fontMap } from "@/lib/fonts";
+import { fontMap } from "@shared/lib/fonts";
 
 /**
  * ad 도메인 전용 LLM 서버 API — creative 디렉터(텍스트) / Vision 분석(이미지) 분리.

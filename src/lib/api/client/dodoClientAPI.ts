@@ -1,8 +1,8 @@
 import { deleteFetch, getFetch, postFetch } from "@/lib/api/client/baseFetch";
-import type { DodoPaidPlan } from "@/lib/dodo";
-import type { ProductData } from "@/lib/api/types/api/dodo/products/ProductData";
-import type { OrderData } from "@/lib/api/types/api/dodo/orders/OrderData";
-import type { SubscriptionData } from "@/lib/api/types/api/dodo/subscriptions/SubscriptionData";
+import type { DodoPaidPlan } from "@shared/lib/dodo";
+import type { ProductData } from "@shared/types/api/dodo/products/ProductData";
+import type { OrderData } from "@shared/types/api/dodo/orders/OrderData";
+import type { SubscriptionData } from "@shared/types/api/dodo/subscriptions/SubscriptionData";
 
 export const dodoClientAPI = {
     /** 서버 생성 체크아웃 세션 (오버레이 표시용 URL + 서버 판정 첫달가) */

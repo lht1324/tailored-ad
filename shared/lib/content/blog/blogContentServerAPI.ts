@@ -1,10 +1,10 @@
-import type { BlogPostContent } from "@/lib/content/blog/types";
-import { adcreativeAiAlternativesPost } from "@/lib/content/blog/posts/adcreativeAiAlternatives";
-import { creatifyAlternativesPost } from "@/lib/content/blog/posts/creatifyAlternatives";
-import { predisAlternativesPost } from "@/lib/content/blog/posts/predisAlternatives";
-import { bestAiAdToolsPost } from "@/lib/content/blog/posts/bestAiAdTools";
-import { ecommerceAdCreativePost } from "@/lib/content/blog/posts/ecommerceAdCreative";
-import { skincareAdCreativePost } from "@/lib/content/blog/posts/skincareAdCreative";
+import type { BlogPostContent } from "@shared/lib/content/blog/types";
+import { adcreativeAiAlternativesPost } from "@shared/lib/content/blog/posts/adcreativeAiAlternatives";
+import { creatifyAlternativesPost } from "@shared/lib/content/blog/posts/creatifyAlternatives";
+import { predisAlternativesPost } from "@shared/lib/content/blog/posts/predisAlternatives";
+import { bestAiAdToolsPost } from "@shared/lib/content/blog/posts/bestAiAdTools";
+import { ecommerceAdCreativePost } from "@shared/lib/content/blog/posts/ecommerceAdCreative";
+import { skincareAdCreativePost } from "@shared/lib/content/blog/posts/skincareAdCreative";
 
 /**
  * 블로그 콘텐츠 레지스트리 + 로더 — 데이터(posts/*)와 접근(이 파일) 분리.

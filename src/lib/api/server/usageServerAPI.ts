@@ -2,7 +2,7 @@ import { and, count, desc, eq, gte, lt } from "drizzle-orm";
 import { getNeonDb, isNeonUniqueViolation, neonErrorMessage } from "@/lib/db/neon";
 import { publishUserEvent } from "@/lib/batchEvents";
 import { subscriptionGrants, usageLedger } from "@/lib/db/schema";
-import { User } from "@/lib/api/types/supabase/Users";
+import { User } from "@shared/types/supabase/Users";
 
 /**
  * 사용량 원장 API — usage_ledger append-only (수정·삭제 없음).

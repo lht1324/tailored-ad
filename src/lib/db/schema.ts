@@ -8,13 +8,13 @@ import {
     timestamp,
     uuid,
 } from "drizzle-orm/pg-core";
-import type { AdModelConfig } from "@/lib/api/types/supabase/Users";
+import type { AdModelConfig } from "@shared/types/supabase/Users";
 import type {
     AdCreativeResult,
     AdCreativeSpec,
     AdRatioKey,
     AdUploadedComponentRecord,
-} from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+} from "@shared/types/supabase/ad/AdGenerationBatch";
 
 /**
  * Neon 스키마 — `db/neon/01_schema.sql`과 1:1 (DB가 진실, 이 파일은 미러).

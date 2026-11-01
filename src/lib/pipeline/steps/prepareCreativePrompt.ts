@@ -2,9 +2,9 @@ import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatc
 import { adImageServerAPI } from "@/lib/api/server/ad/imageServerAPI";
 import { selectBaseRatio } from "@/lib/api/server/ad/creativeCombinationSampler";
 import { llmServerAPI } from "@/lib/api/server/ad/llmServerAPI";
-import { AdCopySpec, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
-import { fontMap } from "@/lib/fonts";
-import FONT_FAMILY_LIST from "@/lib/FontFamilyList";
+import { AdCopySpec, AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
+import { fontMap } from "@shared/lib/fonts";
+import FONT_FAMILY_LIST from "@shared/lib/FontFamilyList";
 import { StepError } from "@/lib/pipeline/types";
 
 /**

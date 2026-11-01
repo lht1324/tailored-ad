@@ -5,7 +5,7 @@ import { adGenerationBatches } from "@/lib/db/schema";
 import {
     AdBatchStatus,
     AdGenerationBatch,
-} from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+} from "@shared/types/supabase/ad/AdGenerationBatch";
 
 /**
  * ad_generation_batches 전용 서버 API — Neon(drizzle)으로 동작 (내부 파이프라인 전용).

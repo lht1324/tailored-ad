@@ -2,7 +2,7 @@ import { r2ServerAPI } from "@/lib/r2";
 import {
     AdGenerationBatch,
     AdRatioKey,
-} from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+} from "@shared/types/supabase/ad/AdGenerationBatch";
 
 /**
  * ad 이미지 Storage 헬퍼 — 원본(product/person/brand_logo) 및 결과 이미지의

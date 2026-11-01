@@ -1,4 +1,4 @@
-import { BaseResponse } from "@/lib/api/types/api/BaseResponse";
+import { BaseResponse } from "@shared/types/api/BaseResponse";
 
 /**
  * 응답 봉투 헬퍼 — 모든 API 응답을 `{ success, status, message?, error?, data? }` 로 통일한다.

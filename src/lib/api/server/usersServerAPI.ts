@@ -1,4 +1,4 @@
-import {User} from "@/lib/api/types/supabase/Users";
+import {User} from "@shared/types/supabase/Users";
 import { eq } from "drizzle-orm";
 import { getNeonDb } from "@/lib/db/neon";
 import { publishUserEvent } from "@/lib/batchEvents";

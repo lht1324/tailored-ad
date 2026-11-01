@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { usersServerAPI } from "@/lib/api/server/usersServerAPI";
 import { usageServerAPI } from "@/lib/api/server/usageServerAPI";
 import { getBaseResponse } from "@/lib/utils/getBaseResponse";
-import type { User } from "@/lib/api/types/supabase/Users";
+import type { User } from "@shared/types/supabase/Users";
 import type { AppEnv } from "../env";
 import type { AuthVariables } from "../middleware/auth";
 

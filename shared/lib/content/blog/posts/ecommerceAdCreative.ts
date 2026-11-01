@@ -1,4 +1,4 @@
-import type { BlogPostContent } from "@/lib/content/blog/types";
+import type { BlogPostContent } from "@shared/lib/content/blog/types";
 
 /**
  * [Blog] 이커머스 업종 페이지 1번 — 멀티채널 셀링 관점.

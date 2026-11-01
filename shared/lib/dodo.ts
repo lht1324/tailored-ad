@@ -1,4 +1,4 @@
-import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
+import { SubscriptionPlan } from "@shared/types/supabase/Users";
 
 export type DodoPaidPlan = Exclude<SubscriptionPlan, SubscriptionPlan.NONE>;
 

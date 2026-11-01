@@ -1,7 +1,7 @@
 import {
     AdCreativeSpec,
     AdRatioKey,
-} from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+} from "@shared/types/supabase/ad/AdGenerationBatch";
 
 /**
  * Creative 조합 샘플러 — 변주("다름")의 1차 원천. LLM이 아니라 코드가 결정적으로 배분한다.

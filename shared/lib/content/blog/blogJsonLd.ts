@@ -1,4 +1,4 @@
-import type { BlogPostContent, BlogPostFaqItem } from "@/lib/content/blog/types";
+import type { BlogPostContent, BlogPostFaqItem } from "@shared/lib/content/blog/types";
 
 /**
  * 블로그 글별 JSON-LD — 랜딩(landingJsonLd.ts 상수)과 달리 글마다 달라져서 함수로 제공.

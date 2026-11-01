@@ -1,4 +1,4 @@
-import type { BlogPostContent } from "@/lib/content/blog/types";
+import type { BlogPostContent } from "@shared/lib/content/blog/types";
 
 /**
  * [Blog] Predis.ai 대안 — 비교글 3번.

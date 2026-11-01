@@ -1,5 +1,5 @@
 import { getFetch, postFetch, postFormFetch } from "@/lib/api/client/baseFetch";
-import { AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+import { AdGenerationBatch, AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
 
 // ---- AdGenerationBatch 클라이언트 API (정석: DB명 유지) ----
 // 서버 경로는 /api/ad-generation-batches 로 통일 (테이블 ad_generation_batches와 1:1).

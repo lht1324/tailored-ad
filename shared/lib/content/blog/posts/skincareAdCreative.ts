@@ -1,4 +1,4 @@
-import type { BlogPostContent } from "@/lib/content/blog/types";
+import type { BlogPostContent } from "@shared/lib/content/blog/types";
 
 /**
  * [Blog] 스킨케어 업종 페이지 2번.

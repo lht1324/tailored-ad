@@ -1,13 +1,13 @@
 import { Hono } from "hono";
 import { adGenerationBatchServerAPI } from "@/lib/api/server/ad/adGenerationBatchServerAPI";
-import { fontMap } from "@/lib/fonts";
-import { isValidHexColor, normalizeHeadlineColor } from "@/lib/colorUtils";
+import { fontMap } from "@shared/lib/fonts";
+import { isValidHexColor, normalizeHeadlineColor } from "@shared/lib/colorUtils";
 import { getBaseResponse } from "@/lib/utils/getBaseResponse";
 import type {
     AdCreativeResult,
     AdDesignLayout,
     AdRatioKey,
-} from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+} from "@shared/types/supabase/ad/AdGenerationBatch";
 import type { AppEnv } from "../env";
 import type { AuthVariables } from "../middleware/auth";
 

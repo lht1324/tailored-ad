@@ -1,7 +1,7 @@
 import { getDodoClient } from "@/lib/dodoClient";
-import type { DodoPaidPlan } from "@/lib/dodo";
-import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
-import type { ProductData } from "@/lib/api/types/api/dodo/products/ProductData";
+import type { DodoPaidPlan } from "@shared/lib/dodo";
+import { SubscriptionPlan } from "@shared/types/supabase/Users";
+import type { ProductData } from "@shared/types/api/dodo/products/ProductData";
 
 /**
  * Dodo 상품 해석 — 서버 전용. ID 하드코딩 없음.

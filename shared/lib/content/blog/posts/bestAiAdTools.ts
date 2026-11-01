@@ -1,4 +1,4 @@
-import type { BlogPostContent } from "@/lib/content/blog/types";
+import type { BlogPostContent } from "@shared/lib/content/blog/types";
 
 /**
  * [Blog] AI 광고 툴 필드 가이드 — 카테고리 리스트클 (AI 인용의 1차 표적).

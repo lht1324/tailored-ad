@@ -11,10 +11,10 @@ import {
     PLAN_IMAGE_LIMIT,
     PLAN_PRICE_USD,
     type DodoPaidPlan,
-} from "@/lib/dodo";
-import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
-import type { OrderData } from "@/lib/api/types/api/dodo/orders/OrderData";
-import type { SubscriptionData } from "@/lib/api/types/api/dodo/subscriptions/SubscriptionData";
+} from "@shared/lib/dodo";
+import { SubscriptionPlan } from "@shared/types/supabase/Users";
+import type { OrderData } from "@shared/types/api/dodo/orders/OrderData";
+import type { SubscriptionData } from "@shared/types/api/dodo/subscriptions/SubscriptionData";
 import type { AppEnv } from "../env";
 import type { AuthVariables } from "../middleware/auth";
 

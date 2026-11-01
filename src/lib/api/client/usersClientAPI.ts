@@ -1,4 +1,4 @@
-import {User} from "@/lib/api/types/supabase/Users";
+import {User} from "@shared/types/supabase/Users";
 import {deleteFetch, getFetch, patchFetch, postFormFetch} from "@/lib/api/client/baseFetch";
 
 export interface UserUsageSummary {

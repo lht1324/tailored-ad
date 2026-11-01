@@ -4,7 +4,7 @@ import { adImageServerAPI } from "@/lib/api/server/ad/imageServerAPI";
 import { selectBaseRatio } from "@/lib/api/server/ad/creativeCombinationSampler";
 import { replicateClient } from "@/lib/ReplicateClient";
 import { selectImageModel, type ImageInputTag } from "@/lib/replicateInputMapper";
-import { AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+import { AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
 import { StepError } from "@/lib/pipeline/types";
 
 /**

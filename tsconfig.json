@@ -5,7 +5,7 @@
         "jsx": "react-jsx",
         "types": ["vite/client"]
     },
-    "include": ["src", "vite.config.ts"],
+    "include": ["src", "shared", "vite.config.ts"],
     // 서버 코드를 클라 타입으로 검사하지 않는다.
     // (exclude는 import를 막지 않는다 — 예: App.tsx가 `@/lib/auth/client`를 쓰면 그 파일은
     //  클라 프로그램에 끌려 들어온다. 여기서 빼는 건 **아무도 안 쓰는 서버 파일**들이다.)
