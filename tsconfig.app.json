@@ -1,0 +1,11 @@
+{
+    // 클라(브라우저) 타입 프로그램 — React + Vite.
+    // `worker/`는 여기 포함되지 않는다. 클라 코드가 서버 코드를 import하면 타입 에러로 즉시 드러난다.
+    // (참조는 `tsconfig.json` 솔루션 파일이 들고 있다)
+    "extends": "./tsconfig.base.json",
+    "compilerOptions": {
+        "jsx": "react-jsx",
+        "types": ["vite/client"]
+    },
+    "include": ["src", "shared", "vite.config.ts"]
+}

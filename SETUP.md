@@ -113,3 +113,19 @@ shared/       양쪽 공용             @shared/...  타입 · 순수 상수 · 
 3. **버전 불일치** — `auth-ui@0.4`는 `auth@0.6`을 peer로 요구한다. 우리는 0.7이라 npm이 0.6을 **중첩 설치**했다. auth-ui 컴포넌트를 쓰면 0.6 인스턴스가 섞여 세션 상태가 갈릴 수 있다.
 
 같은 내용이 `src/lib/auth/client.ts` 주석에도 있다. 나중에 "왜 안 썼지?"가 또 나오면 여기를 보면 된다.
+
+## tsconfig 3층 (에디터 빨간 줄 방지)
+
+```
+tsconfig.json          솔루션 — 파일 없음, references만. "프로그램이 둘 있다"는 선언
+tsconfig.base.json     공통 compilerOptions + paths (@ / @worker / @shared)
+tsconfig.app.json      클라  (src + shared)
+tsconfig.worker.json   서버  (worker + shared + cloudflare-env.d.ts)
+```
+
+**왜 솔루션 파일이 필요한가**: 루트 `tsconfig.json`이 곧 클라 설정이면, `worker/**` 파일은
+어느 프로그램에도 속하지 않는다. 그러면 에디터는 그 파일을 "추론된 프로젝트"로 처리하는데,
+추론 프로젝트에는 `paths`가 없어 `@worker/...`·`@shared/...`에 빨간 줄이 뜬다.
+(CLI `tsc -p`는 설정별로 따로 돌아서 통과하기 때문에 증상이 갈린다)
+
+**설정을 바꾼 뒤에는 에디터의 TS 서버를 재시작해야 반영된다** — VS Code: `TypeScript: Restart TS Server`
