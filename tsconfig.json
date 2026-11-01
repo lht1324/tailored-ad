@@ -1,21 +1,13 @@
 {
+    // 클라(브라우저) 타입 프로그램 — React + Vite.
+    "extends": "./tsconfig.base.json",
     "compilerOptions": {
-        "target": "ES2022",
-        "lib": ["ES2022", "DOM", "DOM.Iterable"],
-        "module": "ESNext",
-        "moduleResolution": "bundler",
         "jsx": "react-jsx",
-        "strict": true,
-        "noEmit": true,
-        "skipLibCheck": true,
-        "esModuleInterop": true,
-        "resolveJsonModule": true,
-        "isolatedModules": true,
-        "types": ["vite/client"],
-        "paths": {
-            "@/*": ["./src/*"]
-        }
+        "types": ["vite/client"]
     },
     "include": ["src", "vite.config.ts"],
+    // 서버 코드를 클라 타입으로 검사하지 않는다.
+    // (exclude는 import를 막지 않는다 — 예: App.tsx가 `@/lib/auth/client`를 쓰면 그 파일은
+    //  클라 프로그램에 끌려 들어온다. 여기서 빼는 건 **아무도 안 쓰는 서버 파일**들이다.)
     "exclude": ["src/lib", "src/workflows", "src/types"]
 }

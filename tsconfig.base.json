@@ -1,0 +1,23 @@
+{
+    // 클라·워커 두 타입 프로그램이 **공유하는 설정**. 여기가 유일한 원본이다.
+    // (10-31: 이전에는 tsconfig.json과 tsconfig.worker.json에 같은 내용이 복붙돼 있었다)
+    "compilerOptions": {
+        "target": "ES2022",
+        "lib": ["ES2022", "DOM", "DOM.Iterable"],
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "strict": true,
+        "noEmit": true,
+        "skipLibCheck": true,
+        "esModuleInterop": true,
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+
+        // `baseUrl` 없이 paths를 쓴다 → **이 파일 위치 기준** 상대 경로로 해석된다 (TS 4.1+).
+        // ⚠️ vite.config.ts의 resolve.alias와 반드시 같아야 한다.
+        //    Vite는 tsconfig를 읽지 않으므로, 한쪽만 바꾸면 타입은 통과하고 런타임에서 못 찾는다.
+        "paths": {
+            "@/*": ["./src/*"]
+        }
+    }
+}

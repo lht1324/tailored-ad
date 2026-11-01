@@ -1,19 +1,16 @@
 {
+    // 서버(워커) 타입 프로그램 — Hono + Cloudflare 바인딩 + Neon/R2 등.
+    "extends": "./tsconfig.base.json",
     "compilerOptions": {
-        "target": "ES2022",
-        "lib": ["ES2022", "DOM", "DOM.Iterable"],
-        "module": "ESNext",
-        "moduleResolution": "bundler",
-        "strict": true,
-        "noEmit": true,
-        "skipLibCheck": true,
-        "esModuleInterop": true,
-        "resolveJsonModule": true,
-        "isolatedModules": true,
-        "types": ["node"],
-        "paths": {
-            "@/*": ["./src/*"]
-        }
+        // process·Buffer는 Workers에서 nodejs_compat으로 실제 제공된다 → 타입만 맞춘다.
+        "types": ["node"]
     },
-    "include": ["worker", "src/lib", "src/workflows", "src/types", "cloudflare-env.d.ts"]
+    "include": [
+        "worker",
+        "src/lib",
+        "src/workflows",
+        "src/types",
+        // `npm run cf-typegen`이 wrangler.jsonc에서 생성한다 (git 미추적)
+        "cloudflare-env.d.ts"
+    ]
 }

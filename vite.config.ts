@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { cloudflare } from "@cloudflare/vite-plugin";
+import { fileURLToPath } from "node:url";
 
 /**
  * Vite + Cloudflare Workers (10-31 신규 스택).
@@ -34,8 +35,11 @@ export default defineConfig({
     preview: { port: 3002, strictPort: true },
     resolve: {
         alias: {
-            // 기존 코드가 쓰던 "@/..." 경로를 그대로 유지 (포팅 비용 절감)
-            "@": new URL("./src", import.meta.url).pathname,
+            // 기존 코드가 쓰던 "@/..." 경로를 그대로 유지 (포팅 비용 절감).
+            // ⚠️ tsconfig.base.json의 `paths`와 **반드시 같아야 한다**. Vite는 tsconfig를 읽지 않으므로
+            //    한쪽만 바꾸면 타입은 통과하고 런타임에서 모듈을 못 찾는다.
+            // fileURLToPath: `new URL(...).pathname`은 Windows에서 "/C:/..."가 되어 깨진다.
+            "@": fileURLToPath(new URL("./src", import.meta.url)),
         },
     },
 });
