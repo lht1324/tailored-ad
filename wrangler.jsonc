@@ -58,5 +58,14 @@
             "enabled": true,
             "head_sampling_rate": 1
         }
-    }
+    },
+    // 파이프라인 오케스트레이터 — 클래스는 worker/index.ts가 export 한다.
+    // binding 이름은 코드에서 `env.BATCH_PIPELINE` 으로 접근한다.
+    "workflows": [
+        {
+            "binding": "BATCH_PIPELINE",
+            "name": "batch-pipeline",
+            "class_name": "BatchPipeline"
+        }
+    ]
 }

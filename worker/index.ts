@@ -93,3 +93,7 @@ app.onError((error, context) => {
 //   /api/webhook/* 은 인증 미들웨어보다 **앞에** 마운트한다 (세션 없음).
 
 export default app;
+
+// 워크플로 클래스는 **메인 모듈에서 export**되어야 wrangler가 바인딩을 찾는다
+// (wrangler.jsonc: workflows[].class_name = "BatchPipeline")
+export { BatchPipeline } from "./workflows/batchPipeline";

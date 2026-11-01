@@ -103,3 +103,13 @@ shared/       양쪽 공용             @shared/...  타입 · 순수 상수 · 
 강제 방법은 tsconfig의 `include` 분리다. 클라 프로그램은 `src`+`shared`, 워커 프로그램은 `worker`+`shared`만 본다. 그래서 경계를 넘는 import는 **컴파일 단계에서** 걸린다.
 
 **왜 `shared/`가 필요한가**: 폰트 목록·가격표·색 계산은 에디터(클라)와 프롬프트 생성(서버)이 같이 쓴다. 2분할로는 안 되고 3분할이어야 한다.
+
+## `@neondatabase/auth-ui`를 쓰지 않는 이유 (기록)
+
+패키지는 이미 설치돼 있다(`@neondatabase/auth`의 전이 의존). `@neondatabase/auth/react`가 `AuthView`·`SignInForm`을 re-export하므로 기술적으로는 지금도 쓸 수 있다. 그런데도 직접 만든 화면을 쓰는 이유:
+
+1. **원래부터 커스텀이었다** — Next 시절부터 `SignInPageClient`/`AuthForm`을 직접 만들었다 (구 프로젝트에 `auth-ui` 참조 0건). Vite 이관 때문에 바뀐 게 아니다.
+2. **브랜딩** — auth-ui는 자체 디자인 시스템을 끌고 온다.
+3. **버전 불일치** — `auth-ui@0.4`는 `auth@0.6`을 peer로 요구한다. 우리는 0.7이라 npm이 0.6을 **중첩 설치**했다. auth-ui 컴포넌트를 쓰면 0.6 인스턴스가 섞여 세션 상태가 갈릴 수 있다.
+
+같은 내용이 `src/lib/auth/client.ts` 주석에도 있다. 나중에 "왜 안 썼지?"가 또 나오면 여기를 보면 된다.
