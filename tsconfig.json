@@ -1,19 +1,12 @@
 {
-    // **솔루션 파일** — 직접 컴파일하지 않고, 에디터에게 "이 폴더에는 프로그램이 둘 있다"만 알린다.
-    //
-    // 왜 필요한가: 예전에는 이 파일이 클라 설정이어서 `worker/**` 파일이 어느 프로그램에도
-    // 속하지 않았다. 그러면 에디터는 그 파일을 "추론된 프로젝트"로 처리하는데, 추론 프로젝트에는
-    // `paths`(@worker, @shared)가 없어서 import에 빨간 줄이 뜬다. (CLI `tsc -p`는 각 설정으로
-    // 따로 돌아서 통과했기 때문에 증상이 갈렸다)
-    //
-    // `extends`를 두는 이유: WebStorm은 루트 tsconfig만 읽는 경우가 있어(프로젝트 참조 해석이
-    // VS Code와 다름) paths를 여기서도 보이게 한다. VS Code는 references를 따라 각 프로젝트로 간다.
-    //
-    // 타입체크는 `tsc -p tsconfig.app.json` / `tsconfig.worker.json` 으로 각각 돈다 (package.json).
+    // 클라(브라우저) 타입 프로그램 — React + Vite.
+    // 이 파일이 **루트 기본 설정**이다. `worker/`는 여기 포함되지 않고,
+    // `worker/tsconfig.json`(별도 파일)이 그쪽을 맡는다.
+    // → 에디터는 "가장 가까운 tsconfig"로 파일을 배정하므로 두 진영이 섞이지 않는다.
     "extends": "./tsconfig.base.json",
-    "files": [],
-    "references": [
-        { "path": "./tsconfig.app.json" },
-        { "path": "./tsconfig.worker.json" }
-    ]
+    "compilerOptions": {
+        "jsx": "react-jsx",
+        "types": ["vite/client"]
+    },
+    "include": ["src", "shared", "vite.config.ts"]
 }
