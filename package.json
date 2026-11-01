@@ -20,6 +20,7 @@
         "@upstash/redis": "^1.40.0",
         "dodopayments": "^2.59.0",
         "drizzle-orm": "^0.45.4",
+        "framer-motion": "^14.9.0",
         "hono": "^4.13.14",
         "jsonrepair": "^3.15.0",
         "lucide-react": "^1.66.0",
