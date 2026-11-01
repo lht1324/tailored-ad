@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router";
 import { PUBLIC_ROUTES } from "./routes/publicRoutes";
 import StatusPage from "./components/page/status/StatusPage";
 import NotFoundPage from "./components/page/not-found/NotFoundPage";
+import ProjectsPageClient from "./components/page/ad/projects/ProjectsPageClient";
 import SignInPageClient from "./components/page/sign-in/SignInPageClient";
 
 /**
@@ -40,6 +41,9 @@ export default function App() {
             {/* 로그인 — 세션 이후 목적지는 `?redirectTo=`로 넘긴다.
                 OAuth 귀환은 워커(`/api/auth/callback`)가 처리하고, 끝나면 redirectTo로 돌려보낸다. */}
             <Route path="/sign-in" element={<SignInPageClient />} />
+
+            {/* 보호 화면 — 서버(워커)가 비로그인을 먼저 막는다. */}
+            <Route path="/projects" element={<ProjectsPageClient />} />
 
             <Route path="*" element={<NotFoundPage />} />
         </Routes>

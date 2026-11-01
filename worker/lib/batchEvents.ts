@@ -1,5 +1,9 @@
 import { Redis } from "@upstash/redis/cloudflare";
 import { getServerEnv } from "@worker/lib/serverEnv";
+import type { BatchEventMessage } from "@shared/types/batchEvents";
+
+// 타입은 클라와 공유한다 (shared/types/batchEvents.ts).
+export type { BatchEventMessage, BatchEventType } from "@shared/types/batchEvents";
 
 /**
  * 배치 이벤트 버스 — Supabase Realtime 대체 (Upstash Streams).
@@ -9,13 +13,6 @@ import { getServerEnv } from "@worker/lib/serverEnv";
  * 서버 전용 (클라에서 import 금지 — 훅은 type만 import).
  */
 
-/** SSE 이벤트 종류 */
-export type BatchEventType = 'grants' | 'batches' | 'batch' | 'user';
-
-export interface BatchEventMessage {
-    type: BatchEventType;
-    batchId?: string;
-}
 
 const STREAM_MAXLEN = 100;
 
