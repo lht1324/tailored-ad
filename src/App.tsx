@@ -3,6 +3,7 @@ import { PUBLIC_ROUTES } from "./routes/publicRoutes";
 import StatusPage from "./components/page/status/StatusPage";
 import NotFoundPage from "./components/page/not-found/NotFoundPage";
 import ProjectsPageClient from "./components/page/ad/projects/ProjectsPageClient";
+import CreatePageClient from "./components/page/ad/create/CreatePageClient";
 import SignInPageClient from "./components/page/sign-in/SignInPageClient";
 
 /**
@@ -44,6 +45,7 @@ export default function App() {
 
             {/* 보호 화면 — 서버(워커)가 비로그인을 먼저 막는다. */}
             <Route path="/projects" element={<ProjectsPageClient />} />
+            <Route path="/create" element={<CreatePageClient />} />
 
             <Route path="*" element={<NotFoundPage />} />
         </Routes>
