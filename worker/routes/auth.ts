@@ -19,7 +19,11 @@ const authRoutes = new Hono<{ Bindings: AppEnv }>();
 authRoutes.get("/callback", async (context) => {
     const { setCookies } = await exchangeOAuthCallback(context.req.raw);
 
-    const headers = new Headers({ Location: "/" });
+    // 로그인 후 목적지 — 내부 경로만 허용 (open redirect 방지)
+    const redirectTo = context.req.query("redirectTo");
+    const target = redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//") ? redirectTo : "/";
+
+    const headers = new Headers({ Location: target });
     for (const cookie of setCookies) {
         headers.append("Set-Cookie", cookie);
     }

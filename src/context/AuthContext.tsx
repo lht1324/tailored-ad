@@ -78,7 +78,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // 빌드타임 NEXT_PUBLIC_BASE_URL 금지 — prod 번들에 localhost가 박혀 OAuth가 localhost로 튐.
             // 클라 런타임 origin이 항상 정답 (dev localhost·ngrok·prod 실도메인 전부).
             // callbackURL은 trusted domains에 등록돼 있어야 함 (localhost 기본 허용).
-            const callbackURL = `${window.location.origin}/callback/auth${redirectTo ? `?redirectTo=${redirectTo}` : ""}`;
+            // 워커가 verifier를 교환하는 경로다 (`worker/routes/auth.ts`의 /callback).
+            // 끝나면 redirectTo(내부 경로)로 돌려보낸다.
+            const callbackURL = `${window.location.origin}/api/auth/callback${redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ""}`;
             const { error } = await authClient.signIn.social({
                 provider,
                 callbackURL,
