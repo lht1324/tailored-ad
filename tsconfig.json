@@ -6,7 +6,11 @@
     // `paths`(@worker, @shared)가 없어서 import에 빨간 줄이 뜬다. (CLI `tsc -p`는 각 설정으로
     // 따로 돌아서 통과했기 때문에 증상이 갈렸다)
     //
+    // `extends`를 두는 이유: WebStorm은 루트 tsconfig만 읽는 경우가 있어(프로젝트 참조 해석이
+    // VS Code와 다름) paths를 여기서도 보이게 한다. VS Code는 references를 따라 각 프로젝트로 간다.
+    //
     // 타입체크는 `tsc -p tsconfig.app.json` / `tsconfig.worker.json` 으로 각각 돈다 (package.json).
+    "extends": "./tsconfig.base.json",
     "files": [],
     "references": [
         { "path": "./tsconfig.app.json" },
