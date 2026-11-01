@@ -20,3 +20,6 @@ seed-outreach/
 
 # one-off scripts (live env 참조 가능)
 scripts/
+
+# IDE
+.idea/

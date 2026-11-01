@@ -88,12 +88,19 @@ export async function handleBaseResult(input: HandleBaseResultInput): Promise<Ha
             ).catch(() => {});
         }
 
-        // 차순위 base 찾기 (실패한 비율도 done으로 간주되므로 제외)
+        // 차순위 base 찾기 — **실패한 비율은 코드로 확정 제외**한다.
+        //
+        // 왜 DB 기록에 기대지 않나: 위의 '완료(에러) 기록'은 `.catch(() => {})`로 실패를 삼킨다.
+        // 그게 실패하면 remaining에 자기 자신이 남고, selectBaseRatio는 1:1을 우선하므로
+        // **같은 비율을 다시 골라** 오케스트레이터가 같은 base를 재제출한다 →
+        // 실패 2회 + 폴백 1회가 무한 반복되며 사이클마다 Replicate 예측이 실제로 과금된다.
         try {
             const batch = await adGenerationBatchServerAPI.getAdGenerationBatchById(batchId);
             if (batch) {
                 const doneKeys = new Set(Object.keys(batch.ad_creative_results?.[creativeIndex]?.imageResults ?? {}));
-                const remaining = (batch.aspect_ratios as AdRatioKey[]).filter((key) => !doneKeys.has(key));
+                const remaining = (batch.aspect_ratios as AdRatioKey[])
+                    .filter((key) => key !== effectiveRatioKey)
+                    .filter((key) => !doneKeys.has(key));
                 if (remaining.length > 0) {
                     const nextBase = selectBaseRatio(remaining);
                     return {
