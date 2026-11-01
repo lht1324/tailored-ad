@@ -6,16 +6,15 @@ import type { User } from "@/lib/api/types/supabase/Users";
 import type { AppEnv } from "../env";
 
 /**
- * 세션 인증 미들웨어 — C2S 검증을 **한 곳**에서 처리한다.
+ * 세션 인증 — C2S 검증을 **한 곳**에서 처리한다.
  *
  * 예전에는 `client-gateway`가 이 역할을 했다(라우트마다 C2S/S2S를 구분하는 게
  * 감당이 안 돼서 게이트웨이 한 곳에 몰았던 구조). Hono에서는 미들웨어가 그 자리다.
  *
- * 흐름: 세션 쿠키 → Neon Auth `getSession()` → email → 우리 `users` 행 → `context.set("user")`
- * 실패하면 401을 **즉시 반환**한다 (라우트 핸들러는 실행되지 않는다).
- *
- * 라우트에서는 `context.get("user")`로 꺼내 쓴다. `userId`를 쿼리로 받지 않으므로
- * "경로 userId 대조( IDOR )" 같은 방어 코드도 필요 없다.
+ * ## 두 가지 소비자
+ * 1. `requireSession` — API(`/api/*`). 실패하면 **JSON 401**
+ * 2. `loadSessionUser` — 페이지 가드(`worker/routes/pages.ts`). 실패하면 **리다이렉트**
+ *    (페이지 요청에 JSON 401을 주면 브라우저에 `{"success":false...}`가 그대로 보인다)
  */
 
 export type AuthVariables = {
@@ -29,42 +28,37 @@ type SessionUser = {
     image?: string | null;
 };
 
-export const requireSession = createMiddleware<{
-    Bindings: AppEnv;
-    Variables: AuthVariables;
-}>(async (context, next) => {
+export interface SessionResolution {
+    /** 우리 DB의 유저 행 (없거나 미로그인이면 null) */
+    user: User | null;
+    /** 세션 갱신 시 라이브러리가 심으려는 Set-Cookie — 호출부가 응답에 붙여야 한다 */
+    setCookies: string[];
+    /** 세션 조회 자체가 실패했는지 (네트워크·설정 오류) */
+    failed: boolean;
+}
+
+/**
+ * 세션 → 우리 `users` 행. 미로그인이면 `user: null`.
+ * 세션이 유효한데 행이 없으면(콜백 미경유) 최소 행을 만든다.
+ */
+export async function loadSessionUser(request: Request): Promise<SessionResolution> {
     const setCookies: string[] = [];
 
     let sessionUser: SessionUser | null = null;
-
     try {
-        const auth = await getAuthForRequest({ request: context.req.raw, setCookies });
+        const auth = await getAuthForRequest({ request, setCookies });
         const { data } = await auth.getSession();
         sessionUser = (data?.user ?? null) as SessionUser | null;
     } catch (error) {
-        console.error("[middleware/auth] session check failed:", error);
-        return getBaseResponse({
-            success: false,
-            status: 401,
-            error: "Unauthorized: Session check failed.",
-        });
-    }
-
-    // 세션 갱신 쿠키는 성공/실패와 무관하게 반영한다.
-    for (const cookie of setCookies) {
-        context.header("Set-Cookie", cookie, { append: true });
+        console.error("[auth] session check failed:", error);
+        return { user: null, setCookies, failed: true };
     }
 
     const email = sessionUser?.email;
     if (!email) {
-        return getBaseResponse({
-            success: false,
-            status: 401,
-            error: "Unauthorized: Sign-in required.",
-        });
+        return { user: null, setCookies, failed: false };
     }
 
-    // 세션은 유효한데 우리 행이 없는 경우(콜백 미경유) 최소 행을 만든다.
     let user = await usersServerAPI.getUserByEmail(email);
     if (!user) {
         const created = await usersServerAPI.postUsers({
@@ -77,11 +71,34 @@ export const requireSession = createMiddleware<{
         user = created ?? (await usersServerAPI.getUserByEmail(email));
     }
 
+    return { user: user ?? null, setCookies, failed: false };
+}
+
+/** API용 — 인증 실패 시 즉시 JSON 401 (라우트 핸들러는 실행되지 않는다) */
+export const requireSession = createMiddleware<{
+    Bindings: AppEnv;
+    Variables: AuthVariables;
+}>(async (context, next) => {
+    const { user, setCookies, failed } = await loadSessionUser(context.req.raw);
+
+    // 세션 갱신 쿠키는 성공/실패와 무관하게 반영한다.
+    for (const cookie of setCookies) {
+        context.header("Set-Cookie", cookie, { append: true });
+    }
+
+    if (failed) {
+        return getBaseResponse({
+            success: false,
+            status: 401,
+            error: "Unauthorized: Session check failed.",
+        });
+    }
+
     if (!user) {
         return getBaseResponse({
             success: false,
-            status: 500,
-            error: "Failed to resolve user profile.",
+            status: 401,
+            error: "Unauthorized: Sign-in required.",
         });
     }
 

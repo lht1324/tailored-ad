@@ -10,6 +10,7 @@ import eventsRoutes from "./routes/events";
 import imageRoutes from "./routes/image";
 import profileRoutes from "./routes/profile";
 import publicRoutes from "./routes/public";
+import pageRoutes from "./routes/pages";
 import userRoutes from "./routes/user";
 import { requireSession, type AuthVariables } from "./middleware/auth";
 
@@ -52,10 +53,14 @@ app.get("/api/health", (context) =>
     }),
 );
 
-// 3) 여기서부터 세션 인증
+// 3) 페이지 가드 — API가 아닌 **내비게이션 요청**용.
+//    `run_worker_first`에 등록된 보호 경로만 여기로 온다. 통과하면 ASSETS로 넘겨 index.html을 받는다.
+app.route("/", pageRoutes);
+
+// 4) 여기서부터 세션 인증 (API)
 app.use("/api/*", requireSession);
 
-// 4) 인증된 라우트
+// 5) 인증된 라우트
 app.route("/api", batchRoutes);
 app.route("/api", userRoutes);
 app.route("/api", profileRoutes);

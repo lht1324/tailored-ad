@@ -35,10 +35,23 @@
         ]
     },
     "assets": {
+        // 자산 바인딩 — 페이지 가드가 통과시킬 때 `env.ASSETS.fetch()`로 넘긴다
+        "binding": "ASSETS",
         // SPA 라우팅: 없는 경로는 index.html
         "not_found_handling": "single-page-application",
         // /api/* 는 항상 워커로 (웹훅도 /api/webhook/* 로 옮겨 이 규칙 하나로 커버한다)
-        "run_worker_first": ["/api/*"]
+        // 보호 화면은 주소창 요청(navigate)이 자산으로 새지 않도록 명시한다 — worker/routes/pages.ts
+        "run_worker_first": [
+            "/api/*",
+            "/sign-in",
+            "/create",
+            "/create/*",
+            "/projects",
+            "/projects/*",
+            "/profile",
+            "/profile/*",
+            "/checkout/success"
+        ]
     },
     "observability": {
         "logs": {
