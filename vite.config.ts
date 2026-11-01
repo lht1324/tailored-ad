@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { fileURLToPath } from "node:url";
 
@@ -19,6 +20,9 @@ import { fileURLToPath } from "node:url";
 export default defineConfig({
     plugins: [
         react(),
+        // Tailwind v4 — Vite 플러그인이 CSS를 처리한다 (postcss.config 불필요).
+        // CSS 첫 줄의 `@import "tailwindcss";` 가 진입점이다.
+        tailwindcss(),
         cloudflare({ viteEnvironment: { name: "worker" } }),
     ],
     environments: {
