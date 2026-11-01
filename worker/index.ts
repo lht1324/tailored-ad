@@ -10,7 +10,7 @@ import eventsRoutes from "./routes/events";
 import imageRoutes from "./routes/image";
 import profileRoutes from "./routes/profile";
 import publicRoutes from "./routes/public";
-import pageRoutes from "./routes/pages";
+import pageRoutes from "./pageGuard";
 import userRoutes from "./routes/user";
 import { requireSession, type AuthVariables } from "./middleware/auth";
 
