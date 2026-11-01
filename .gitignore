@@ -18,8 +18,12 @@ skills-lock.json
 # 시딩 아웃리치 산출물 (타사 브랜드 자산)
 seed-outreach/
 
-# one-off scripts (live env 참조 가능)
-scripts/
+# one-off scripts (live env 참조 가능) — 단, 빌드 파이프라인 스크립트는 추적한다
+scripts/*
+!scripts/prerender.mjs
+
+# 프리렌더 SSR 번들 산출물
+dist-prerender/
 
 # IDE
 .idea/

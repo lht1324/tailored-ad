@@ -31,8 +31,9 @@ import { BetterAuthReactAdapter } from "@neondatabase/auth/react/adapters";
  */
 
 function resolveAuthBaseUrl(): string {
-    // 프리렌더(브라우저 없음) 시점에도 모듈이 평가될 수 있어 상대 경로로 폴백한다.
-    if (typeof window === "undefined") return "/api/auth";
+    // 프리렌더(Node)에서는 `window`가 없다. better-auth는 **절대 URL**을 요구하므로
+    // 유효한 절대 주소를 돌려준다. 렌더 중에는 요청을 보내지 않으므로 값 자체는 의미가 없다.
+    if (typeof window === "undefined") return "http://localhost/api/auth";
     return `${window.location.origin}/api/auth`;
 }
 
