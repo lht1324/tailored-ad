@@ -23,7 +23,11 @@ createRoot(document.getElementById("root")!).render(
     <StrictMode>
         <BrowserRouter>
             <AuthProvider>
-                <App />
+                {/* 구 layout.tsx의 래퍼를 그대로 옮긴 것.
+                    `font-satoshi`가 없으면 body 규칙(Rajdhani 우선)이 적용돼 Next와 폰트가 달라진다. */}
+                <div className="min-h-screen bg-canvas text-text1 font-satoshi">
+                    <App />
+                </div>
             </AuthProvider>
         </BrowserRouter>
     </StrictMode>,

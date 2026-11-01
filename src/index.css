@@ -11,7 +11,9 @@
 :root {
   --background: #0A0A0B;
   --foreground: #F4F4F5;
-  --font-rajdhani: "Rajdhani", sans-serif;
+  /* 폴백은 font-family 사슬에서만 붙인다 — 여기에 sans-serif를 넣으면
+     뒤에 오는 Satoshi/Roboto를 가려버린다(실제로 그랬음). */
+  --font-rajdhani: "Rajdhani";
   --font-geist-mono: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
   --ad-canvas: #0A0A0B;
   --ad-surface: #131316;
