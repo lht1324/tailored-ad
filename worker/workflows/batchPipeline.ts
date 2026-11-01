@@ -5,9 +5,12 @@ import { prepareCreativePrompt } from "@worker/lib/pipeline/steps/prepareCreativ
 import { submitBaseImage } from "@worker/lib/pipeline/steps/submitBaseImage";
 import { handleBaseResult } from "@worker/lib/pipeline/steps/handleBaseResult";
 import { submitRatios } from "@worker/lib/pipeline/steps/submitRatios";
+import { handleRatioResult } from "@worker/lib/pipeline/steps/handleRatioResult";
 import {
     REPLICATE_BASE_EVENT,
+    REPLICATE_RATIO_EVENT,
     type ReplicateBaseEventPayload,
+    type ReplicateRatioEventPayload,
 } from "@worker/lib/workflows/batchPipelineClient";
 import { bindEnv } from "@worker/lib/serverEnv";
 import type { AppEnv } from "../env";
@@ -125,8 +128,53 @@ export class BatchPipeline extends WorkflowEntrypoint<AppEnv, BatchPipelineParam
                     console.log(
                         `[BatchPipeline] creative ${payload.creativeIndex} ratios submitted=${ratios.submitted.length} failed=${ratios.failed.length}`,
                     );
-                    // TODO(W2 나머지): ratios 결과는 웹훅이 handleRatioResult로 받아 이어간다.
-                    //   그때까지는 제출까지만 하고 라인을 끝낸다.
+
+                    // 제출한 만큼 결과 이벤트를 기다린다. 재시도가 나면 그만큼 다시 센다.
+                    let outstanding = ratios.submitted.length;
+                    let ratioSeq = 0;
+
+                    while (outstanding > 0) {
+                        const ratioEvent = await step.waitForEvent<ReplicateRatioEventPayload>(
+                            `ratio-event-${seq}-${ratioSeq}`,
+                            { type: REPLICATE_RATIO_EVENT, timeout: "20 minutes" },
+                        );
+                        const ratioPayload = ratioEvent.payload;
+
+                        const handledRatio = await step.do(`handle-ratio-${seq}-${ratioSeq}`, () =>
+                            handleRatioResult({
+                                batchId,
+                                creativeIndex: ratioPayload.creativeIndex,
+                                ratioKey: ratioPayload.ratioKey,
+                                attempt: ratioPayload.attempt,
+                                payload: ratioPayload.payload,
+                            }),
+                        );
+
+                        outstanding -= 1;
+
+                        if (handledRatio.action.kind === "retry-ratio") {
+                            // 클로저 안에서는 narrowing이 풀리므로 지역 상수로 고정한다
+                            const retryAction = handledRatio.action;
+                            const retried = await step.do(`retry-ratio-${seq}-${ratioSeq}`, () =>
+                                submitRatios({
+                                    batchId,
+                                    creativeIndex: ratioPayload.creativeIndex,
+                                    retryRatioKey: retryAction.ratioKey,
+                                    attempt: retryAction.attempt,
+                                }),
+                            );
+                            outstanding += retried.submitted.length;
+                        }
+
+                        if (handledRatio.action.kind === "proceed-analysis") {
+                            // TODO(W2 나머지): analyzeCreative 연결
+                            console.log(
+                                `[BatchPipeline] creative ${ratioPayload.creativeIndex} all ratios done → analysis (W2 pending)`,
+                            );
+                        }
+
+                        ratioSeq += 1;
+                    }
                 } else {
                     // proceed-analysis — 비율이 1개뿐인 배치
                     // TODO(W2 나머지): analyzeCreative 연결
