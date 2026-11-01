@@ -3,10 +3,19 @@
     //
     // 왜 필요한가: 이게 없으면 `worker/**` 파일이 어느 tsconfig에도 속하지 않아
     // 에디터가 "프로젝트 밖 파일"로 처리하고, `paths`(@worker·@shared)를 적용하지 않는다.
-    // VS Code의 프로젝트 참조(references)로도 해결되지 않았다 — WebStorm이 따라가지 않는다.
-    // 가장 가까운 tsconfig를 두면 두 에디터 모두 확실히 인식한다.
     //
-    // `include`는 부모(tsconfig.worker.json)에 있는 값을 그대로 상속한다.
-    // 상속된 패턴은 **부모 파일 위치 기준**으로 해석되므로 루트 기준 경로가 유지된다.
-    "extends": "../tsconfig.worker.json"
+    // `baseUrl`을 ".."(루트)로 다시 잡는 이유:
+    //   paths는 **baseUrl 기준**으로 해석된다. 부모의 baseUrl(".")을 그대로 상속하면
+    //   이 파일 입장에서는 `worker/.`이 되어 `@worker/*` → `worker/worker/*`로 어긋난다.
+    //   기준점을 루트로 고정하면 부모와 값이 같아도 정확히 맞는다.
+    //   (include는 부모 값이 그대로 상속되고, 상속된 패턴은 **부모 파일 위치** 기준으로 해석된다)
+    "extends": "../tsconfig.worker.json",
+    "compilerOptions": {
+        "baseUrl": "..",
+        "paths": {
+            "@/*": ["src/*"],
+            "@worker/*": ["worker/*"],
+            "@shared/*": ["shared/*"]
+        }
+    }
 }

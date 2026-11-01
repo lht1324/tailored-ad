@@ -1,6 +1,5 @@
 {
     // 클라·워커 두 타입 프로그램이 **공유하는 설정**. 여기가 유일한 원본이다.
-    // (10-31: 이전에는 tsconfig.json과 tsconfig.worker.json에 같은 내용이 복붙돼 있었다)
     "compilerOptions": {
         "target": "ES2022",
         "lib": ["ES2022", "DOM", "DOM.Iterable"],
@@ -13,18 +12,22 @@
         "resolveJsonModule": true,
         "isolatedModules": true,
 
-        // `baseUrl` 없이 paths를 쓴다 → **이 파일 위치 기준** 상대 경로로 해석된다 (TS 4.1+).
-        // ⚠️ vite.config.ts의 resolve.alias와 반드시 같아야 한다.
-        //    Vite는 tsconfig를 읽지 않으므로, 한쪽만 바꾸면 타입은 통과하고 런타임에서 못 찾는다.
+        // ⚠️ `paths`는 **baseUrl 기준**으로 해석된다. baseUrl은 이 파일 위치(=루트)를 가리킨다.
+        //    왜 baseUrl을 두나: `paths`만 있으면 IDE가 "어느 설정 기준으로 읽을지"를 제각각
+        //    해석한다(WebStorm이 하위 tsconfig 기준으로 계산해 깨졌다). baseUrl+paths는
+        //    모든 에디터가 오래전부터 동일하게 처리하는 형태다.
+        //
+        // ⚠️ 이 값들은 vite.config.ts의 resolve.alias와 같아야 한다 (Vite는 tsconfig를 안 읽는다).
         //
         // 첫 글자가 진영을 말한다:
         //   @/       클라(src) — 브라우저에서만
         //   @worker/ 서버(worker) — 워커에서만
         //   @shared/ 양쪽 공용 — 부수효과 없는 타입·상수·순수 함수만
+        "baseUrl": ".",
         "paths": {
-            "@/*": ["./src/*"],
-            "@worker/*": ["./worker/*"],
-            "@shared/*": ["./shared/*"]
+            "@/*": ["src/*"],
+            "@worker/*": ["worker/*"],
+            "@shared/*": ["shared/*"]
         }
     }
 }
