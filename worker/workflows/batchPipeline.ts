@@ -6,6 +6,7 @@ import { submitBaseImage } from "@worker/lib/pipeline/steps/submitBaseImage";
 import { handleBaseResult } from "@worker/lib/pipeline/steps/handleBaseResult";
 import { submitRatios } from "@worker/lib/pipeline/steps/submitRatios";
 import { handleRatioResult } from "@worker/lib/pipeline/steps/handleRatioResult";
+import { analyzeCreative } from "@worker/lib/pipeline/steps/analyzeCreative";
 import {
     REPLICATE_BASE_EVENT,
     REPLICATE_RATIO_EVENT,
@@ -167,19 +168,26 @@ export class BatchPipeline extends WorkflowEntrypoint<AppEnv, BatchPipelineParam
                         }
 
                         if (handledRatio.action.kind === "proceed-analysis") {
-                            // TODO(W2 나머지): analyzeCreative 연결
+                            const analysis = await step.do(`analyze-ratio-${seq}-${ratioSeq}`, () =>
+                                analyzeCreative({
+                                    batchId,
+                                    creativeIndex: ratioPayload.creativeIndex,
+                                }),
+                            );
                             console.log(
-                                `[BatchPipeline] creative ${ratioPayload.creativeIndex} all ratios done → analysis (W2 pending)`,
+                                `[BatchPipeline] creative ${ratioPayload.creativeIndex} analysis stored=${analysis.stored} (${analysis.note})`,
                             );
                         }
 
                         ratioSeq += 1;
                     }
                 } else {
-                    // proceed-analysis — 비율이 1개뿐인 배치
-                    // TODO(W2 나머지): analyzeCreative 연결
+                    // proceed-analysis — 비율이 1개뿐인 배치 (base 완료 = creative 완료)
+                    const analysis = await step.do(`analyze-base-${seq}`, () =>
+                        analyzeCreative({ batchId, creativeIndex: payload.creativeIndex }),
+                    );
                     console.log(
-                        `[BatchPipeline] creative ${payload.creativeIndex} base done → analysis (W2 pending)`,
+                        `[BatchPipeline] creative ${payload.creativeIndex} analysis stored=${analysis.stored} (${analysis.note})`,
                     );
                 }
             }
