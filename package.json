@@ -12,9 +12,6 @@
         "cf-typegen": "wrangler types --include-runtime false --no-strict-vars --env-interface CloudflareEnv cloudflare-env.d.ts"
     },
     "dependencies": {
-        "hono": "^4.13.14",
-        "react": "^19.3.1",
-        "react-dom": "^19.3.1",
         "@aws-sdk/client-s3": "^3.1161.0",
         "@aws-sdk/s3-request-presigner": "^3.1161.0",
         "@neondatabase/auth": "^0.7.0-beta",
@@ -23,8 +20,12 @@
         "@upstash/redis": "^1.40.0",
         "dodopayments": "^2.59.0",
         "drizzle-orm": "^0.45.4",
+        "hono": "^4.13.14",
         "jsonrepair": "^3.15.0",
         "openai": "^7.47.0",
+        "react": "^19.3.1",
+        "react-dom": "^19.3.1",
+        "react-router": "^8.5.1",
         "replicate": "^1.4.0"
     },
     "devDependencies": {
