@@ -335,14 +335,15 @@ function ProfilePageClient() {
                     </div>
                 </div>
 
-                {/* Official logo + Billing — 2열 (모바일 스택) */}
-                <div className="mb-6 grid grid-cols-1 items-stretch gap-6 md:grid-cols-2">
-                {/* Official logo */}
-                <div className="flex flex-col justify-center rounded-2xl border border-hairline bg-surface/60 p-8">
+                {/* 로고·구독·결제내역은 **서로 다른 관심사**라 세로로 쌓는다.
+                    (2열로 두면 정보량이 5배 차이나는 두 카드 중 하나는 반드시 빈다) */}
+                <div className="mb-6 space-y-10">
+                {/* Official logo — 카드가 아니라 섹션. 항목이 1개뿐이라 카드 테두리는 과하다 */}
+                <section>
                     <h3 className="mb-2 text-sm font-semibold tracking-wider text-text1 uppercase">
                         Official logo
                     </h3>
-                    <p className="mb-6 text-sm leading-relaxed text-text2">
+                    <p className="mb-5 max-w-2xl text-sm leading-relaxed text-text2">
                         Prefilled as the brand logo in Create. Transparent PNG works best.
                     </p>
                     <div
@@ -413,7 +414,10 @@ function ProfilePageClient() {
                             event.target.value = '';
                         }}
                     />
-                </div>
+                    <p className="mt-4 text-[12px] leading-relaxed text-text2/70">
+                        Square image, transparent background, 512×512 or larger. Upload keeps the original pixels — no resizing.
+                    </p>
+                </section>
 
                 {/* Subscription */}
                 {billingError && !subscriptionData ? (
@@ -494,9 +498,9 @@ function ProfilePageClient() {
                             {!subscriptionData.cancelAtPeriodEnd && (
                                 <button
                                     onClick={() => setShowCancelModal(true)}
-                                    className="w-full rounded-xl border border-hairline px-4 py-2.5 text-sm font-medium text-text2 transition-colors hover:border-red-500/20 hover:bg-red-500/10 hover:text-red-500"
+                                    className="mx-auto block pt-1 text-xs font-medium text-text2 underline-offset-4 transition-colors hover:text-red-500 hover:underline"
                                 >
-                                    Cancel Subscription
+                                    Cancel subscription
                                 </button>
                             )}
                         </div>
