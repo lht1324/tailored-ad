@@ -62,9 +62,11 @@ export const r2ServerAPI = {
     /** 업로드 — upsert 고정 (같은 키 덮어쓰기) */
     async putObject(key: string, data: ArrayBuffer | Uint8Array, contentType: string): Promise<void> {
         const { client, baseUrl } = await getR2();
+        // 복사해서 ArrayBuffer를 소유한 뷰로 만든다 (BodyInit 타입 요구사항)
+        const bytes = data instanceof Uint8Array ? new Uint8Array(data) : new Uint8Array(data);
         const response = await client.fetch(`${baseUrl}/${encodeKeyPath(key)}`, {
             method: "PUT",
-            body: data,
+            body: bytes,
             headers: { "Content-Type": contentType },
         });
         if (!response.ok) {
