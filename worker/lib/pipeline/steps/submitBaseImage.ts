@@ -6,6 +6,7 @@ import { replicateClient } from "@worker/lib/ReplicateClient";
 import { selectImageModel, type ImageInputTag } from "@worker/lib/replicateInputMapper";
 import { AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
 import { StepError } from "@worker/lib/pipeline/types";
+import { buildSignedWebhookUrl } from "@worker/lib/webhooks/signature";
 
 /**
  * 단계: 기준(base) 이미지 Replicate 제출 (원래 `api/image/generation/base/route.ts`).
@@ -73,7 +74,7 @@ export async function submitBaseImage(input: SubmitBaseImageInput): Promise<Subm
         throw new StepError('STEP_INTERNAL_ERROR', 'BASE_URL is not configured.');
     }
 
-    const webhookUrl = `${baseUrl}/api/webhook/replicate/image/base?batchId=${encodeURIComponent(batchId)}&creativeIndex=${encodeURIComponent(String(creativeIndex))}&ratioKey=${encodeURIComponent(baseRatio)}&attempt=${encodeURIComponent(String(attempt))}`;
+    const webhookUrl = await buildSignedWebhookUrl(baseUrl, "/api/webhook/replicate/image/base", { batchId, creativeIndex: String(creativeIndex), ratioKey: baseRatio, attempt: String(attempt) });
 
     const wrappedCaption = `INSTRUCTION: Use the input image ONLY to preserve the product/person identity (shape, color, material, lace, perforations, stitching). Do NOT copy its background, floor, shadows or wall — recreate the product with pixel-perfect edges on the new scene described below.\n\nSCENE: ${caption}`;
 

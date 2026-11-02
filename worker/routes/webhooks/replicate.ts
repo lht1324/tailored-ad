@@ -5,6 +5,7 @@ import {
     sendReplicateRatioEvent,
 } from "@worker/lib/workflows/batchPipelineClient";
 import { getBaseResponse } from "@worker/lib/utils/getBaseResponse";
+import { verifySignedWebhookUrl } from "@worker/lib/webhooks/signature";
 import type { ReplicateWebhookPayload } from "@worker/lib/workflows/batchPipelineClient";
 import type { AppEnv } from "../../env";
 
@@ -45,6 +46,11 @@ function deriveRatioKeyFromPayload(
 
 /** 기준(base) 이미지 결과 */
 replicateWebhookRoutes.post("/replicate/image/base", async (context) => {
+    if (!(await verifySignedWebhookUrl(context.req.url))) {
+        console.warn("[webhook/replicate/base] invalid signature");
+        return alwaysOk("", "Invalid signature.");
+    }
+
     const batchId = context.req.query("batchId");
     const creativeIndexParam = context.req.query("creativeIndex");
     const ratioKey = context.req.query("ratioKey") ?? null;
@@ -84,6 +90,11 @@ replicateWebhookRoutes.post("/replicate/image/base", async (context) => {
 
 /** 파생(ratio) 이미지 결과 */
 replicateWebhookRoutes.post("/replicate/image/ratios", async (context) => {
+    if (!(await verifySignedWebhookUrl(context.req.url))) {
+        console.warn("[webhook/replicate/ratios] invalid signature");
+        return alwaysOk("", "Invalid signature.");
+    }
+
     const batchId = context.req.query("batchId");
     const creativeIndexParam = context.req.query("creativeIndex");
 
@@ -124,6 +135,11 @@ replicateWebhookRoutes.post("/replicate/image/ratios", async (context) => {
 
 /** 페르소나(가상 모델) 결과 */
 replicateWebhookRoutes.post("/replicate/persona", async (context) => {
+    if (!(await verifySignedWebhookUrl(context.req.url))) {
+        console.warn("[webhook/replicate/persona] invalid signature");
+        return alwaysOk("", "Invalid signature.");
+    }
+
     const batchId = context.req.query("batchId");
 
     if (!batchId) {

@@ -4,6 +4,7 @@ import { llmServerAPI } from "@worker/lib/api/server/ad/llmServerAPI";
 import { replicateClient } from "@worker/lib/ReplicateClient";
 import { selectImageModel } from "@worker/lib/replicateInputMapper";
 import { requireServerEnv } from "@worker/lib/serverEnv";
+import { buildSignedWebhookUrl } from "@worker/lib/webhooks/signature";
 import { StepError } from "@worker/lib/pipeline/types";
 
 /**
@@ -86,9 +87,10 @@ export async function submitPersona(input: SubmitPersonaInput): Promise<SubmitPe
 
     // 3) Seedream T2I 제출 (참조 이미지 없음)
     const baseUrl = await requireServerEnv("BASE_URL");
-    const webhookUrl =
-        `${baseUrl}/api/webhook/replicate/persona?batchId=${encodeURIComponent(batchId)}` +
-        (personaBrief ? `&brief=${encodeURIComponent(personaBrief)}` : "");
+    const webhookUrl = await buildSignedWebhookUrl(baseUrl, "/api/webhook/replicate/persona", {
+        batchId,
+        ...(personaBrief ? { brief: personaBrief } : {}),
+    });
 
     await replicateClient.postAdImageEditPrediction({
         prompt: llmResult.t2iPrompt,

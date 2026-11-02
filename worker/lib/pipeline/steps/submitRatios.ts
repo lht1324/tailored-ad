@@ -4,6 +4,7 @@ import { selectBaseRatio } from "@worker/lib/api/server/ad/creativeCombinationSa
 import { replicateClient } from "@worker/lib/ReplicateClient";
 import { ReplicateModelId, selectImageModel, type ImageInputTag } from "@worker/lib/replicateInputMapper";
 import { requireServerEnv } from "@worker/lib/serverEnv";
+import { buildSignedWebhookUrl } from "@worker/lib/webhooks/signature";
 import { StepError } from "@worker/lib/pipeline/types";
 import type { AdGenerationBatch, AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
 
@@ -107,10 +108,12 @@ export async function submitRatios(input: SubmitRatiosInput): Promise<SubmitRati
 
     /** 웹훅 주소 — 외부(Replicate)→우리. 인스턴스 id(batchId)를 쿼리로 실어 보낸다. */
     const buildWebhookUrl = (ratioKey: AdRatioKey) =>
-        `${baseUrl}/api/webhook/replicate/image/ratios?batchId=${encodeURIComponent(batchId)}` +
-        `&creativeIndex=${encodeURIComponent(String(creativeIndex))}` +
-        `&ratioKey=${encodeURIComponent(ratioKey)}` +
-        `&attempt=${encodeURIComponent(String(attempt))}`;
+        buildSignedWebhookUrl(baseUrl, "/api/webhook/replicate/image/ratios", {
+            batchId,
+            creativeIndex: String(creativeIndex),
+            ratioKey,
+            attempt: String(attempt),
+        });
 
     // ── 재시도 모드 ────────────────────────────────────────────
     const retryRatioKey = input.retryRatioKey ?? null;
@@ -156,7 +159,7 @@ export async function submitRatios(input: SubmitRatiosInput): Promise<SubmitRati
                     aspectRatio: retryRatioKey,
                     model: selectImageModel(aspectRatios as string[]),
                     imageTags: buildOriginalTagOrder(batch),
-                    webhookUrl: buildWebhookUrl(retryRatioKey),
+                    webhookUrl: await buildWebhookUrl(retryRatioKey),
                 });
             } else {
                 // 파생 재시도 → BRIA 확장 (base 1장 참조)
@@ -173,7 +176,7 @@ export async function submitRatios(input: SubmitRatiosInput): Promise<SubmitRati
                     imageUrls: [baseSignedUrl],
                     aspectRatio: retryRatioKey,
                     model: ReplicateModelId.BRIA_EXPAND,
-                    webhookUrl: buildWebhookUrl(retryRatioKey),
+                    webhookUrl: await buildWebhookUrl(retryRatioKey),
                 });
             }
         } catch (submitError) {
@@ -234,7 +237,7 @@ export async function submitRatios(input: SubmitRatiosInput): Promise<SubmitRati
                 imageUrls: [baseImageSignedUrl],
                 aspectRatio: ratioKey,
                 model: ReplicateModelId.BRIA_EXPAND,
-                webhookUrl: buildWebhookUrl(ratioKey),
+                webhookUrl: await buildWebhookUrl(ratioKey),
             });
             submitted.push(ratioKey);
         } catch (submitError) {
