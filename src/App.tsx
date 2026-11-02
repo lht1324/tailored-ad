@@ -7,6 +7,7 @@ import CreatePageClient from "./components/page/ad/create/CreatePageClient";
 import ProjectDetailPageClient from "./components/page/ad/projects/[projectId]/ProjectDetailPageClient";
 import SignInPageClient from "./components/page/sign-in/SignInPageClient";
 import ProfilePageClient from "./components/page/ad/profile/ProfilePageClient";
+import CheckoutSuccessClient from "./components/page/checkout/CheckoutSuccessClient";
 
 /**
  * 라우트 표.
@@ -53,6 +54,8 @@ export default function App() {
             <Route path="/projects/:projectId" element={<ProjectDetailRoute />} />
             <Route path="/create" element={<CreatePageClient />} />
             <Route path="/profile" element={<ProfilePageClient />} />
+            {/* 결제 복귀 — 워커 가드가 /checkout/success를 보호한다 */}
+            <Route path="/checkout/success" element={<CheckoutSuccessClient />} />
 
             <Route path="*" element={<NotFoundPage />} />
         </Routes>
