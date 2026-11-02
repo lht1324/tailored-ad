@@ -170,8 +170,14 @@ export const adGenerationBatchServerAPI = {
         const db = await getNeonDb();
 
         try {
+            // ⚠️ 오류가 없으면 **SQL NULL**을 보내야 한다.
+            // `JSON.stringify(null)`은 문자열 'null' → jsonb의 JSON null이 되어
+            // PL/pgSQL의 `p_error is not null`이 **참**이 된다. 그러면 RPC가 "실패 마커" 분기를 타서
+            // 넘긴 fileExtension을 버리고 imageFileExtension=null 로 저장한다.
+            // (실제 증상: handleBaseResult가 ext=png 로 저장했다고 로그를 찍었는데 DB엔 null)
+            const errorJson = imageError ? JSON.stringify(imageError) : null;
             const res = await db.execute(
-                sql`SELECT public.update_creative_image_by_ratio_generation_completed(${batchId}::uuid, ${creativeIndex}, ${ratioKey}, ${fileExtension}, ${JSON.stringify(imageError ?? null)}::jsonb) AS result`,
+                sql`SELECT public.update_creative_image_by_ratio_generation_completed(${batchId}::uuid, ${creativeIndex}, ${ratioKey}, ${fileExtension}, ${errorJson}::jsonb) AS result`,
             );
             const result = (res.rows[0] as unknown as {
                 result?: { isLastCreative?: boolean; batchCompleted?: boolean } | null;
