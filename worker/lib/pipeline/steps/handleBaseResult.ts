@@ -64,6 +64,12 @@ export async function handleBaseResult(input: HandleBaseResultInput): Promise<Ha
         throw new StepError('STEP_INTERNAL_ERROR', 'Invalid replicatePayload: missing id or status.');
     }
 
+    // 침묵 실패 방지 — 이 단계는 성공해도 아무 로그가 없어서 "돌았는지"조차 알 수 없었다.
+    console.log(
+        `[handleBaseResult] start (batch=${batchId}, creative=${creativeIndex}, ratio=${input.ratioKey ?? '-'}, ` +
+        `attempt=${attempt}, status=${payload.status}, prediction=${payload.id})`,
+    );
+
     // ── 실패 경로 ──────────────────────────────────────────────
     if (payload.status !== 'succeeded') {
         const errorMessage = payload.error ?? `Replicate status ${payload.status}`;
@@ -176,11 +182,15 @@ export async function handleBaseResult(input: HandleBaseResultInput): Promise<Ha
         console.error(`[usage] ledger record failed (batch=${batchId}, creative=${creativeIndex}):`, ledgerError);
     }
 
-    await adGenerationBatchServerAPI.updateCreativeImageByRatioGenerationCompleted(
+    const completion = await adGenerationBatchServerAPI.updateCreativeImageByRatioGenerationCompleted(
         batchId,
         creativeIndex,
         effectiveRatioKey,
         fileExtension,
+    );
+    console.log(
+        `[handleBaseResult] stored (batch=${batchId}, creative=${creativeIndex}, ratio=${effectiveRatioKey}, ` +
+        `ext=${fileExtension}, isLastCreative=${completion.isLastCreative})`,
     );
 
     const action: BaseResultAction = aspectRatios.length === 1
