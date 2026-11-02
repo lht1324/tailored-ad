@@ -223,20 +223,12 @@ imageRoutes.post("/image", async (context) => {
         const personaBriefRaw = body.personaBrief;
         const personaRequested = typeof personaBriefRaw === "string";
 
-        if (!hasPersonFile && personaRequested) {
-            // TODO(W3): persona 경로는 아직 워크플로로 이관되지 않았다.
-            // 예전에는 internalFireAndForgetFetch로 /api/image/generation/persona를 불렀지만,
-            // 그것이 prod에서 죽었던 원인이다. W3에서 워크플로 step으로 붙인다.
-            console.error(`[api/image] persona path not ported yet (batch=${createdBatch.id})`);
-            return getBaseResponse({
-                success: false,
-                status: 501,
-                error: "Persona generation is temporarily unavailable during migration.",
-            });
-        }
+        // 인물 사진이 없고 personaBrief가 있으면 = 가상 모델 경로.
+        // 어느 쪽이든 워크플로가 시작되고, persona는 파이프라인 첫 단계로 실행된다.
+        const personaBriefForPipeline = !hasPersonFile && personaRequested ? (personaBriefRaw ?? "") : null;
 
         // 파이프라인 시작 = 워크플로 인스턴스 생성 (instance id = batchId)
-        await startBatchPipeline(context.env, createdBatch.id);
+        await startBatchPipeline(context.env, createdBatch.id, personaBriefForPipeline);
 
         return getBaseResponse({
             success: true,

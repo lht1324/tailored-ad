@@ -6,11 +6,15 @@ import { submitBaseImage } from "@worker/lib/pipeline/steps/submitBaseImage";
 import { handleBaseResult } from "@worker/lib/pipeline/steps/handleBaseResult";
 import { submitRatios } from "@worker/lib/pipeline/steps/submitRatios";
 import { handleRatioResult } from "@worker/lib/pipeline/steps/handleRatioResult";
+import { submitPersona } from "@worker/lib/pipeline/steps/submitPersona";
+import { handlePersonaResult } from "@worker/lib/pipeline/steps/handlePersonaResult";
 import { analyzeCreative } from "@worker/lib/pipeline/steps/analyzeCreative";
 import {
     REPLICATE_BASE_EVENT,
+    REPLICATE_PERSONA_EVENT,
     REPLICATE_RATIO_EVENT,
     type ReplicateBaseEventPayload,
+    type ReplicatePersonaEventPayload,
     type ReplicateRatioEventPayload,
 } from "@worker/lib/workflows/batchPipelineClient";
 import { bindEnv } from "@worker/lib/serverEnv";
@@ -47,6 +51,8 @@ import type { AppEnv } from "../env";
  */
 export interface BatchPipelineParams {
     batchId: string;
+    /** 인물 사진 없이 가상 모델을 생성해야 할 때만 문자열 (빈 문자열 = seed 기본값 생성) */
+    personaBrief?: string | null;
 }
 
 export class BatchPipeline extends WorkflowEntrypoint<AppEnv, BatchPipelineParams> {
@@ -54,7 +60,27 @@ export class BatchPipeline extends WorkflowEntrypoint<AppEnv, BatchPipelineParam
         // 요청이 없는 컨텍스트라 미들웨어가 안 돈다 — 여기서 직접 바인딩한다.
         bindEnv(this.env);
 
-        const { batchId } = event.payload;
+        const { batchId, personaBrief } = event.payload;
+
+        // 0) 페르소나 단계 — 인물 사진을 올리지 않은 배치에서만 (batch 당 1회)
+        //    결과는 person_image 슬롯에 저장돼, 이후는 실사 업로드와 완전히 동일하게 흐른다.
+        if (typeof personaBrief === "string") {
+            const submitted = await step.do("submit-persona", () => submitPersona({ batchId, personaBrief }));
+
+            if (submitted.submitted) {
+                const personaEvent = await step.waitForEvent<ReplicatePersonaEventPayload>("persona-event", {
+                    type: REPLICATE_PERSONA_EVENT,
+                    timeout: "10 minutes",
+                });
+                await step.do("handle-persona", () =>
+                    handlePersonaResult({
+                        batchId,
+                        brief: personaEvent.payload.brief,
+                        payload: personaEvent.payload.payload,
+                    }),
+                );
+            }
+        }
 
         // 1) 조합 배정 (queued → generating)
         const assigned = await step.do("assign-specs", () => assignSpecs({ batchId }));

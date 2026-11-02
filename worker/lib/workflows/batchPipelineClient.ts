@@ -14,11 +14,14 @@
 
 export interface BatchPipelineParams {
     batchId: string;
+    /** 인물 사진 없이 가상 모델을 생성해야 할 때만 존재 (없으면 실사 업로드 경로) */
+    personaBrief?: string | null;
 }
 
 /** Replicate 웹훅이 워크플로로 넘기는 이벤트 종류 */
 export const REPLICATE_BASE_EVENT = "replicate-base";
 export const REPLICATE_RATIO_EVENT = "replicate-ratio";
+export const REPLICATE_PERSONA_EVENT = "replicate-persona";
 
 /** Replicate prediction payload 중 우리가 쓰는 필드만 */
 export interface ReplicateWebhookPayload {
@@ -45,6 +48,12 @@ export interface ReplicateRatioEventPayload {
     payload: ReplicateWebhookPayload;
 }
 
+export interface ReplicatePersonaEventPayload {
+    batchId: string;
+    brief: string | null;
+    payload: ReplicateWebhookPayload;
+}
+
 type EnvWithPipeline = {
     BATCH_PIPELINE?: Workflow<BatchPipelineParams>;
 };
@@ -58,9 +67,13 @@ function getBinding(env: unknown): Workflow<BatchPipelineParams> {
 }
 
 /** 배치 파이프라인 시작 — instance id = batchId (웹훅이 같은 id로 찾는다) */
-export async function startBatchPipeline(env: unknown, batchId: string): Promise<void> {
+export async function startBatchPipeline(
+    env: unknown,
+    batchId: string,
+    personaBrief?: string | null,
+): Promise<void> {
     const binding = getBinding(env);
-    await binding.create({ id: batchId, params: { batchId } });
+    await binding.create({ id: batchId, params: { batchId, personaBrief: personaBrief ?? null } });
 }
 
 /** Replicate base 결과를 대기 중인 인스턴스로 전달 */
@@ -75,4 +88,11 @@ export async function sendReplicateRatioEvent(env: unknown, payload: ReplicateRa
     const binding = getBinding(env);
     const instance = await binding.get(payload.batchId);
     await instance.sendEvent({ type: REPLICATE_RATIO_EVENT, payload });
+}
+
+/** Replicate 페르소나 결과를 대기 중인 인스턴스로 전달 */
+export async function sendReplicatePersonaEvent(env: unknown, payload: ReplicatePersonaEventPayload): Promise<void> {
+    const binding = getBinding(env);
+    const instance = await binding.get(payload.batchId);
+    await instance.sendEvent({ type: REPLICATE_PERSONA_EVENT, payload });
 }

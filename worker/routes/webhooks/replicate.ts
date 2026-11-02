@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import {
     sendReplicateBaseEvent,
+    sendReplicatePersonaEvent,
     sendReplicateRatioEvent,
 } from "@worker/lib/workflows/batchPipelineClient";
 import { getBaseResponse } from "@worker/lib/utils/getBaseResponse";
@@ -117,6 +118,34 @@ replicateWebhookRoutes.post("/replicate/image/ratios", async (context) => {
         return alwaysOk("Ratio image event delivered to pipeline.");
     } catch (error) {
         console.error(`[webhook/replicate/ratios] delivery failed (batch=${batchId}):`, error);
+        return alwaysOk("", "Webhook delivery error");
+    }
+});
+
+/** 페르소나(가상 모델) 결과 */
+replicateWebhookRoutes.post("/replicate/persona", async (context) => {
+    const batchId = context.req.query("batchId");
+
+    if (!batchId) {
+        return alwaysOk("", "Missing batchId query param.");
+    }
+
+    try {
+        const payload = (await context.req.json()) as ReplicateWebhookPayload;
+        if (!payload || typeof payload.id !== "string" || typeof payload.status !== "string") {
+            console.warn(`[webhook/replicate/persona] invalid payload (batch=${batchId})`);
+            return alwaysOk("", "Invalid Replicate payload: missing id or status.");
+        }
+
+        await sendReplicatePersonaEvent(context.env, {
+            batchId,
+            brief: context.req.query("brief") ?? null,
+            payload,
+        });
+
+        return alwaysOk("Persona event delivered to pipeline.");
+    } catch (error) {
+        console.error(`[webhook/replicate/persona] delivery failed (batch=${batchId}):`, error);
         return alwaysOk("", "Webhook delivery error");
     }
 });
