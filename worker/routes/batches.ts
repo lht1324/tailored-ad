@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { adGenerationBatchServerAPI } from "@worker/lib/api/server/ad/adGenerationBatchServerAPI";
+import { adImageServerAPI } from "@worker/lib/api/server/ad/imageServerAPI";
 import { getBaseResponse } from "@worker/lib/utils/getBaseResponse";
 import type { AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
 import type { AppEnv } from "../env";
@@ -92,6 +93,91 @@ batchRoutes.get("/ad-generation-batches", async (context) => {
             success: false,
             status: 500,
             error: error instanceof Error ? error.message : "Failed to list batches",
+        });
+    }
+});
+
+
+
+/**
+ * 배치 상세 — `GET /api/ad-generation-batches/:batchId`
+ *
+ * 목록과 달리 **원본 다운로드용 signed URL**까지 함께 내려준다.
+ * 표시용 썸네일은 클라가 예쁜 경로(`/projects/:id/image`)로 조립하므로 여기서 발급하지 않는다.
+ * (서명 URL에 토큰이 실리므로 목록 응답에는 넣지 않고 상세에서만 준다)
+ */
+batchRoutes.get("/ad-generation-batches/:batchId", async (context) => {
+    const userId = context.get("user").id;
+    const batchId = context.req.param("batchId");
+
+    if (!batchId) {
+        return getBaseResponse({ success: false, status: 400, error: "Missing batchId." });
+    }
+
+    try {
+        const batch = await adGenerationBatchServerAPI.getAdGenerationBatchByIdForUser(batchId, userId);
+        if (!batch) {
+            return getBaseResponse({ success: false, status: 404, error: "Batch not found." });
+        }
+
+        const signedUrls: Record<string, string> = {};
+
+        for (const creativeResult of batch.ad_creative_results ?? []) {
+            const creativeIndex = creativeResult.creativeIndex;
+            const imageResults = creativeResult.imageResults as Record<
+                string,
+                { imageFileExtension?: string | null }
+            >;
+            if (!imageResults) continue;
+
+            for (const [ratioKey, imageResult] of Object.entries(imageResults)) {
+                const typedRatioKey = ratioKey as AdRatioKey;
+                const extension = imageResult?.imageFileExtension;
+                // error 타일은 저장 파일이 없다 (imageFileExtension null)
+                if (!extension) continue;
+
+                try {
+                    const signedUrl = await adImageServerAPI.getAdResultImageSignedUrl(
+                        batch.user_id,
+                        batch.id,
+                        creativeIndex,
+                        typedRatioKey,
+                        extension,
+                    );
+                    signedUrls[`${creativeIndex}_${typedRatioKey}`] = signedUrl;
+                } catch {
+                    // 개별 실패로 전체를 실패시키지 않는다
+                    continue;
+                }
+            }
+        }
+
+        let brandLogoSignedUrl: string | null = null;
+        const brandLogo = (batch as unknown as { brand_logo?: { imageFileExtension?: string | null } | null })
+            .brand_logo;
+        if (brandLogo?.imageFileExtension) {
+            try {
+                brandLogoSignedUrl = await adImageServerAPI.getBatchBrandLogoSignedUrl(
+                    batch.user_id,
+                    batch.id,
+                    brandLogo.imageFileExtension,
+                );
+            } catch {
+                brandLogoSignedUrl = null;
+            }
+        }
+
+        return getBaseResponse({
+            success: true,
+            status: 200,
+            data: { batch, signedUrls, brandLogoSignedUrl },
+        });
+    } catch (error) {
+        console.error("Error in GET /api/ad-generation-batches/:batchId:", error);
+        return getBaseResponse({
+            success: false,
+            status: 500,
+            error: error instanceof Error ? error.message : "Failed to get batch",
         });
     }
 });
