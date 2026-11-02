@@ -237,7 +237,7 @@ imageRoutes.post("/image", async (context) => {
             message: "Ad generation batch created and pipeline started.",
         });
     } catch (error) {
-        console.error("Error in POST /api/image:", error);
+        console.error("[route/image] create failed:", error);
         return getBaseResponse({
             success: false,
             status: 500,

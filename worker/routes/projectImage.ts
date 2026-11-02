@@ -88,7 +88,7 @@ projectImageRoutes.get("/projects/:projectId/image", async (context) => {
             },
         });
     } catch (error) {
-        console.error(`Error in GET /projects/${projectId}/image:`, error);
+        console.error(`[route/projectImage] proxy failed (project=${projectId}):`, error);
         return getBaseResponse({ success: false, status: 500, error: "Failed to load image." });
     }
 });

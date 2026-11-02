@@ -201,7 +201,7 @@ dodoRoutes.get("/dodo/orders", async (context) => {
             message: "Successfully fetched orders from Dodo.",
         });
     } catch (error) {
-        console.error("Error in GET /api/dodo/orders:", error);
+        console.error("[route/dodo] orders failed:", error);
         return getBaseResponse({
             success: false,
             status: 500,
@@ -301,7 +301,7 @@ dodoRoutes.get("/dodo/subscriptions", async (context) => {
             message: "Successfully fetched subscription.",
         });
     } catch (error) {
-        console.error("Error in GET /api/dodo/subscriptions:", error);
+        console.error("[route/dodo] subscriptions failed:", error);
         return getBaseResponse({
             success: false,
             status: 500,
@@ -350,7 +350,7 @@ dodoRoutes.delete("/dodo/subscriptions/cancel", async (context) => {
                 "Subscription canceled successfully. It will remain active until the end of the current billing period.",
         });
     } catch (error) {
-        console.error("Error in DELETE /api/dodo/subscriptions/cancel:", error);
+        console.error("[route/dodo] cancel failed:", error);
         return getBaseResponse({
             success: false,
             status: 500,
@@ -480,7 +480,7 @@ dodoRoutes.post("/dodo/subscriptions/change", async (context) => {
             message: "Downgrade scheduled successfully. It will be applied at the start of the next billing cycle.",
         });
     } catch (error) {
-        console.error("Error in POST /api/dodo/subscriptions/change:", error);
+        console.error("[route/dodo] change plan failed:", error);
         return getBaseResponse({
             success: false,
             status: 500,
@@ -554,7 +554,7 @@ dodoRoutes.post("/dodo/subscriptions/revert", async (context) => {
             message: "Cancellation reverted. Your subscription will renew normally.",
         });
     } catch (error) {
-        console.error("Error in POST /api/dodo/subscriptions/revert:", error);
+        console.error("[route/dodo] revert failed:", error);
         return getBaseResponse({
             success: false,
             status: 500,

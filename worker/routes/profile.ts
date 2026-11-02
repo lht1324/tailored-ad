@@ -53,7 +53,7 @@ profileRoutes.get("/profile/logo", async (context) => {
             data: { profileLogo: { signedUrl, fileName: logoFile, imageFileExtension } },
         });
     } catch (error) {
-        console.error("Error in GET /api/profile/logo:", error);
+        console.error("[route/profile] logo get failed:", error);
         return getBaseResponse({
             success: false,
             status: 500,
@@ -106,7 +106,7 @@ profileRoutes.post("/profile/logo", async (context) => {
             data: { profileLogo: { signedUrl, fileName, imageFileExtension } },
         });
     } catch (error) {
-        console.error("Error in POST /api/profile/logo:", error);
+        console.error("[route/profile] logo upload failed:", error);
         return getBaseResponse({
             success: false,
             status: 500,
@@ -127,7 +127,7 @@ profileRoutes.delete("/profile/logo", async (context) => {
 
         return getBaseResponse({ success: true, status: 200, data: { profileLogo: null } });
     } catch (error) {
-        console.error("Error in DELETE /api/profile/logo:", error);
+        console.error("[route/profile] logo delete failed:", error);
         return getBaseResponse({
             success: false,
             status: 500,

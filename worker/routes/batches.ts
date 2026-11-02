@@ -88,7 +88,7 @@ batchRoutes.get("/ad-generation-batches", async (context) => {
             },
         });
     } catch (error) {
-        console.error("Error in GET /api/ad-generation-batches:", error);
+        console.error("[route/batches] list failed:", error);
         return getBaseResponse({
             success: false,
             status: 500,
@@ -173,7 +173,7 @@ batchRoutes.get("/ad-generation-batches/:batchId", async (context) => {
             data: { batch, signedUrls, brandLogoSignedUrl },
         });
     } catch (error) {
-        console.error("Error in GET /api/ad-generation-batches/:batchId:", error);
+        console.error("[route/batches] detail failed:", error);
         return getBaseResponse({
             success: false,
             status: 500,

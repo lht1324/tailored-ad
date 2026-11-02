@@ -18,7 +18,7 @@ export const usersServerAPI = {
             const rows = await db.select().from(users).where(eq(users.id, userId)).limit(1);
             return (rows[0] as unknown as User | undefined) ?? null;
         } catch (error) {
-            console.error('Unexpected error in getUserByUserId:', error);
+            console.error("[db/users] getUserByUserId failed:", error);
             return null;
         }
     },
@@ -31,7 +31,7 @@ export const usersServerAPI = {
             const rows = await db.select().from(users).where(eq(users.email, email)).limit(1);
             return (rows[0] as unknown as User | undefined) ?? null;
         } catch (error) {
-            console.error('Unexpected error in getUserByEmail:', error);
+            console.error("[db/users] getUserByEmail failed:", error);
             return null;
         }
     },
@@ -49,7 +49,7 @@ export const usersServerAPI = {
             }
             return row as unknown as User;
         } catch (error) {
-            console.error('Error inserting user:', error);
+            console.error("[db/users] insert failed:", error);
             return null;
         }
     },
@@ -70,7 +70,7 @@ export const usersServerAPI = {
             void publishUserEvent(userId, 'user');
             return updated;
         } catch (error) {
-            console.error('Error updating user:', error);
+            console.error("[db/users] update failed:", error);
             return null;
         }
     },

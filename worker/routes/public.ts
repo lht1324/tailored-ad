@@ -32,7 +32,7 @@ publicRoutes.get("/dodo/products", async () => {
         response.headers.set("Cache-Control", "private, max-age=180");
         return response;
     } catch (error) {
-        console.error("Error in GET /api/dodo/products:", error);
+        console.error("[route/public] products failed:", error);
         return getBaseResponse({
             success: false,
             status: 500,

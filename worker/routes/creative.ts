@@ -279,7 +279,7 @@ creativeRoutes.patch("/creative/:creativeIndex/design", async (context) => {
             message: "Design updated.",
         });
     } catch (error) {
-        console.error(`Error in PATCH /api/creative/${creativeIndexParam}/design:`, error);
+        console.error(`[route/creative] design save failed (creative=${creativeIndexParam}):`, error);
         return getBaseResponse({
             success: false,
             status: 500,

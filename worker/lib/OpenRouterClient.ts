@@ -36,7 +36,7 @@ export class OpenRouterClient {
         if (!this.apiKey) {
             this.apiKey = await getServerEnv('OPENROUTER_API_KEY');
             if (!this.apiKey) {
-                console.warn('OPENROUTER_API_KEY not found in environment variables');
+                console.warn("[openrouter] OPENROUTER_API_KEY is not configured");
             }
         }
         return this.apiKey;
@@ -82,7 +82,7 @@ export class OpenRouterClient {
                         }
                     });
                 } else {
-                    console.warn(`Skipping failed image: ${imageBase64List[index]}`);
+                    console.warn(`[openrouter] skipping failed image at index ${index}`);
                 }
             });
         }
@@ -99,7 +99,7 @@ export class OpenRouterClient {
                         }
                     });
                 } else {
-                    console.warn(`Skipping failed audio at index: ${index}`);
+                    console.warn(`[openrouter] skipping failed audio at index ${index}`);
                 }
             });
         }
@@ -139,7 +139,7 @@ export class OpenRouterClient {
         if (completion.choices[0]?.message?.content) {
             return completion.choices[0]?.message?.content;
         } else {
-            console.log(`Raw completion: ${JSON.stringify(completion)}`);
+            console.debug(`[openrouter] raw completion: ${JSON.stringify(completion)}`);
             return ''
         }
     }

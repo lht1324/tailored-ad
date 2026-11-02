@@ -77,7 +77,7 @@ userRoutes.get("/user/:userId", async (context) => {
             message: "Fetched user data successfully.",
         });
     } catch (error) {
-        console.error("Error in GET /api/user/:userId:", error);
+        console.error("[route/user] get failed:", error);
         return getBaseResponse({
             success: false,
             status: 500,
@@ -117,7 +117,7 @@ userRoutes.patch("/user/:userId", async (context) => {
             message: "User updated successfully.",
         });
     } catch (error) {
-        console.error("Error in PATCH /api/user/:userId:", error);
+        console.error("[route/user] update failed:", error);
         return getBaseResponse({
             success: false,
             status: 500,
