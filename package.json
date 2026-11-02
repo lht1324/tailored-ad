@@ -13,12 +13,11 @@
         "prerender": "vite build --config vite.prerender.config.ts && node scripts/prerender.mjs"
     },
     "dependencies": {
-        "@aws-sdk/client-s3": "^3.1161.0",
-        "@aws-sdk/s3-request-presigner": "^3.1161.0",
         "@neondatabase/auth": "^0.7.0-beta",
         "@neondatabase/serverless": "^1.2.0",
         "@upstash/ratelimit": "^2.2.0",
         "@upstash/redis": "^1.40.0",
+        "aws4fetch": "^1.0.20",
         "dodopayments": "^2.59.0",
         "drizzle-orm": "^0.45.4",
         "framer-motion": "^14.9.0",
