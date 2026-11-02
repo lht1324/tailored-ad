@@ -4,6 +4,8 @@ import { AuthProvider } from "@/context/AuthContext";
 import { PUBLIC_ROUTES } from "@/routes/publicRoutes";
 import type { PageMeta } from "@shared/types/PageMeta";
 
+export { buildLlmsTxt } from "./llmsTxt";
+
 /**
  * 프리렌더 진입점 — **빌드 타임에만** 실행된다 (브라우저/워커 번들에는 안 들어간다).
  *

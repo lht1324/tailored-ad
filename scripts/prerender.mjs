@@ -118,6 +118,16 @@ async function main() {
         console.log(`[prerender] ${routePath} → ${target.replace(ROOT + "/", "")} (${kb} KB)`);
     }
 
+    // /llms.txt — AI 크롤러용 색인. 구 Next에서는 force-static 라우트였고, 여기서는 정적 파일로 굽는다.
+    // (워커 라우트로 두면 run_worker_first에 경로를 추가해야 하고, 런타임 비용도 생긴다)
+    if (typeof entry.buildLlmsTxt === "function") {
+        const llmsPath = join(CLIENT_DIR, "llms.txt");
+        await writeFile(llmsPath, entry.buildLlmsTxt(), "utf-8");
+        console.log(`[prerender] /llms.txt → dist/client/llms.txt`);
+    } else {
+        console.warn("[prerender] buildLlmsTxt를 찾지 못했습니다 (llms.txt 생략)");
+    }
+
     console.log(`[prerender] 완료: ${paths.length}개 경로`);
 }
 
