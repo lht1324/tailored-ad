@@ -1,5 +1,5 @@
 import { AwsClient } from "aws4fetch";
-import { requireServerEnv } from "@worker/lib/serverEnv";
+import { getServerEnv, requireServerEnv } from "@worker/lib/serverEnv";
 
 /**
  * R2 서버 전용 헬퍼 — **S3 규격 + aws4fetch** (10-31 교체).
@@ -49,7 +49,11 @@ async function getR2(): Promise<R2Context> {
     const secretAccessKey = await requireServerEnv("CLOUDFLARE_R2_SECRET_ACCESS_KEY");
     // base 이름(예: tailored-ad-images). dev는 -dev 버킷. env 값에 -dev를 붙이지 말 것.
     const baseBucket = await requireServerEnv("CLOUDFLARE_R2_BUCKET");
-    const bucket = process.env.NODE_ENV === "production" ? baseBucket : `${baseBucket}-dev`;
+    // ⚠️ `process.env.NODE_ENV`를 쓰지 않는다. 그건 **빌드 시점** 상수라서
+    //    dev 빌드를 배포하면 prod가 -dev 버킷을 보게 된다(사고 경로).
+    //    `ENVIRONMENT`는 wrangler.jsonc vars(prod) / .dev.vars(dev)에서 오는 **런타임 값**이다.
+    const environment = await getServerEnv("ENVIRONMENT");
+    const bucket = environment === "production" ? baseBucket : `${baseBucket}-dev`;
 
     cached = {
         client: new AwsClient({ service: "s3", region: "auto", accessKeyId, secretAccessKey }),
