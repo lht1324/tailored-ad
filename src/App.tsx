@@ -5,6 +5,7 @@ import NotFoundPage from "./components/page/not-found/NotFoundPage";
 import ProjectsPageClient from "./components/page/ad/projects/ProjectsPageClient";
 import CreatePageClient from "./components/page/ad/create/CreatePageClient";
 import ProjectDetailPageClient from "./components/page/ad/projects/[projectId]/ProjectDetailPageClient";
+import EditorPageClient from "./components/page/ad/projects/[projectId]/edit/EditorPageClient";
 import SignInPageClient from "./components/page/sign-in/SignInPageClient";
 import ProfilePageClient from "./components/page/ad/profile/ProfilePageClient";
 import CheckoutSuccessClient from "./components/page/checkout/CheckoutSuccessClient";
@@ -24,6 +25,13 @@ import CheckoutSuccessClient from "./components/page/checkout/CheckoutSuccessCli
  * 구 Next는 서버 컴포넌트가 `params`를 컴포넌트 prop으로 넘겼다. 여기서는 라우터가 준
  * `useParams()`를 **얇은 래퍼**에서 꺼내 prop으로 넘긴다 (컴포넌트는 Next 시절 그대로 유지).
  */
+
+/** `/projects/:projectId/edit` → 에디터 (자체적으로 useParams를 읽는다) */
+function EditorRoute() {
+    const { projectId } = useParams();
+    if (!projectId) return <NotFoundPage />;
+    return <EditorPageClient />;
+}
 
 /** `/projects/:projectId` → `ProjectDetailPageClient projectId=...` */
 function ProjectDetailRoute() {
@@ -52,6 +60,7 @@ export default function App() {
             {/* 보호 화면 — 서버(워커)가 비로그인을 먼저 막는다. */}
             <Route path="/projects" element={<ProjectsPageClient />} />
             <Route path="/projects/:projectId" element={<ProjectDetailRoute />} />
+            <Route path="/projects/:projectId/edit" element={<EditorRoute />} />
             <Route path="/create" element={<CreatePageClient />} />
             <Route path="/profile" element={<ProfilePageClient />} />
             {/* 결제 복귀 — 워커 가드가 /checkout/success를 보호한다 */}
