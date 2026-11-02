@@ -13,6 +13,7 @@ import publicRoutes from "./routes/public";
 import pageRoutes from "./pageGuard";
 import projectImageRoutes from "./routes/projectImage";
 import replicateWebhookRoutes from "./routes/webhooks/replicate";
+import dodoWebhookRoutes from "./routes/webhooks/dodo";
 import userRoutes from "./routes/user";
 import { requireSession, type AuthVariables } from "./middleware/auth";
 
@@ -42,6 +43,7 @@ app.use("*", async (context, next) => {
 // 2) 인증이 필요 없는 라우트
 app.route("/api/auth", authRoutes); // 로그인·OAuth·세션 갱신 (세션 이전에 호출됨)
 app.route("/api", publicRoutes); // 공개 카탈로그 (비로그인 랜딩에서 가격 표시)
+app.route("/api/webhook", dodoWebhookRoutes); // 결제 — 서명 검증 후 waitUntil 처리
 app.route("/api/webhook", replicateWebhookRoutes); // 외부 웹훅 — 세션 없음, 인증 미들웨어보다 앞
 app.get("/api/health", (context) =>
     context.json({
