@@ -3,10 +3,10 @@ import { useNavigate } from "react-router";
 import { Check } from 'lucide-react';
 import Reveal from "@/components/page/ad/Reveal";
 import { useAuth } from "@/context/AuthContext";
-import { usersClientAPI } from "@/lib/api/client/usersClientAPI";
+import { usersClientAPI } from "@client/api/usersClientAPI";
 import { SubscriptionPlan } from "@shared/types/supabase/Users";
-import type { DodoPaidPlan as PaidPlan } from "@shared/lib/dodo";
-import { dodoClientAPI } from "@/lib/api/client/dodoClientAPI";
+import type { DodoPaidPlan as PaidPlan } from "@shared/dodo";
+import { dodoClientAPI } from "@client/api/dodoClientAPI";
 
 interface Plan {
     planId: PaidPlan;

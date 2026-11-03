@@ -5,9 +5,9 @@ import AppHeader from "@/components/page/ad/app-header/AppHeader";
 import { useAuth } from "@/context/AuthContext";
 import { useBatchEvents } from "@/components/public/useBatchEvents";
 import ProjectCard from "@/components/page/ad/projects/components/ProjectCard";
-import { adProjectClientAPI } from "@/lib/api/client/ad/adProjectClientAPI";
+import { adProjectClientAPI } from "@client/api/ad/adProjectClientAPI";
 import { AdGenerationBatch, AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
-import { buildProjectImageUrl } from "@shared/lib/projectImageUrl";
+import { buildProjectImageUrl } from "@shared/projectImageUrl";
 
 type FilterKey = 'all' | 'running' | 'completed';
 

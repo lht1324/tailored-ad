@@ -2,7 +2,7 @@ import { memo, useMemo } from 'react';
 import AppImage from "@/components/public/AppImage";
 import { Clock, Layers, AlertTriangle, CheckCircle2, Loader2, ImageIcon, Pencil } from 'lucide-react';
 import { AdGenerationBatch, AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
-import { getProjectProgress } from "@/lib/api/client/ad/adProjectClientAPI";
+import { getProjectProgress } from "@client/api/ad/adProjectClientAPI";
 
 const STATUS_STYLE: Record<string, string> = {
     queued: 'bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400',

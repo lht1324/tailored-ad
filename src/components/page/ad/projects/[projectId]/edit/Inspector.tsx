@@ -2,10 +2,10 @@ import { memo, useCallback, useMemo, useState } from 'react';
 import { Check, ChevronDown, Pipette } from 'lucide-react';
 import { HexColorPicker } from "react-colorful";
 import FontPicker from "@/components/page/ad/projects/[projectId]/edit/FontPicker";
-import { fontMap } from "@shared/lib/fonts";
-import FONT_FAMILY_LIST from "@shared/lib/FontFamilyList";
-import { normalizeHeadlineColor, defaultScrimStrength } from "@shared/lib/colorUtils";
-import { estimateWrappedLines } from "@shared/lib/textMeasure";
+import { fontMap } from "@shared/fonts";
+import FONT_FAMILY_LIST from "@shared/FontFamilyList";
+import { normalizeHeadlineColor, defaultScrimStrength } from "@shared/colorUtils";
+import { estimateWrappedLines } from "@shared/textMeasure";
 import type { AdDesignLayout } from "@shared/types/supabase/ad/AdGenerationBatch";
 import ElementPopover from "@/components/page/ad/projects/[projectId]/edit/ElementPopover";
 

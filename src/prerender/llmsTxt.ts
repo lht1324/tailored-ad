@@ -1,4 +1,4 @@
-import { blogContentServerAPI } from "@shared/lib/content/blog/blogContentServerAPI";
+import { blogContentServerAPI } from "@shared/content/blog/blogContentServerAPI";
 
 /**
  * `/llms.txt` 생성기 — AI 크롤러(ChatGPT·Claude·Perplexity)용 사이트 요약.

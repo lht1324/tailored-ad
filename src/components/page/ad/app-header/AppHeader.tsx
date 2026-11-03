@@ -5,8 +5,8 @@ import ProfileMenu from "@/components/page/ad/app-header/ProfileMenu";
 import BrandMark from "@/components/public/BrandMark";
 import ThemeToggle from "@/components/page/ad/public/ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
-import { usersClientAPI, type UserUsageSummary } from "@/lib/api/client/usersClientAPI";
-import { PLAN_DISPLAY_NAME } from "@shared/lib/dodo";
+import { usersClientAPI, type UserUsageSummary } from "@client/api/usersClientAPI";
+import { PLAN_DISPLAY_NAME } from "@shared/dodo";
 
 function planLabel(plan: string | null | undefined): string {
     if (!plan) return 'Free plan';

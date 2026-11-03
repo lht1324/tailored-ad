@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
 import { useAuth } from "@/context/AuthContext";
 import { useBatchEvents } from "@/components/public/useBatchEvents";
-import { usersClientAPI, type UserUsageSummary } from "@/lib/api/client/usersClientAPI";
+import { usersClientAPI, type UserUsageSummary } from "@client/api/usersClientAPI";
 
 type SuccessStatus = 'checking' | 'ready' | 'timeout';
 

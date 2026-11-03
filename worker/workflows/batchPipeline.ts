@@ -1,14 +1,14 @@
 import { WorkflowEntrypoint } from "cloudflare:workers";
 import type { WorkflowEvent, WorkflowStep } from "cloudflare:workers";
-import { assignSpecs } from "@worker/lib/pipeline/steps/assignSpecs";
-import { prepareCreativePrompt } from "@worker/lib/pipeline/steps/prepareCreativePrompt";
-import { submitBaseImage } from "@worker/lib/pipeline/steps/submitBaseImage";
-import { handleBaseResult } from "@worker/lib/pipeline/steps/handleBaseResult";
-import { submitRatios } from "@worker/lib/pipeline/steps/submitRatios";
-import { handleRatioResult } from "@worker/lib/pipeline/steps/handleRatioResult";
-import { submitPersona } from "@worker/lib/pipeline/steps/submitPersona";
-import { handlePersonaResult } from "@worker/lib/pipeline/steps/handlePersonaResult";
-import { analyzeCreative } from "@worker/lib/pipeline/steps/analyzeCreative";
+import { assignSpecs } from "@server/pipeline/steps/assignSpecs";
+import { prepareCreativePrompt } from "@server/pipeline/steps/prepareCreativePrompt";
+import { submitBaseImage } from "@server/pipeline/steps/submitBaseImage";
+import { handleBaseResult } from "@server/pipeline/steps/handleBaseResult";
+import { submitRatios } from "@server/pipeline/steps/submitRatios";
+import { handleRatioResult } from "@server/pipeline/steps/handleRatioResult";
+import { submitPersona } from "@server/pipeline/steps/submitPersona";
+import { handlePersonaResult } from "@server/pipeline/steps/handlePersonaResult";
+import { analyzeCreative } from "@server/pipeline/steps/analyzeCreative";
 import {
     REPLICATE_BASE_EVENT,
     REPLICATE_PERSONA_EVENT,
@@ -16,8 +16,8 @@ import {
     type ReplicateBaseEventPayload,
     type ReplicatePersonaEventPayload,
     type ReplicateRatioEventPayload,
-} from "@worker/lib/workflows/batchPipelineClient";
-import { bindEnv } from "@worker/lib/serverEnv";
+} from "@server/workflows/batchPipelineClient";
+import { bindEnv } from "@server/serverEnv";
 import type { AppEnv } from "../env";
 
 /**

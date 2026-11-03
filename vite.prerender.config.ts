@@ -17,8 +17,9 @@ export default defineConfig({
     plugins: [react()],
     resolve: {
         alias: {
-            "@shared": fileURLToPath(new URL("./shared", import.meta.url)),
-            "@worker": fileURLToPath(new URL("./worker", import.meta.url)),
+            "@client": fileURLToPath(new URL("./lib/client", import.meta.url)),
+            "@server": fileURLToPath(new URL("./lib/server", import.meta.url)),
+            "@shared": fileURLToPath(new URL("./lib/shared", import.meta.url)),
             "@": fileURLToPath(new URL("./src", import.meta.url)),
         },
     },

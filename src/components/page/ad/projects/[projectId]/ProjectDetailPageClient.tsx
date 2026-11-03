@@ -9,9 +9,9 @@ import CreativeRow from "@/components/page/ad/projects/[projectId]/components/Cr
 import AdLightboxModal from "@/components/page/ad/projects/[projectId]/components/AdLightboxModal";
 import DownloadMenuButton from "@/components/page/ad/projects/[projectId]/components/DownloadMenuButton";
 import { downloadItemsAsZip, downloadRawItemsAsZip, type CompositeDownloadOptions, type RawDownloadItem } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
-import { fontMap } from "@shared/lib/fonts";
-import { adProjectClientAPI, getProjectProgress } from "@/lib/api/client/ad/adProjectClientAPI";
-import { buildProjectImageUrl } from "@shared/lib/projectImageUrl";
+import { fontMap } from "@shared/fonts";
+import { adProjectClientAPI, getProjectProgress } from "@client/api/ad/adProjectClientAPI";
+import { buildProjectImageUrl } from "@shared/projectImageUrl";
 import { AdCreativeResult, AdGenerationBatch, AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
 import { AdDesignLayout } from "@shared/types/supabase/ad/AdGenerationBatch";
 

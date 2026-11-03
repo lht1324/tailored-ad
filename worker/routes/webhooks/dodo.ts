@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { Webhook } from "standardwebhooks";
-import { processDodoEvent } from "@worker/lib/payments/processDodo";
-import { getServerEnv } from "@worker/lib/serverEnv";
-import { getBaseResponse } from "@worker/lib/utils/getBaseResponse";
+import { processDodoEvent } from "@server/payments/processDodo";
+import { getServerEnv } from "@server/serverEnv";
+import { getBaseResponse } from "@server/utils/getBaseResponse";
 import type { AppEnv } from "../../env";
 
 /**

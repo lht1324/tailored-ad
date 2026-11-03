@@ -8,7 +8,7 @@ import FeaturesSection from "@/components/page/ad/landing/features-section/Featu
 import PricingSection from "@/components/page/ad/landing/pricing-section/PricingSection";
 import FAQSection from "@/components/page/ad/landing/faq-section/FAQSection";
 import AdFooter from "@/components/page/ad/public/AdFooter";
-import { captureUtmFromUrl } from "@/lib/utm";
+import { captureUtmFromUrl } from "@client/utm";
 
 export default function LandingPageClient() {
     // UTM 귀속 캡처 (10-20) — 랜딩 진입 시 1회. 로그인 후 users 행에 기록.

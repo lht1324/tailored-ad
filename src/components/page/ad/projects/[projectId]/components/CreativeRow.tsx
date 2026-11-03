@@ -3,8 +3,8 @@ import { ChevronDown, Download, Eye, Layers, Loader2, Sparkles, Target, Wand2 } 
 import FormatTile from "@/components/page/ad/projects/[projectId]/components/FormatTile";
 import { downloadItemsAsZip } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
 import { AdCreativeSpec, AdCreativeResult, AdGenerationBatch, AdImageResult, AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
-import { fontMap } from "@shared/lib/fonts";
-import { buildProjectImageUrl } from "@shared/lib/projectImageUrl";
+import { fontMap } from "@shared/fonts";
+import { buildProjectImageUrl } from "@shared/projectImageUrl";
 
 function formatAxisLabel(value: string): string {
     return value

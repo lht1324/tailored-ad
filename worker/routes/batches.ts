@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { adGenerationBatchServerAPI } from "@worker/lib/api/server/ad/adGenerationBatchServerAPI";
-import { adImageServerAPI } from "@worker/lib/api/server/ad/imageServerAPI";
-import { getBaseResponse } from "@worker/lib/utils/getBaseResponse";
+import { adGenerationBatchServerAPI } from "@server/api/ad/adGenerationBatchServerAPI";
+import { adImageServerAPI } from "@server/api/ad/imageServerAPI";
+import { getBaseResponse } from "@server/utils/getBaseResponse";
 import type { AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
 import type { AppEnv } from "../env";
 import type { AuthVariables } from "../middleware/auth";

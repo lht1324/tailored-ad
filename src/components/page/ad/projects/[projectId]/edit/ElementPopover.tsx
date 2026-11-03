@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
-import { fontMap } from "@shared/lib/fonts";
-import { estimateWrappedLines } from "@shared/lib/textMeasure";
+import { fontMap } from "@shared/fonts";
+import { estimateWrappedLines } from "@shared/textMeasure";
 import type { AdDesignLayout } from "@shared/types/supabase/ad/AdGenerationBatch";
 
 interface ElementPopoverProps {

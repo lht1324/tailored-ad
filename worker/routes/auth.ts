@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { exchangeOAuthCallback, proxyAuthRequest } from "@worker/lib/auth/server";
+import { exchangeOAuthCallback, proxyAuthRequest } from "@server/auth/server";
 import type { AppEnv } from "../env";
 
 /**

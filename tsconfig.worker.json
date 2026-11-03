@@ -8,7 +8,8 @@
     },
     "include": [
         "worker",
-        "shared",
+        "lib/server",
+        "lib/shared",
         // `npm run cf-typegen`이 wrangler.jsonc에서 생성한다 (git 미추적)
         "cloudflare-env.d.ts"
     ]

@@ -7,11 +7,11 @@ import DefaultModal from "@/components/public/DefaultModal";
 import ChangePlanModal from "@/components/page/ad/profile/ChangePlanModal";
 import OrderItem from "@/components/page/ad/profile/OrderItem";
 import { useAuth } from "@/context/AuthContext";
-import { usersClientAPI, type ProfileLogo, type UserUsageSummary } from "@/lib/api/client/usersClientAPI";
-import { dodoClientAPI } from "@/lib/api/client/dodoClientAPI";
+import { usersClientAPI, type ProfileLogo, type UserUsageSummary } from "@client/api/usersClientAPI";
+import { dodoClientAPI } from "@client/api/dodoClientAPI";
 import type { OrderData } from "@shared/types/api/dodo/orders/OrderData";
 import type { SubscriptionData } from "@shared/types/api/dodo/subscriptions/SubscriptionData";
-import { PLAN_DISPLAY_NAME, type DodoPaidPlan as PaidPlan } from "@shared/lib/dodo";
+import { PLAN_DISPLAY_NAME, type DodoPaidPlan as PaidPlan } from "@shared/dodo";
 import { SubscriptionPlan } from "@shared/types/supabase/Users";
 
 function formatDate(iso: string | null | undefined): string {

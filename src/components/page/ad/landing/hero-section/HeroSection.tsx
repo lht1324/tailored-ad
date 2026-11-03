@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from "react-router";
 import HeroWall from "@/components/page/ad/landing/hero-section/HeroWall";
 import { useAuth } from "@/context/AuthContext";
-import { usersClientAPI, type UserUsageSummary } from "@/lib/api/client/usersClientAPI";
+import { usersClientAPI, type UserUsageSummary } from "@client/api/usersClientAPI";
 
 export default function HeroSection() {
     const { user } = useAuth();

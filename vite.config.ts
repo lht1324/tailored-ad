@@ -41,9 +41,10 @@ export default defineConfig({
         alias: {
             // ⚠️ tsconfig.base.json의 `paths`와 **반드시 같아야 한다**. Vite는 tsconfig를 읽지 않으므로
             //    한쪽만 바꾸면 타입은 통과하고 런타임에서 모듈을 못 찾는다.
-            // 첫 글자가 진영: @/ 클라 · @worker/ 서버 · @shared/ 공용
-            "@shared": fileURLToPath(new URL("./shared", import.meta.url)),
-            "@worker": fileURLToPath(new URL("./worker", import.meta.url)),
+            // 첫 글자가 진영: @/ 화면(src) · @client/ 클라 도구 · @server/ 서버 · @shared/ 공용
+            "@client": fileURLToPath(new URL("./lib/client", import.meta.url)),
+            "@server": fileURLToPath(new URL("./lib/server", import.meta.url)),
+            "@shared": fileURLToPath(new URL("./lib/shared", import.meta.url)),
             // 기존 코드가 쓰던 "@/..." 경로를 그대로 유지 (포팅 비용 절감).
             // fileURLToPath: `new URL(...).pathname`은 Windows에서 "/C:/..."가 되어 깨진다.
             "@": fileURLToPath(new URL("./src", import.meta.url)),

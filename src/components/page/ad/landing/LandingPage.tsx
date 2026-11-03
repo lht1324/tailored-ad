@@ -3,7 +3,7 @@ import {
     FAQ_ITEMS_JSON_LD,
     ORGANIZATION_JSON_LD,
     SOFTWARE_JSON_LD,
-} from "@shared/lib/landingJsonLd";
+} from "@shared/landingJsonLd";
 
 /**
  * 랜딩(`/`) — 화면 + 구조화 데이터(JSON-LD).

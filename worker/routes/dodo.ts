@@ -1,17 +1,17 @@
 import { Hono } from "hono";
-import { usersServerAPI } from "@worker/lib/api/server/usersServerAPI";
-import { usageServerAPI } from "@worker/lib/api/server/usageServerAPI";
-import { getDodoClient } from "@worker/lib/dodoClient";
-import { resolveDodoPlan, resolveDodoProductId } from "@worker/lib/dodoProducts";
-import { getServerEnv } from "@worker/lib/serverEnv";
-import { getBaseResponse } from "@worker/lib/utils/getBaseResponse";
+import { usersServerAPI } from "@server/api/usersServerAPI";
+import { usageServerAPI } from "@server/api/usageServerAPI";
+import { getDodoClient } from "@server/dodoClient";
+import { resolveDodoPlan, resolveDodoProductId } from "@server/dodoProducts";
+import { getServerEnv } from "@server/serverEnv";
+import { getBaseResponse } from "@server/utils/getBaseResponse";
 import {
     DODO_FIRST_ORDER_DISCOUNT_CODE,
     PLAN_DISPLAY_NAME,
     PLAN_IMAGE_LIMIT,
     PLAN_PRICE_USD,
     type DodoPaidPlan,
-} from "@shared/lib/dodo";
+} from "@shared/dodo";
 import { SubscriptionPlan } from "@shared/types/supabase/Users";
 import type { OrderData } from "@shared/types/api/dodo/orders/OrderData";
 import type { SubscriptionData } from "@shared/types/api/dodo/subscriptions/SubscriptionData";

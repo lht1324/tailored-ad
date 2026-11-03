@@ -4,7 +4,7 @@ import LegalPageClient from "@/components/page/legal/LegalPageClient";
 import { LegalDataType } from "@/components/page/legal/LegalDataType";
 import BlogIndexPageClient from "@/components/page/blog/BlogIndexPageClient";
 import BlogPostPage from "@/components/page/blog/BlogPostPage";
-import { blogContentServerAPI } from "@shared/lib/content/blog/blogContentServerAPI";
+import { blogContentServerAPI } from "@shared/content/blog/blogContentServerAPI";
 import type { PageMeta } from "@shared/types/PageMeta";
 
 /**

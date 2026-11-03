@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { authClient } from "@/lib/auth/client";
+import { authClient } from "@client/auth";
 
 /**
  * 임시 상태 화면 — `/` (이관 진행 확인용).

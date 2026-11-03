@@ -3,8 +3,8 @@ import AdFooter from "@/components/page/ad/public/AdFooter";
 import ThemeToggle from "@/components/page/ad/public/ThemeToggle";
 import Reveal from "@/components/page/ad/Reveal";
 import BrandMark from "@/components/public/BrandMark";
-import { formatBlogDate } from "@shared/lib/content/blog/formatBlogDate";
-import type { BlogPostContent, BlogPostKind } from "@shared/lib/content/blog/types";
+import { formatBlogDate } from "@shared/content/blog/formatBlogDate";
+import type { BlogPostContent, BlogPostKind } from "@shared/content/blog/types";
 
 /**
  * /blog 목록 — 블로그 대문. 우산 경로의 리스트 페이지.

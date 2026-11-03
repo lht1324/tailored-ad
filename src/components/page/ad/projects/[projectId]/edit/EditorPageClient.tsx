@@ -11,10 +11,10 @@ import Inspector, { type EditorCopy } from "@/components/page/ad/projects/[proje
 import type { AdStillInput } from "@/components/page/ad/projects/[projectId]/edit/AdStillComposition";
 import { COMPOSITE_SIZES } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
 import { downloadCompositedImage } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
-import { fontMap } from "@shared/lib/fonts";
-import { adProjectClientAPI } from "@/lib/api/client/ad/adProjectClientAPI";
-import { buildProjectImageUrl } from "@shared/lib/projectImageUrl";
-import { patchFetch } from "@/lib/api/client/baseFetch";
+import { fontMap } from "@shared/fonts";
+import { adProjectClientAPI } from "@client/api/ad/adProjectClientAPI";
+import { buildProjectImageUrl } from "@shared/projectImageUrl";
+import { patchFetch } from "@client/api/baseFetch";
 import { AdCreativeResult, AdGenerationBatch, AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
 import type { AdDesignLayout } from "@shared/types/supabase/ad/AdGenerationBatch";
 

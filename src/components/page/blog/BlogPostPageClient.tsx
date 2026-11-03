@@ -5,8 +5,8 @@ import AdFooter from "@/components/page/ad/public/AdFooter";
 import ThemeToggle from "@/components/page/ad/public/ThemeToggle";
 import Reveal from "@/components/page/ad/Reveal";
 import BrandMark from "@/components/public/BrandMark";
-import { formatBlogDate } from "@shared/lib/content/blog/formatBlogDate";
-import type { BlogPostContent, BlogPostCompetitor } from "@shared/lib/content/blog/types";
+import { formatBlogDate } from "@shared/content/blog/formatBlogDate";
+import type { BlogPostContent, BlogPostCompetitor } from "@shared/content/blog/types";
 
 /**
  * 블로그 본문 템플릿 — BlogPostContent 규격이면 무엇이든 같은 구조로 렌더한다.

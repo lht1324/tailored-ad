@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AdDesignLayout } from "@shared/types/supabase/ad/AdGenerationBatch";
-import { needsDarkScrim, normalizeHeadlineColor, defaultScrimStrength } from "@shared/lib/colorUtils";
-import { estimateWrappedLines } from "@shared/lib/textMeasure";
+import { needsDarkScrim, normalizeHeadlineColor, defaultScrimStrength } from "@shared/colorUtils";
+import { estimateWrappedLines } from "@shared/textMeasure";
 
 interface AdOverlayProps {
     design: AdDesignLayout;

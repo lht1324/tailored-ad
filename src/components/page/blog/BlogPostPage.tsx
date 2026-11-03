@@ -3,9 +3,9 @@ import {
     buildArticleJsonLd,
     buildBreadcrumbJsonLd,
     buildFaqPageJsonLd,
-} from "@shared/lib/content/blog/blogJsonLd";
-import { blogContentServerAPI } from "@shared/lib/content/blog/blogContentServerAPI";
-import type { BlogPostContent } from "@shared/lib/content/blog/types";
+} from "@shared/content/blog/blogJsonLd";
+import { blogContentServerAPI } from "@shared/content/blog/blogContentServerAPI";
+import type { BlogPostContent } from "@shared/content/blog/types";
 
 /**
  * 블로그 글 본문 — 화면 + 구조화 데이터(JSON-LD).

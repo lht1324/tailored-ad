@@ -26,8 +26,9 @@
         "baseUrl": ".",
         "paths": {
             "@/*": ["src/*"],
-            "@worker/*": ["worker/*"],
-            "@shared/*": ["shared/*"]
+            "@client/*": ["lib/client/*"],
+            "@server/*": ["lib/server/*"],
+            "@shared/*": ["lib/shared/*"]
         }
     }
 }

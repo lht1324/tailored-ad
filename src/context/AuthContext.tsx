@@ -1,8 +1,8 @@
 import React, {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react'
 import { User } from '@shared/types/supabase/Users'
-import { authClient } from "@/lib/auth/client";
-import {usersClientAPI} from "@/lib/api/client/usersClientAPI";
-import {consumeStoredUtm} from "@/lib/utm";
+import { authClient } from "@client/auth";
+import {usersClientAPI} from "@client/api/usersClientAPI";
+import {consumeStoredUtm} from "@client/utm";
 
 export enum OAuthProvider {
     Google = "google",

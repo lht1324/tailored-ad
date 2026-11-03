@@ -1,8 +1,8 @@
 import { memo, useCallback, useEffect, useMemo, useState, MouseEvent } from "react";
 import { AlertCircle, ArrowUp, Check, Clock, Loader2, X } from "lucide-react";
-import { dodoClientAPI } from "@/lib/api/client/dodoClientAPI";
+import { dodoClientAPI } from "@client/api/dodoClientAPI";
 import type { ProductData } from "@shared/types/api/dodo/products/ProductData";
-import { PLAN_DISPLAY_NAME, PLAN_IMAGE_LIMIT, type DodoPaidPlan as PaidPlan } from "@shared/lib/dodo";
+import { PLAN_DISPLAY_NAME, PLAN_IMAGE_LIMIT, type DodoPaidPlan as PaidPlan } from "@shared/dodo";
 import { SubscriptionPlan } from "@shared/types/supabase/Users";
 
 interface ChangePlanModalProps {

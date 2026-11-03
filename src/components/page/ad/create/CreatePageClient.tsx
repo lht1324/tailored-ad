@@ -7,9 +7,9 @@ import {
     AdAspectRatio,
     AdUploadedComponent,
 } from "@shared/types/supabase/ad/AdGenerationBatch";
-import { adProjectClientAPI, BalanceExhaustedError } from "@/lib/api/client/ad/adProjectClientAPI";
-import { usersClientAPI } from "@/lib/api/client/usersClientAPI";
-import { downscaleImageFile } from "@shared/lib/imageResize";
+import { adProjectClientAPI, BalanceExhaustedError } from "@client/api/ad/adProjectClientAPI";
+import { usersClientAPI } from "@client/api/usersClientAPI";
+import { downscaleImageFile } from "@shared/imageResize";
 
 function inferFileExtension(fileName: string): string {
     const ext = fileName.split('.').pop()?.toLowerCase() ?? 'png';

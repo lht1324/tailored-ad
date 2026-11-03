@@ -1,10 +1,10 @@
 import { Hono } from "hono";
-import { adGenerationBatchServerAPI } from "@worker/lib/api/server/ad/adGenerationBatchServerAPI";
-import { adImageServerAPI } from "@worker/lib/api/server/ad/imageServerAPI";
-import { usersServerAPI } from "@worker/lib/api/server/usersServerAPI";
-import { usageServerAPI } from "@worker/lib/api/server/usageServerAPI";
-import { getBaseResponse } from "@worker/lib/utils/getBaseResponse";
-import { startBatchPipeline } from "@worker/lib/workflows/batchPipelineClient";
+import { adGenerationBatchServerAPI } from "@server/api/ad/adGenerationBatchServerAPI";
+import { adImageServerAPI } from "@server/api/ad/imageServerAPI";
+import { usersServerAPI } from "@server/api/usersServerAPI";
+import { usageServerAPI } from "@server/api/usageServerAPI";
+import { getBaseResponse } from "@server/utils/getBaseResponse";
+import { startBatchPipeline } from "@server/workflows/batchPipelineClient";
 import type { AdPipelineStartRequest, AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
 import type { AppEnv } from "../env";
 import type { AuthVariables } from "../middleware/auth";

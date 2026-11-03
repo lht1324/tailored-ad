@@ -3,10 +3,10 @@ import {
     sendReplicateBaseEvent,
     sendReplicatePersonaEvent,
     sendReplicateRatioEvent,
-} from "@worker/lib/workflows/batchPipelineClient";
-import { getBaseResponse } from "@worker/lib/utils/getBaseResponse";
-import { verifySignedWebhookUrl } from "@worker/lib/webhooks/signature";
-import type { ReplicateWebhookPayload } from "@worker/lib/workflows/batchPipelineClient";
+} from "@server/workflows/batchPipelineClient";
+import { getBaseResponse } from "@server/utils/getBaseResponse";
+import { verifySignedWebhookUrl } from "@server/webhooks/signature";
+import type { ReplicateWebhookPayload } from "@server/workflows/batchPipelineClient";
 import type { AppEnv } from "../../env";
 
 /**
