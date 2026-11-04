@@ -12,7 +12,7 @@ import type { AdStillInput } from "@/components/page/ad/projects/[projectId]/edi
 import { COMPOSITE_SIZES } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
 import { downloadCompositedImage } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
 import { fontMap } from "@shared/fonts";
-import { adProjectClientAPI } from "@client/api/ad/adProjectClientAPI";
+import { adGenerationBatchClientAPI } from "@client/api/ad/adGenerationBatchClientAPI";
 import { buildProjectImageUrl } from "@shared/projectImageUrl";
 import { patchFetch } from "@client/api/baseFetch";
 import { AdCreativeResult, AdGenerationBatch, AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
@@ -84,8 +84,8 @@ export default function EditorPageClient() {
 
     const fetchProject = useCallback(async () => {
         try {
-            const data = await adProjectClientAPI.getProject(projectId);
-            setProject(data.project);
+            const data = await adGenerationBatchClientAPI.getAdGenerationBatchById(projectId);
+            setProject(data.batch);
             setSignedUrls(data.signedUrls);
             setBrandLogoSignedUrl(data.brandLogoSignedUrl ?? null);
             setStatus('ready');

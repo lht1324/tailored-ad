@@ -7,7 +7,7 @@ import {
     AdAspectRatio,
     AdUploadedComponent,
 } from "@shared/types/supabase/ad/AdGenerationBatch";
-import { adProjectClientAPI, BalanceExhaustedError } from "@client/api/ad/adProjectClientAPI";
+import { adGenerationBatchClientAPI, BalanceExhaustedError } from "@client/api/ad/adGenerationBatchClientAPI";
 import { userClientAPI } from "@client/api/userClientAPI";
 import { downscaleImageFile } from "@shared/imageResize";
 
@@ -166,7 +166,7 @@ export default function CreatePageClient() {
             // PERSONA_MODE: 실사 전송부 주석 보존 (Enterprise 부활용)
             // person?.file ? downscaleImageFile(person.file) : null,
             const personFile = null;
-            const { batchId } = await adProjectClientAPI.createProject({
+            const { batchId } = await adGenerationBatchClientAPI.postAdGenerationBatch({
                 productImage,
                 personImage,
                 brandLogo: brandLogoImage,

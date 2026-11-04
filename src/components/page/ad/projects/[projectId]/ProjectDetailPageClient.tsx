@@ -10,7 +10,7 @@ import AdLightboxModal from "@/components/page/ad/projects/[projectId]/component
 import DownloadMenuButton from "@/components/page/ad/projects/[projectId]/components/DownloadMenuButton";
 import { downloadItemsAsZip, downloadRawItemsAsZip, type CompositeDownloadOptions, type RawDownloadItem } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
 import { fontMap } from "@shared/fonts";
-import { adProjectClientAPI, getProjectProgress } from "@client/api/ad/adProjectClientAPI";
+import { adGenerationBatchClientAPI, getBatchProgress } from "@client/api/ad/adGenerationBatchClientAPI";
 import { buildProjectImageUrl } from "@shared/projectImageUrl";
 import { AdCreativeResult, AdGenerationBatch, AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
 import { AdDesignLayout } from "@shared/types/supabase/ad/AdGenerationBatch";
@@ -83,9 +83,9 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
         const isStale = () => requestId !== fetchRequestIdRef.current || options?.isCancelled?.() === true;
         if (showPolling) setIsPolling(true);
         try {
-            const data = await adProjectClientAPI.getProject(projectId);
+            const data = await adGenerationBatchClientAPI.getAdGenerationBatchById(projectId);
             if (isStale()) return;
-            setProject(data.project);
+            setProject(data.batch);
             setSignedUrls(data.signedUrls);
             setBrandLogoSignedUrl(data.brandLogoSignedUrl ?? null);
             setStatus('ready');
@@ -131,7 +131,7 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
 
     const progress = useMemo(() => {
         if (!project) return null;
-        return getProjectProgress(project);
+        return getBatchProgress(project);
     }, [project]);
 
     const sortedCreatives = useMemo(() => {

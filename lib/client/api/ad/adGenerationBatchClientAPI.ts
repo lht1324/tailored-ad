@@ -23,8 +23,6 @@ export interface AdGenerationBatchDetailResponse {
 }
 
 // 하위 호환 별칭 — UI 레이어는 Project로 쓰되 내부 타입은 batch 그대로
-export type AdProjectListResponse = { projects: AdGenerationBatch[] } & Omit<AdGenerationBatchListResponse, 'batches'> & { batches?: AdGenerationBatch[] };
-export type AdProjectDetailResponse = { project: AdGenerationBatch } & Omit<AdGenerationBatchDetailResponse, 'batch'> & { batch?: AdGenerationBatch };
 
 export type AdPipelineStartClientRequest = {
     productImage?: { imageFileExtension: string; note?: string } | null;
@@ -47,7 +45,7 @@ export class BalanceExhaustedError extends Error {
 }
 
 export const adGenerationBatchClientAPI = {
-    async listBatches(options?: { limit?: number; offset?: number }): Promise<AdGenerationBatchListResponse> {
+    async getAdGenerationBatches(options?: { limit?: number; offset?: number }): Promise<AdGenerationBatchListResponse> {
         const params = new URLSearchParams();
         if (options?.limit != null) params.set('limit', String(options.limit));
         if (options?.offset != null) params.set('offset', String(options.offset));
@@ -68,7 +66,7 @@ export const adGenerationBatchClientAPI = {
         };
     },
 
-    async getBatch(batchId: string): Promise<AdGenerationBatchDetailResponse> {
+    async getAdGenerationBatchById(batchId: string): Promise<AdGenerationBatchDetailResponse> {
         const response = await getFetch(`/api/ad-generation-batches/${batchId}`);
         const result = await response.json();
         if (!result.success || !result.data) {
@@ -87,7 +85,7 @@ export const adGenerationBatchClientAPI = {
      * 배치 생성 + 원본 업로드를 multipart 1요청으로.
      * 서버가 생성→업로드→specs 순으로 처리해 파이프라인 시작 시 파일 존재가 보장된다.
      */
-    async createBatch(
+    async postAdGenerationBatch(
         request: AdPipelineStartClientRequest,
         files?: { product?: File | null; person?: File | null; brandLogo?: File | null },
     ): Promise<{ batchId: string }> {
@@ -116,36 +114,13 @@ export const adGenerationBatchClientAPI = {
     },
 };
 
-// UI 별칭 — 화면/URL은 Project, 내부 데이터는 batch 그대로
-export const adProjectClientAPI = {
-    async listProjects(options?: { limit?: number; offset?: number }): Promise<AdProjectListResponse> {
-        const data = await adGenerationBatchClientAPI.listBatches(options);
-        return {
-            projects: data.batches,
-            batches: data.batches,
-            pagination: data.pagination,
-            thumbnailCreativeIndexes: data.thumbnailCreativeIndexes,
-            thumbnailRatioKeys: data.thumbnailRatioKeys,
-        } as unknown as AdProjectListResponse;
-    },
-    async getProject(projectId: string): Promise<AdProjectDetailResponse> {
-        const data = await adGenerationBatchClientAPI.getBatch(projectId);
-        return {
-            project: data.batch,
-            batch: data.batch,
-            signedUrls: data.signedUrls,
-            brandLogoSignedUrl: data.brandLogoSignedUrl,
-        } as AdProjectDetailResponse;
-    },
-    async createProject(
-        request: AdPipelineStartClientRequest,
-        files?: { product?: File | null; person?: File | null; brandLogo?: File | null },
-    ): Promise<{ batchId: string }> {
-        return adGenerationBatchClientAPI.createBatch(request, files);
-    },
-};
+export const getProjectProgress = getBatchProgress;
 
-// ---- 유틸 — 내부 데이터는 batch, UI 텍스트만 Project ----
+export function getBatchDisplayName(batch: AdGenerationBatch): string {
+    const shortId = batch.id.slice(0, 6);
+    return `Project ${shortId}`;
+}
+export const getProjectDisplayName = getBatchDisplayName;
 
 export function getBatchProgress(batch: AdGenerationBatch): {
     total: number;
@@ -186,10 +161,3 @@ export function getBatchProgress(batch: AdGenerationBatch): {
 }
 
 // 별칭 — UI 코드는 Project로 쓰되 내부는 batch 그대로
-export const getProjectProgress = getBatchProgress;
-
-export function getBatchDisplayName(batch: AdGenerationBatch): string {
-    const shortId = batch.id.slice(0, 6);
-    return `Project ${shortId}`;
-}
-export const getProjectDisplayName = getBatchDisplayName;

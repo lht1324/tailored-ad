@@ -2,7 +2,7 @@ import { memo, useMemo } from 'react';
 import AppImage from "@/components/public/AppImage";
 import { Clock, Layers, AlertTriangle, CheckCircle2, Loader2, ImageIcon, Pencil } from 'lucide-react';
 import { AdGenerationBatch, AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
-import { getProjectProgress } from "@client/api/ad/adProjectClientAPI";
+import { getBatchProgress } from "@client/api/ad/adGenerationBatchClientAPI";
 
 const STATUS_STYLE: Record<string, string> = {
     queued: 'bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400',
@@ -43,7 +43,7 @@ interface ProjectCardProps {
 }
 
 function ProjectCard({ project, thumbnailUrl, thumbnailRatio, onClick, onEdit }: ProjectCardProps) {
-    const progress = useMemo(() => getProjectProgress(project), [project]);
+    const progress = useMemo(() => getBatchProgress(project), [project]);
     const totalAssets = project.concept_count * project.aspect_ratios.length;
 
     const statusLabel = STATUS_LABEL[project.status] ?? project.status;
