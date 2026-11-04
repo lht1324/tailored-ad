@@ -1,7 +1,7 @@
 import React, {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react'
 import { User } from '@shared/types/supabase/Users'
 import { authClient } from "@client/auth";
-import {usersClientAPI} from "@client/api/usersClientAPI";
+import {userClientAPI} from "@client/api/userClientAPI";
 import {consumeStoredUtm} from "@client/utm";
 
 export enum OAuthProvider {
@@ -28,14 +28,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // 세션 email → 우리 users 행 (ID 체계가 달라서 email 매핑. 없으면 null)
     const loadProfile = useCallback(async (email: string) => {
-        const profile = await usersClientAPI.getUserByEmail(email);
+        const profile = await userClientAPI.getUserByEmail(email);
         setUser(profile);
         setProfileKnown(true);
         // UTM 귀속 기록 (10-20) — 로그인 1회만. 저장값은 consume이라 재사용 안 됨.
         if (profile) {
             const utm = consumeStoredUtm();
             if (utm) {
-                void usersClientAPI.patchUserByUserId(profile.id, utm).catch(() => {
+                void userClientAPI.patchUserByUserId(profile.id, utm).catch(() => {
                     /* 귀속 실패는 무시 — 핵심 흐름(로그인) 막지 않음 */
                 });
             }

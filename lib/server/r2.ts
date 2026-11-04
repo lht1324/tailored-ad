@@ -23,7 +23,7 @@ import { getServerEnv, requireServerEnv } from "@server/serverEnv";
  * - dev : `CLOUDFLARE_R2_BUCKET` + `-dev`
  *
  * ## 키 규칙
- * `{user_id}/{batch_id}/…` · `{user_id}/profile/…` — 조립은 `imageServerAPI`가 소유한다.
+ * `{user_id}/{batch_id}/…` · `{user_id}/profile/…` — 조립은 `imageStorage`가 소유한다.
  */
 
 const PRESIGN_EXPIRES_SECONDS = 60 * 60 * 24; // 24시간 (Supabase 시절과 동일)

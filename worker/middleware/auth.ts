@@ -1,5 +1,5 @@
 import { createMiddleware } from "hono/factory";
-import { usersServerAPI } from "@server/api/usersServerAPI";
+import { userServerAPI } from "@server/api/userServerAPI";
 import { getAuthForRequest } from "@server/auth/server";
 import { getBaseResponse } from "@server/utils/getBaseResponse";
 import type { User } from "@shared/types/supabase/Users";
@@ -59,16 +59,16 @@ export async function loadSessionUser(request: Request): Promise<SessionResoluti
         return { user: null, setCookies, failed: false };
     }
 
-    let user = await usersServerAPI.getUserByEmail(email);
+    let user = await userServerAPI.getUserByEmail(email);
     if (!user) {
-        const created = await usersServerAPI.postUsers({
+        const created = await userServerAPI.postUsers({
             email,
             name: sessionUser?.name ?? "",
             avatar_url: sessionUser?.image ?? "",
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
         });
-        user = created ?? (await usersServerAPI.getUserByEmail(email));
+        user = created ?? (await userServerAPI.getUserByEmail(email));
     }
 
     return { user: user ?? null, setCookies, failed: false };

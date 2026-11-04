@@ -11,7 +11,7 @@ function stripUndefined<T extends object>(obj: T): Partial<T> {
     ) as Partial<T>;
 }
 
-export const usersServerAPI = {
+export const userServerAPI = {
     async getUserByUserId(userId: string): Promise<User | null> {
         try {
             const db = await getNeonDb();

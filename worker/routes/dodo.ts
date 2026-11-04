@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { usersServerAPI } from "@server/api/usersServerAPI";
+import { userServerAPI } from "@server/api/userServerAPI";
 import { usageServerAPI } from "@server/api/usageServerAPI";
 import { getDodoClient } from "@server/dodoClient";
 import { resolveDodoPlan, resolveDodoProductId } from "@server/dodoProducts";
@@ -67,7 +67,7 @@ dodoRoutes.post("/dodo/checkouts", async (context) => {
         });
     }
 
-    const user = await usersServerAPI.getUserByUserId(userId);
+    const user = await userServerAPI.getUserByUserId(userId);
     if (!user) {
         return getBaseResponse({ success: false, status: 404, error: "User not found" });
     }
@@ -269,7 +269,7 @@ dodoRoutes.get("/dodo/subscriptions", async (context) => {
 
         const productId = latest.product_id ?? "";
         const plan = productId ? await resolveDodoPlan(productId) : null;
-        const user = await usersServerAPI.getUserByUserId(sessionUser.id);
+        const user = await userServerAPI.getUserByUserId(sessionUser.id);
         const rawScheduled = user?.downgrade_target_plan_id ?? null;
         const scheduledPlan = rawScheduled
             ? PLAN_DISPLAY_NAME[rawScheduled]
@@ -327,7 +327,7 @@ dodoRoutes.delete("/dodo/subscriptions/cancel", async (context) => {
         });
     }
 
-    const user = await usersServerAPI.getUserByUserId(userId);
+    const user = await userServerAPI.getUserByUserId(userId);
     if (!user) {
         return getBaseResponse({ success: false, status: 404, error: "User not found." });
     }
@@ -390,7 +390,7 @@ dodoRoutes.post("/dodo/subscriptions/change", async (context) => {
         });
     }
 
-    const user = await usersServerAPI.getUserByUserId(userId);
+    const user = await userServerAPI.getUserByUserId(userId);
     if (!user) {
         return getBaseResponse({ success: false, status: 404, error: "User not found." });
     }
@@ -446,7 +446,7 @@ dodoRoutes.post("/dodo/subscriptions/change", async (context) => {
                 quantity: 1,
             });
             // 이전 다운그레이드 예약이 있었다면 무효화
-            await usersServerAPI
+            await userServerAPI
                 .patchUserByUserId(userId, {
                     downgrade_target_plan_id: null,
                     scheduled_downgrade_at: null,
@@ -469,7 +469,7 @@ dodoRoutes.post("/dodo/subscriptions/change", async (context) => {
         const subscriptionAfter = (await dodo.subscriptions.retrieve(user.subscription_id)) as unknown as {
             next_billing_date?: string;
         };
-        await usersServerAPI.patchUserByUserId(userId, {
+        await userServerAPI.patchUserByUserId(userId, {
             downgrade_target_plan_id: newPlan as DodoPaidPlan,
             scheduled_downgrade_at: subscriptionAfter.next_billing_date ?? undefined,
         });
@@ -508,7 +508,7 @@ dodoRoutes.post("/dodo/subscriptions/revert", async (context) => {
         return getBaseResponse({ success: false, status: 400, error: `Unsupported revert target: ${what}` });
     }
 
-    const user = await usersServerAPI.getUserByUserId(userId);
+    const user = await userServerAPI.getUserByUserId(userId);
     if (!user) {
         return getBaseResponse({ success: false, status: 404, error: "User not found." });
     }
@@ -525,7 +525,7 @@ dodoRoutes.post("/dodo/subscriptions/revert", async (context) => {
                 return getBaseResponse({ success: false, status: 400, error: "No scheduled plan change to revert." });
             }
             await dodo.subscriptions.cancelChangePlan(user.subscription_id);
-            await usersServerAPI
+            await userServerAPI
                 .patchUserByUserId(userId, {
                     downgrade_target_plan_id: null,
                     scheduled_downgrade_at: null,

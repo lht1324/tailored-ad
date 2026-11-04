@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
 import { useAuth } from "@/context/AuthContext";
 import { useBatchEvents } from "@/components/public/useBatchEvents";
-import { usersClientAPI, type UserUsageSummary } from "@client/api/usersClientAPI";
+import { userClientAPI, type UserUsageSummary } from "@client/api/userClientAPI";
 
 type SuccessStatus = 'checking' | 'ready' | 'timeout';
 
@@ -21,7 +21,7 @@ function CheckoutSuccessClient() {
 
     const fetchUsage = useCallback(async (isCancelled: () => boolean) => {
         if (!userId) return false;
-        const summary = await usersClientAPI.getUserUsageSummary(userId);
+        const summary = await userClientAPI.getUserUsageSummary(userId);
         if (isCancelled()) return false;
         setUsage(summary);
         if (summary && summary.mode === 'balance' && summary.hasPaid && (summary.granted ?? 0) > 0) {

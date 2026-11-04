@@ -18,7 +18,7 @@ export interface ProfileLogo {
     imageFileExtension: string;
 }
 
-export const usersClientAPI = {
+export const userClientAPI = {
     async getUserByUserId(userId: string): Promise<User | null> {
         try {
             const response = await getFetch(`/api/user/${userId}`);

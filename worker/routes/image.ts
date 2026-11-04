@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { adGenerationBatchServerAPI } from "@server/api/ad/adGenerationBatchServerAPI";
-import { adImageServerAPI } from "@server/api/ad/imageServerAPI";
-import { usersServerAPI } from "@server/api/usersServerAPI";
+import { adImageServerAPI } from "@server/storage/imageStorage";
+import { userServerAPI } from "@server/api/userServerAPI";
 import { usageServerAPI } from "@server/api/usageServerAPI";
 import { getBaseResponse } from "@server/utils/getBaseResponse";
 import { startBatchPipeline } from "@server/workflows/batchPipelineClient";
@@ -55,7 +55,7 @@ imageRoutes.post("/image", async (context) => {
     // 잔액 가드 — 남은 장수가 없으면 진입 차단 (402)
     // 유료(부여 이력 있음)는 누적 잔액제, 그 외는 KST 달력월제.
     try {
-        const owner = await usersServerAPI.getUserByUserId(userId);
+        const owner = await userServerAPI.getUserByUserId(userId);
         if (owner) {
             const usage = await usageServerAPI.getUsageStatus(owner);
             if (usage.remaining <= 0) {

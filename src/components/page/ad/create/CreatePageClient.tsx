@@ -8,7 +8,7 @@ import {
     AdUploadedComponent,
 } from "@shared/types/supabase/ad/AdGenerationBatch";
 import { adProjectClientAPI, BalanceExhaustedError } from "@client/api/ad/adProjectClientAPI";
-import { usersClientAPI } from "@client/api/usersClientAPI";
+import { userClientAPI } from "@client/api/userClientAPI";
 import { downscaleImageFile } from "@shared/imageResize";
 
 function inferFileExtension(fileName: string): string {
@@ -48,7 +48,7 @@ export default function CreatePageClient() {
         let cancelled = false;
         if (!prefillPromiseRef.current) {
             prefillPromiseRef.current = (async () => {
-                const profile = await usersClientAPI.getProfileLogo();
+                const profile = await userClientAPI.getProfileLogo();
                 if (!profile) return null;
                 try {
                     const response = await fetch(profile.signedUrl);

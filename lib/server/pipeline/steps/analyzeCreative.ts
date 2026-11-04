@@ -1,5 +1,5 @@
 import { adGenerationBatchServerAPI } from "@server/api/ad/adGenerationBatchServerAPI";
-import { adImageServerAPI } from "@server/api/ad/imageServerAPI";
+import { adImageServerAPI } from "@server/storage/imageStorage";
 import { llmServerAPI } from "@server/api/ad/llmServerAPI";
 import { StepError } from "@server/pipeline/types";
 import type { AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";

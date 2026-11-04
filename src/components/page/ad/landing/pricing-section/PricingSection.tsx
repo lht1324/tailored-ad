@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { Check } from 'lucide-react';
 import Reveal from "@/components/page/ad/Reveal";
 import { useAuth } from "@/context/AuthContext";
-import { usersClientAPI } from "@client/api/usersClientAPI";
+import { userClientAPI } from "@client/api/userClientAPI";
 import { SubscriptionPlan } from "@shared/types/supabase/Users";
 import type { DodoPaidPlan as PaidPlan } from "@shared/dodo";
 import { dodoClientAPI } from "@client/api/dodoClientAPI";
@@ -187,7 +187,7 @@ export default function PricingSection() {
                 setDiscountEligible(true);
                 return;
             }
-            void usersClientAPI.getUserUsageSummary(user.id).then((summary) => {
+            void userClientAPI.getUserUsageSummary(user.id).then((summary) => {
                 if (live) setDiscountEligible(!!summary && !summary.hasPaid);
             });
         });
@@ -203,7 +203,7 @@ export default function PricingSection() {
         }
         // 구독 중이면 체크아웃 대신 Projects로 (이중 구독 방지)
         try {
-            const summary = await usersClientAPI.getUserUsageSummary(user.id);
+            const summary = await userClientAPI.getUserUsageSummary(user.id);
             const activePlan = (summary as unknown as { plan?: string | null } | null)?.plan;
             if (activePlan && activePlan !== 'none') {
                 navigate('/projects');

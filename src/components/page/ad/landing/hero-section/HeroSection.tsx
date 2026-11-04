@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from "react-router";
 import HeroWall from "@/components/page/ad/landing/hero-section/HeroWall";
 import { useAuth } from "@/context/AuthContext";
-import { usersClientAPI, type UserUsageSummary } from "@client/api/usersClientAPI";
+import { userClientAPI, type UserUsageSummary } from "@client/api/userClientAPI";
 
 export default function HeroSection() {
     const { user } = useAuth();
@@ -11,7 +11,7 @@ export default function HeroSection() {
 
     const fetchUsage = useCallback(async (isCancelled: () => boolean) => {
         if (!userId) return;
-        const summary = await usersClientAPI.getUserUsageSummary(userId);
+        const summary = await userClientAPI.getUserUsageSummary(userId);
         if (isCancelled()) return;
         setUsage(summary);
     }, [userId]);

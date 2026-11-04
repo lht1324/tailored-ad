@@ -1,4 +1,4 @@
-import { usersServerAPI } from "@server/api/usersServerAPI";
+import { userServerAPI } from "@server/api/userServerAPI";
 import { usageServerAPI } from "@server/api/usageServerAPI";
 import { resolveDodoPlan } from "@server/dodoProducts";
 import { getDodoClient } from "@server/dodoClient";
@@ -143,7 +143,7 @@ async function handleRefundSucceeded(data: DodoRefundData): Promise<void> {
     }
 
     const cycleTarget = await usageServerAPI.sumGrantedForSubscriptionCycle(subId, latest.cycle_start);
-    const user = await usersServerAPI.getUserByUserId(latest.user_id);
+    const user = await userServerAPI.getUserByUserId(latest.user_id);
     const price = user?.plan ? (PLAN_PRICE_USD[user.plan as keyof typeof PLAN_PRICE_USD] ?? 0) : 0;
     if (!user || price <= 0 || cycleTarget <= 0) {
         console.warn(`[dodo] refund.succeeded: price unmapped (refund=${refundId}, subscription=${subId})`);
@@ -185,7 +185,7 @@ async function handleSubscriptionEvent(type: string, data: DodoSubscriptionData)
         if (subscription) {
             if (!userId) userId = resolveUserId(subscription);
             if (!userId && typeof subscription.customer?.email === "string" && subscription.customer.email !== "") {
-                const user = await usersServerAPI.getUserByEmail(subscription.customer.email);
+                const user = await userServerAPI.getUserByEmail(subscription.customer.email);
                 if (user) {
                     userId = user.id;
                     console.log(`[dodo] ${type}: user resolved by email (subscription=${subId})`);
@@ -222,7 +222,7 @@ async function handleSubscriptionEvent(type: string, data: DodoSubscriptionData)
 
     // 해지계 — 잔액은 유지(돈 낸 권리), 플랜 표시만 해제
     if (type === "subscription.cancelled" || type === "subscription.expired" || data.status === "cancelled") {
-        await usersServerAPI.patchUserByUserId(userId, {
+        await userServerAPI.patchUserByUserId(userId, {
             plan: SubscriptionPlan.NONE,
             subscription_id: subId,
             subscription_current_period_start: periodStart ?? null,
@@ -232,7 +232,7 @@ async function handleSubscriptionEvent(type: string, data: DodoSubscriptionData)
     }
 
     // DB 현재 플랜 — updated 이벤트의 예약/적용 판정용
-    const currentUser = await usersServerAPI.getUserByUserId(userId);
+    const currentUser = await userServerAPI.getUserByUserId(userId);
     const currentPlan = currentUser?.plan ?? null;
     const currentLimit =
         currentPlan && (Object.values(SubscriptionPlan) as string[]).includes(currentPlan)
@@ -270,7 +270,7 @@ async function handleSubscriptionEvent(type: string, data: DodoSubscriptionData)
         }
     }
 
-    await usersServerAPI.patchUserByUserId(userId, {
+    await userServerAPI.patchUserByUserId(userId, {
         plan,
         subscription_id: subId,
         image_limit: target,

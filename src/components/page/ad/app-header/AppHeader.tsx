@@ -5,7 +5,7 @@ import ProfileMenu from "@/components/page/ad/app-header/ProfileMenu";
 import BrandMark from "@/components/public/BrandMark";
 import ThemeToggle from "@/components/page/ad/public/ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
-import { usersClientAPI, type UserUsageSummary } from "@client/api/usersClientAPI";
+import { userClientAPI, type UserUsageSummary } from "@client/api/userClientAPI";
 import { PLAN_DISPLAY_NAME } from "@shared/dodo";
 
 function planLabel(plan: string | null | undefined): string {
@@ -24,7 +24,7 @@ function AppHeader({ onUsageLoaded }: { onUsageLoaded?: () => void }) {
             return;
         }
         let live = true;
-        void usersClientAPI.getUserUsageSummary(user.id).then((result) => {
+        void userClientAPI.getUserUsageSummary(user.id).then((result) => {
             if (live) {
                 setUsage(result);
                 onUsageLoaded?.();

@@ -1,5 +1,5 @@
 import { adGenerationBatchServerAPI } from "@server/api/ad/adGenerationBatchServerAPI";
-import { adImageServerAPI } from "@server/api/ad/imageServerAPI";
+import { adImageServerAPI } from "@server/storage/imageStorage";
 import { usageServerAPI } from "@server/api/usageServerAPI";
 import { selectBaseRatio } from "@server/api/ad/creativeCombinationSampler";
 import { AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";

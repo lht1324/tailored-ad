@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { usersServerAPI } from "@server/api/usersServerAPI";
+import { userServerAPI } from "@server/api/userServerAPI";
 import { usageServerAPI } from "@server/api/usageServerAPI";
 import { getBaseResponse } from "@server/utils/getBaseResponse";
 import type { User } from "@shared/types/supabase/Users";
@@ -51,7 +51,7 @@ userRoutes.get("/user/:userId", async (context) => {
     }
 
     try {
-        const user = await usersServerAPI.getUserByUserId(pathUserId);
+        const user = await userServerAPI.getUserByUserId(pathUserId);
         if (!user) {
             return getBaseResponse({ success: false, status: 404, error: "User not found" });
         }
@@ -105,7 +105,7 @@ userRoutes.patch("/user/:userId", async (context) => {
         delete updatable.subscription_id;
         delete updatable.image_limit;
 
-        const updatedUser = await usersServerAPI.patchUserByUserId(pathUserId, updatable);
+        const updatedUser = await userServerAPI.patchUserByUserId(pathUserId, updatable);
         if (!updatedUser) {
             return getBaseResponse({ success: false, status: 404, error: "User not found or update failed" });
         }

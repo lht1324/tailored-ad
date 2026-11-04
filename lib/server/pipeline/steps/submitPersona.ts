@@ -1,5 +1,5 @@
 import { adGenerationBatchServerAPI } from "@server/api/ad/adGenerationBatchServerAPI";
-import { adImageServerAPI } from "@server/api/ad/imageServerAPI";
+import { adImageServerAPI } from "@server/storage/imageStorage";
 import { llmServerAPI } from "@server/api/ad/llmServerAPI";
 import { replicateClient } from "@server/ReplicateClient";
 import { selectImageModel } from "@server/replicateInputMapper";

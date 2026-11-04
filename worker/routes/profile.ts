@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { adImageServerAPI } from "@server/api/ad/imageServerAPI";
+import { adImageServerAPI } from "@server/storage/imageStorage";
 import { getBaseResponse } from "@server/utils/getBaseResponse";
 import type { AppEnv } from "../env";
 import type { AuthVariables } from "../middleware/auth";

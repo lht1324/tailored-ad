@@ -1,5 +1,5 @@
 import { adGenerationBatchServerAPI } from "@server/api/ad/adGenerationBatchServerAPI";
-import { adImageServerAPI } from "@server/api/ad/imageServerAPI";
+import { adImageServerAPI } from "@server/storage/imageStorage";
 import { selectBaseRatio } from "@server/api/ad/creativeCombinationSampler";
 import { replicateClient } from "@server/ReplicateClient";
 import { ReplicateModelId, selectImageModel, type ImageInputTag } from "@server/replicateInputMapper";

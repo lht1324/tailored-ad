@@ -7,7 +7,7 @@ import DefaultModal from "@/components/public/DefaultModal";
 import ChangePlanModal from "@/components/page/ad/profile/ChangePlanModal";
 import OrderItem from "@/components/page/ad/profile/OrderItem";
 import { useAuth } from "@/context/AuthContext";
-import { usersClientAPI, type ProfileLogo, type UserUsageSummary } from "@client/api/usersClientAPI";
+import { userClientAPI, type ProfileLogo, type UserUsageSummary } from "@client/api/userClientAPI";
 import { dodoClientAPI } from "@client/api/dodoClientAPI";
 import type { OrderData } from "@shared/types/api/dodo/orders/OrderData";
 import type { SubscriptionData } from "@shared/types/api/dodo/subscriptions/SubscriptionData";
@@ -79,8 +79,8 @@ function ProfilePageClient() {
         setIsLoading(true);
         try {
             const [summary, profileLogo] = await Promise.all([
-                usersClientAPI.getUserUsageSummary(user.id),
-                usersClientAPI.getProfileLogo(),
+                userClientAPI.getUserUsageSummary(user.id),
+                userClientAPI.getProfileLogo(),
                 loadBilling(userEmail),
             ]);
             setUsage(summary);
@@ -157,7 +157,7 @@ function ProfilePageClient() {
         setLogoError(null);
         setIsUploadingLogo(true);
         try {
-            const uploaded = await usersClientAPI.uploadProfileLogo(file);
+            const uploaded = await userClientAPI.uploadProfileLogo(file);
             if (uploaded) {
                 setOfficialLogo(uploaded);
             } else {
@@ -172,7 +172,7 @@ function ProfilePageClient() {
         if (isUploadingLogo) return;
         setIsUploadingLogo(true);
         try {
-            const ok = await usersClientAPI.deleteProfileLogo();
+            const ok = await userClientAPI.deleteProfileLogo();
             if (ok) {
                 setOfficialLogo(null);
                 setLogoError(null);
@@ -205,7 +205,7 @@ function ProfilePageClient() {
         setShowChangePlanModal(false);
         if (userEmail) {
             await loadBilling(userEmail);
-            const summary = user ? await usersClientAPI.getUserUsageSummary(user.id) : null;
+            const summary = user ? await userClientAPI.getUserUsageSummary(user.id) : null;
             setUsage(summary);
         }
         return true;

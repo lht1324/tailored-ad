@@ -1,5 +1,5 @@
 import { adGenerationBatchServerAPI } from "@server/api/ad/adGenerationBatchServerAPI";
-import { adImageServerAPI } from "@server/api/ad/imageServerAPI";
+import { adImageServerAPI } from "@server/storage/imageStorage";
 import { StepError } from "@server/pipeline/types";
 import type { ReplicateWebhookPayload } from "@server/workflows/batchPipelineClient";
 
