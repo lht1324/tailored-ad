@@ -1,5 +1,3 @@
-'use client';
-
 import { memo } from 'react';
 import { Player } from '@remotion/player';
 import { AdStillComposition, type AdStillInput } from "@/components/page/ad/projects/[projectId]/edit/AdStillComposition";

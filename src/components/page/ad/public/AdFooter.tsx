@@ -1,7 +1,5 @@
-'use client'
-
 import { memo } from 'react';
-import Link from 'next/link';
+import { Link } from "react-router";
 import BrandMark from "@/components/public/BrandMark";
 
 const FOOTER_LINKS = [
@@ -35,10 +33,10 @@ function AdFooter() {
                                 {link.label}
                             </a>
                         ))}
-                        <Link href="/blog" className="text-[13px] font-medium text-text2 transition-colors duration-200 hover:text-text1">
+                        <Link to="/blog" className="text-[13px] font-medium text-text2 transition-colors duration-200 hover:text-text1">
                             Blog
                         </Link>
-                        <Link href="/projects" className="text-[13px] font-medium text-text2 transition-colors duration-200 hover:text-text1">
+                        <Link to="/projects" className="text-[13px] font-medium text-text2 transition-colors duration-200 hover:text-text1">
                             TailoredAd Studio
                         </Link>
                     </div>

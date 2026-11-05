@@ -1,11 +1,9 @@
-'use client'
-
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
+import { Link } from "react-router";
 import { CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
 import { useAuth } from "@/context/AuthContext";
 import { useBatchEvents } from "@/components/public/useBatchEvents";
-import { usersClientAPI, type UserUsageSummary } from "@/lib/api/client/usersClientAPI";
+import { userClientAPI, type UserUsageSummary } from "@client/api/userClientAPI";
 
 type SuccessStatus = 'checking' | 'ready' | 'timeout';
 
@@ -23,7 +21,7 @@ function CheckoutSuccessClient() {
 
     const fetchUsage = useCallback(async (isCancelled: () => boolean) => {
         if (!userId) return false;
-        const summary = await usersClientAPI.getUserUsageSummary(userId);
+        const summary = await userClientAPI.getUserUsageSummary(userId);
         if (isCancelled()) return false;
         setUsage(summary);
         if (summary && summary.mode === 'balance' && summary.hasPaid && (summary.granted ?? 0) > 0) {
@@ -92,7 +90,7 @@ function CheckoutSuccessClient() {
                 <h1 className="text-2xl font-bold tracking-tight text-text1">Payment received</h1>
                 <p className="mt-3 text-[15px] text-text2">Sign in to see your updated balance.</p>
                 <Link
-                    href="/sign-in?redirectTo=/checkout/success"
+                    to="/sign-in?redirectTo=/checkout/success"
                     className="mt-8 inline-flex items-center justify-center rounded-full bg-text1 px-6 py-3 text-[14px] font-semibold text-canvas"
                 >
                     Sign in
@@ -114,13 +112,13 @@ function CheckoutSuccessClient() {
                     )}
                     <div className="mt-8 flex items-center gap-3">
                         <Link
-                            href="/create"
+                            to="/create"
                             className="inline-flex items-center justify-center rounded-full bg-text1 px-6 py-3 text-[14px] font-semibold text-canvas"
                         >
                             Start creating
                         </Link>
                         <Link
-                            href="/projects"
+                            to="/projects"
                             className="inline-flex items-center justify-center rounded-full border border-hairline px-6 py-3 text-[14px] font-semibold text-text1"
                         >
                             View projects

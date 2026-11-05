@@ -1,5 +1,3 @@
-'use client';
-
 import { memo, useCallback, useState } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
 

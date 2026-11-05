@@ -1,5 +1,5 @@
 import {memo} from "react";
-import Image from "next/image";
+import AppImage from "@/components/public/AppImage";
 
 function DefaultSignInButton({
     text,
@@ -19,7 +19,7 @@ function DefaultSignInButton({
             disabled={disabled}
             className="relative w-full h-11 px-4 flex items-center justify-center bg-[#F2F2F2] hover:bg-[#E3E3E3] rounded-xl transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
         >
-            <Image
+            <AppImage
                 src={src}
                 alt={text ?? "Sign In"}
                 width={20}

@@ -1,5 +1,3 @@
-'use client'
-
 import { ReactNode } from 'react';
 import Reveal from "@/components/page/ad/Reveal";
 

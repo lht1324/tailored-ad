@@ -1,5 +1,3 @@
-'use client';
-
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronDown, Download, Image as ImageIcon, Loader2, Type } from 'lucide-react';
 

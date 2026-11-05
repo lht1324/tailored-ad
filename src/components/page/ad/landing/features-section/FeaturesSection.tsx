@@ -1,5 +1,3 @@
-'use client'
-
 import { Type, Layers, Maximize2, Sparkles, Gift, BadgeCheck } from 'lucide-react';
 import { ReactNode } from 'react';
 import Reveal from "@/components/page/ad/Reveal";

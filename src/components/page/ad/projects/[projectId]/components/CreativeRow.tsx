@@ -1,12 +1,10 @@
-'use client'
-
 import { memo, useCallback, useMemo, useState } from 'react';
 import { ChevronDown, Download, Eye, Layers, Loader2, Sparkles, Target, Wand2 } from 'lucide-react';
 import FormatTile from "@/components/page/ad/projects/[projectId]/components/FormatTile";
 import { downloadItemsAsZip } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
-import { AdCreativeSpec, AdCreativeResult, AdGenerationBatch, AdImageResult, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
-import { fontMap } from "@/lib/fonts";
-import { buildProjectImageUrl } from "@/lib/projectImageUrl";
+import { AdCreativeSpec, AdCreativeResult, AdGenerationBatch, AdImageResult, AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
+import { fontMap } from "@shared/fonts";
+import { buildProjectImageUrl } from "@shared/projectImageUrl";
 
 function formatAxisLabel(value: string): string {
     return value
@@ -242,7 +240,7 @@ function CreativeRow({ creativeIndex, spec, result, batch, signedUrls, brandLogo
                         ) : (
                             <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin">
                                 {batch.aspect_ratios.map((ratioKey) => {
-                                    const ir = imageResults?.[ratioKey] as import("@/lib/api/types/supabase/ad/AdGenerationBatch").AdImageResult | undefined;
+                                    const ir = imageResults?.[ratioKey] as import("@shared/types/supabase/ad/AdGenerationBatch").AdImageResult | undefined;
                                     const tileKey = `${creativeIndex}_${ratioKey}`;
                                     const signedUrl = signedUrls[tileKey] ?? null;
                                     const displayUrl = signedUrl ? buildProjectImageUrl(batch.id, creativeIndex, ratioKey, 'thumb') : null;

@@ -1,0 +1,22 @@
+{
+    // 이 파일은 **에디터용**이다 (CLI 타입체크는 루트의 `tsconfig.worker.json`을 쓴다).
+    //
+    // 왜 필요한가: 이게 없으면 `worker/**` 파일이 어느 tsconfig에도 속하지 않아
+    // 에디터가 "프로젝트 밖 파일"로 처리하고, `paths`(@worker·@shared)를 적용하지 않는다.
+    //
+    // `baseUrl`을 ".."(루트)로 다시 잡는 이유:
+    //   paths는 **baseUrl 기준**으로 해석된다. 부모의 baseUrl(".")을 그대로 상속하면
+    //   이 파일 입장에서는 `worker/.`이 되어 `@worker/*` → `worker/worker/*`로 어긋난다.
+    //   기준점을 루트로 고정하면 부모와 값이 같아도 정확히 맞는다.
+    //   (include는 부모 값이 그대로 상속되고, 상속된 패턴은 **부모 파일 위치** 기준으로 해석된다)
+    "extends": "../tsconfig.worker.json",
+    "compilerOptions": {
+        "baseUrl": "..",
+        "paths": {
+            "@/*": ["src/*"],
+            "@client/*": ["lib/client/*"],
+            "@server/*": ["lib/server/*"],
+            "@shared/*": ["lib/shared/*"]
+        }
+    }
+}

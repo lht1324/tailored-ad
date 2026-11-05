@@ -1,20 +1,18 @@
-'use client'
-
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
+import { useNavigate } from "react-router";
+import AppImage from "@/components/public/AppImage";
 import { Calendar, CreditCard, Images, ImagePlus, Loader2, Mail, Receipt, User as UserIcon, X } from "lucide-react";
 import AppHeader from "@/components/page/ad/app-header/AppHeader";
 import DefaultModal from "@/components/public/DefaultModal";
 import ChangePlanModal from "@/components/page/ad/profile/ChangePlanModal";
 import OrderItem from "@/components/page/ad/profile/OrderItem";
 import { useAuth } from "@/context/AuthContext";
-import { usersClientAPI, type ProfileLogo, type UserUsageSummary } from "@/lib/api/client/usersClientAPI";
-import { dodoClientAPI } from "@/lib/api/client/dodoClientAPI";
-import type { OrderData } from "@/lib/api/types/api/dodo/orders/OrderData";
-import type { SubscriptionData } from "@/lib/api/types/api/dodo/subscriptions/SubscriptionData";
-import { PLAN_DISPLAY_NAME, type DodoPaidPlan as PaidPlan } from "@/lib/dodo";
-import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
+import { userClientAPI, type ProfileLogo, type UserUsageSummary } from "@client/api/userClientAPI";
+import { dodoClientAPI } from "@client/api/dodoClientAPI";
+import type { OrderData } from "@shared/types/api/dodo/orders/OrderData";
+import type { SubscriptionData } from "@shared/types/api/dodo/subscriptions/SubscriptionData";
+import { PLAN_DISPLAY_NAME, type DodoPaidPlan as PaidPlan } from "@shared/dodo";
+import { SubscriptionPlan } from "@shared/types/supabase/Users";
 
 function formatDate(iso: string | null | undefined): string {
     if (!iso) return "-";
@@ -32,7 +30,7 @@ function formatAmount(cents: number, currency: string): string {
 }
 
 function ProfilePageClient() {
-    const router = useRouter();
+    const navigate = useNavigate();
     const { user, signOut, isInitializingAuthContext } = useAuth();
     const userEmail = user?.email ?? null;
 
@@ -81,8 +79,8 @@ function ProfilePageClient() {
         setIsLoading(true);
         try {
             const [summary, profileLogo] = await Promise.all([
-                usersClientAPI.getUserUsageSummary(user.id),
-                usersClientAPI.getProfileLogo(),
+                userClientAPI.getUserUsageSummary(user.id),
+                userClientAPI.getProfileLogo(),
                 loadBilling(userEmail),
             ]);
             setUsage(summary);
@@ -101,14 +99,14 @@ function ProfilePageClient() {
     useEffect(() => {
         if (isInitializingAuthContext) return;
         if (!user) {
-            router.push('/sign-in?redirectTo=/profile');
+            navigate('/sign-in?redirectTo=/profile');
             return;
         }
         const run = async () => {
             await loadAllData();
         };
         void run();
-    }, [isInitializingAuthContext, user, loadAllData, router]);
+    }, [isInitializingAuthContext, user, loadAllData, navigate]);
 
     const planDisplayName = useMemo(() => {
         const plan = usage?.plan ?? user?.plan ?? null;
@@ -140,11 +138,11 @@ function ProfilePageClient() {
         setIsSigningOut(true);
         try {
             await signOut();
-            router.push('/');
+            navigate('/');
         } finally {
             setIsSigningOut(false);
         }
-    }, [signOut, router]);
+    }, [signOut, navigate]);
 
     const onSelectLogoFile = useCallback(async (file: File | null) => {
         if (!file || isUploadingLogo) return;
@@ -159,7 +157,7 @@ function ProfilePageClient() {
         setLogoError(null);
         setIsUploadingLogo(true);
         try {
-            const uploaded = await usersClientAPI.uploadProfileLogo(file);
+            const uploaded = await userClientAPI.uploadProfileLogo(file);
             if (uploaded) {
                 setOfficialLogo(uploaded);
             } else {
@@ -174,7 +172,7 @@ function ProfilePageClient() {
         if (isUploadingLogo) return;
         setIsUploadingLogo(true);
         try {
-            const ok = await usersClientAPI.deleteProfileLogo();
+            const ok = await userClientAPI.deleteProfileLogo();
             if (ok) {
                 setOfficialLogo(null);
                 setLogoError(null);
@@ -207,7 +205,7 @@ function ProfilePageClient() {
         setShowChangePlanModal(false);
         if (userEmail) {
             await loadBilling(userEmail);
-            const summary = user ? await usersClientAPI.getUserUsageSummary(user.id) : null;
+            const summary = user ? await userClientAPI.getUserUsageSummary(user.id) : null;
             setUsage(summary);
         }
         return true;
@@ -274,7 +272,7 @@ function ProfilePageClient() {
                         <div className="flex flex-wrap items-center gap-6">
                             <div className="relative">
                                 {user?.avatar_url ? (
-                                    <Image
+                                    <AppImage
                                         src={user.avatar_url}
                                         alt={user.name}
                                         width={80}
@@ -337,14 +335,15 @@ function ProfilePageClient() {
                     </div>
                 </div>
 
-                {/* Official logo + Billing — 2열 (모바일 스택) */}
-                <div className="mb-6 grid grid-cols-1 items-stretch gap-6 md:grid-cols-2">
-                {/* Official logo */}
-                <div className="flex flex-col justify-center rounded-2xl border border-hairline bg-surface/60 p-8">
+                {/* 로고·구독·결제내역은 **서로 다른 관심사**라 세로로 쌓는다.
+                    (2열로 두면 정보량이 5배 차이나는 두 카드 중 하나는 반드시 빈다) */}
+                <div className="mb-6 space-y-10">
+                {/* Official logo — 카드가 아니라 섹션. 항목이 1개뿐이라 카드 테두리는 과하다 */}
+                <section>
                     <h3 className="mb-2 text-sm font-semibold tracking-wider text-text1 uppercase">
                         Official logo
                     </h3>
-                    <p className="mb-6 text-sm leading-relaxed text-text2">
+                    <p className="mb-5 max-w-2xl text-sm leading-relaxed text-text2">
                         Prefilled as the brand logo in Create. Transparent PNG works best.
                     </p>
                     <div
@@ -415,7 +414,10 @@ function ProfilePageClient() {
                             event.target.value = '';
                         }}
                     />
-                </div>
+                    <p className="mt-4 text-[12px] leading-relaxed text-text2/70">
+                        Square image, transparent background, 512×512 or larger. Upload keeps the original pixels — no resizing.
+                    </p>
+                </section>
 
                 {/* Subscription */}
                 {billingError && !subscriptionData ? (
@@ -496,9 +498,9 @@ function ProfilePageClient() {
                             {!subscriptionData.cancelAtPeriodEnd && (
                                 <button
                                     onClick={() => setShowCancelModal(true)}
-                                    className="w-full rounded-xl border border-hairline px-4 py-2.5 text-sm font-medium text-text2 transition-colors hover:border-red-500/20 hover:bg-red-500/10 hover:text-red-500"
+                                    className="mx-auto block pt-1 text-xs font-medium text-text2 underline-offset-4 transition-colors hover:text-red-500 hover:underline"
                                 >
-                                    Cancel Subscription
+                                    Cancel subscription
                                 </button>
                             )}
                         </div>
@@ -523,7 +525,7 @@ function ProfilePageClient() {
                             Get monthly images that never expire. Every batch is quality-gated.
                         </p>
                         <button
-                            onClick={() => router.push('/#pricing')}
+                            onClick={() => navigate('/#pricing')}
                             className="w-full rounded-xl bg-text1 py-3 text-sm font-bold text-canvas transition-opacity hover:opacity-90"
                         >
                             View Pricing

@@ -1,9 +1,7 @@
-'use client'
-
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { Link } from "react-router";
+import AppImage from "@/components/public/AppImage";
+import { useNavigate } from "react-router";
 import { LogOut, User } from 'lucide-react';
 import { useAuth } from "@/context/AuthContext";
 
@@ -12,7 +10,7 @@ import { useAuth } from "@/context/AuthContext";
  * 랜딩·앱 헤더 공용. 바깥 클릭·Escape으로 닫힘.
  */
 function ProfileMenu() {
-    const router = useRouter();
+    const navigate = useNavigate();
     const { user, signOut } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [isSigningOut, setIsSigningOut] = useState(false);
@@ -41,11 +39,11 @@ function ProfileMenu() {
         try {
             await signOut();
             setIsOpen(false);
-            router.push('/');
+            navigate('/');
         } finally {
             setIsSigningOut(false);
         }
-    }, [signOut, router]);
+    }, [signOut, navigate]);
 
     return (
         <div ref={rootRef} className="relative">
@@ -57,7 +55,7 @@ function ProfileMenu() {
                 className="flex items-center justify-center overflow-hidden rounded-full border border-hairline text-text2 transition-colors hover:bg-canvas hover:text-text1"
             >
                 {user?.avatar_url ? (
-                    <Image
+                    <AppImage
                         src={user.avatar_url}
                         alt="Profile"
                         width={36}
@@ -74,7 +72,7 @@ function ProfileMenu() {
             {isOpen && (
                 <div className="absolute right-0 top-full z-50 mt-2 w-44 overflow-hidden rounded-xl border border-hairline bg-surface shadow-xl">
                     <Link
-                        href="/profile"
+                        to="/profile"
                         onClick={() => setIsOpen(false)}
                         className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-text1 transition-colors hover:bg-canvas"
                     >

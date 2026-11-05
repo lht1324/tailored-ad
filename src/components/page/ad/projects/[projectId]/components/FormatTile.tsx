@@ -1,12 +1,10 @@
-'use client'
-
 import { memo, useCallback, useState } from 'react';
-import Image from 'next/image';
+import AppImage from "@/components/public/AppImage";
 import { AlertTriangle, Download, Loader2, Maximize2, RefreshCw, Sparkles } from 'lucide-react';
 import AdOverlay from "@/components/public/AdOverlay";
 import { downloadCompositedImage } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
-import { AdDesignLayout } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
-import { AdRatioKey, AdImageResult } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+import { AdDesignLayout } from "@shared/types/supabase/ad/AdGenerationBatch";
+import { AdRatioKey, AdImageResult } from "@shared/types/supabase/ad/AdGenerationBatch";
 
 const RATIO_FACTOR: Record<string, number> = {
     '1_1': 1,
@@ -162,7 +160,7 @@ function FormatTile({ projectShortId, ratioKey, imageResult, signedUrl, displayU
             style={{ aspectRatio: factor, height: 'min(18rem, 34vw)' }}
             className="group relative shrink-0 cursor-pointer overflow-hidden rounded-[1.25rem] border border-hairline text-left transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-text2/30 hover:shadow-lg hover:shadow-black/5"
         >
-            <Image
+            <AppImage
                 src={displayUrl ?? signedUrl ?? ''}
                 alt={`Creative ${creativeIndex + 1} · ${ratioLabel}`}
                 fill

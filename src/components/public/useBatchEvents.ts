@@ -1,7 +1,5 @@
-'use client';
-
 import { useEffect, useRef } from 'react';
-import type { BatchEventMessage } from "@/lib/batchEvents";
+import type { BatchEventMessage } from "@shared/types/batchEvents";
 
 interface UseBatchEventsOptions {
     userId: string | null | undefined;

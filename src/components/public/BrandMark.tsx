@@ -1,5 +1,5 @@
 import { memo } from "react";
-import Image from "next/image";
+import AppImage from "@/components/public/AppImage";
 
 interface BrandMarkProps {
     /** 표시 크기(px). SVG라 임의 크기에서 선명 */
@@ -12,7 +12,7 @@ interface BrandMarkProps {
 // 파비콘·애플터치용 PNG는 별도 유지.
 function BrandMark({ size = 24, className = "" }: BrandMarkProps) {
     return (
-        <Image
+        <AppImage
             src="/logo/logo.svg"
             alt="TailoredAd logo"
             width={size}

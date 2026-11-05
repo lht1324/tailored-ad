@@ -1,8 +1,6 @@
-'use client'
-
 import { memo, useRef, useState, useCallback } from 'react';
 import { ImagePlus, Info, X, Check, ChevronDown, Plus } from 'lucide-react';
-import { AdUploadedComponent } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+import { AdUploadedComponent } from "@shared/types/supabase/ad/AdGenerationBatch";
 
 interface UploadZoneProps {
     label: string;

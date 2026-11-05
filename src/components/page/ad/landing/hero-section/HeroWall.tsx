@@ -1,6 +1,4 @@
-'use client'
-
-import Image from 'next/image';
+import AppImage from "@/components/public/AppImage";
 
 import { motion, useReducedMotion } from 'framer-motion';
 
@@ -61,7 +59,7 @@ function WallFrame({
         >
             <div className="border border-hairline bg-surface p-[6px] shadow-[0_30px_80px_-28px_rgba(239,43,112,0.22)]">
                 <div className={`relative w-full overflow-hidden ${aspectClass}`}>
-                    <Image
+                    <AppImage
                         src={item.src}
                         alt=""
                         fill

@@ -1,10 +1,8 @@
-'use client'
-
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
+import { Link } from "react-router";
 import HeroWall from "@/components/page/ad/landing/hero-section/HeroWall";
 import { useAuth } from "@/context/AuthContext";
-import { usersClientAPI, type UserUsageSummary } from "@/lib/api/client/usersClientAPI";
+import { userClientAPI, type UserUsageSummary } from "@client/api/userClientAPI";
 
 export default function HeroSection() {
     const { user } = useAuth();
@@ -13,7 +11,7 @@ export default function HeroSection() {
 
     const fetchUsage = useCallback(async (isCancelled: () => boolean) => {
         if (!userId) return;
-        const summary = await usersClientAPI.getUserUsageSummary(userId);
+        const summary = await userClientAPI.getUserUsageSummary(userId);
         if (isCancelled()) return;
         setUsage(summary);
     }, [userId]);
@@ -66,7 +64,7 @@ export default function HeroSection() {
                     </p>
                     <div className="mt-10 flex flex-wrap items-center gap-4">
                         <Link
-                            href={ctaHref}
+                            to={ctaHref}
                             className="group inline-flex items-center gap-3 rounded-full bg-text1 py-3 pl-6 pr-3 text-[15px] font-semibold text-canvas transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
                         >
                             Create your first ad

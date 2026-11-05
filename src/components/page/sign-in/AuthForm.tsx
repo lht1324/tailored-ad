@@ -1,10 +1,8 @@
-'use client'
-
 import {memo} from 'react'
 import {OAuthProvider} from "@/context/AuthContext";
 import GoogleSignInButton from "@/components/public/GoogleSignInButton";
 import DefaultSignInButton from "@/components/public/DefaultSignInButton";
-import Image from "next/image";
+import AppImage from "@/components/public/AppImage";
 
 interface AuthFormProps {
     title: string
@@ -26,7 +24,7 @@ function AuthForm({
     return (
         <div className="w-full rounded-[1.5rem] border border-hairline bg-surface p-8 shadow-[0_24px_64px_-32px_rgba(0,0,0,0.45)]">
             <div className="mb-8 text-center">
-                <Image
+                <AppImage
                     src="/logo/logo-64.png"
                     alt="TailoredAd"
                     width={56}

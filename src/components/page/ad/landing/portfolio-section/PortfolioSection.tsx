@@ -1,6 +1,4 @@
-'use client'
-
-import Image from 'next/image';
+import AppImage from "@/components/public/AppImage";
 import { useRef } from 'react';
 import { motion, MotionValue, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import Reveal from "@/components/page/ad/Reveal";
@@ -65,7 +63,7 @@ function PortfolioTile({ item, progress, yStatic, reducedMotion }: PortfolioTile
         >
             <div className="bg-white p-2 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.35)]">
                 <div className="relative w-full overflow-hidden rounded-xl" style={{ aspectRatio: item.aspect }}>
-                    <Image
+                    <AppImage
                         src={item.src}
                         alt={item.alt}
                         fill

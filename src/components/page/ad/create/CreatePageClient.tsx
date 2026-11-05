@@ -1,17 +1,15 @@
-'use client'
-
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from "react-router";
 import { Loader2 } from 'lucide-react';
 import AppHeader from "@/components/page/ad/app-header/AppHeader";
 import CreateForm from "@/components/page/ad/create/components/CreateForm";
 import {
     AdAspectRatio,
     AdUploadedComponent,
-} from "@/lib/api/types/supabase/ad/AdGenerationBatch";
-import { adProjectClientAPI, BalanceExhaustedError } from "@/lib/api/client/ad/adProjectClientAPI";
-import { usersClientAPI } from "@/lib/api/client/usersClientAPI";
-import { downscaleImageFile } from "@/lib/imageResize";
+} from "@shared/types/supabase/ad/AdGenerationBatch";
+import { adGenerationBatchClientAPI, BalanceExhaustedError } from "@client/api/ad/adGenerationBatchClientAPI";
+import { userClientAPI } from "@client/api/userClientAPI";
+import { downscaleImageFile } from "@shared/imageResize";
 
 function inferFileExtension(fileName: string): string {
     const ext = fileName.split('.').pop()?.toLowerCase() ?? 'png';
@@ -25,7 +23,7 @@ const OFFICIAL_LOGO_ID = 'official-logo';
 const OFFICIAL_LOGO_MAX_BYTES = 10 * 1024 * 1024;
 
 export default function CreatePageClient() {
-    const router = useRouter();
+    const navigate = useNavigate();
 
     // 구성 요소 — background는 AI가 creative마다 생성
     const [product, setProduct] = useState<AdUploadedComponent | null>(null);
@@ -50,7 +48,7 @@ export default function CreatePageClient() {
         let cancelled = false;
         if (!prefillPromiseRef.current) {
             prefillPromiseRef.current = (async () => {
-                const profile = await usersClientAPI.getProfileLogo();
+                const profile = await userClientAPI.getProfileLogo();
                 if (!profile) return null;
                 try {
                     const response = await fetch(profile.signedUrl);
@@ -168,7 +166,7 @@ export default function CreatePageClient() {
             // PERSONA_MODE: 실사 전송부 주석 보존 (Enterprise 부활용)
             // person?.file ? downscaleImageFile(person.file) : null,
             const personFile = null;
-            const { batchId } = await adProjectClientAPI.createProject({
+            const { batchId } = await adGenerationBatchClientAPI.postAdGenerationBatch({
                 productImage,
                 personImage,
                 brandLogo: brandLogoImage,
@@ -183,7 +181,7 @@ export default function CreatePageClient() {
                 brandLogo: logoFile,
             });
 
-            router.push(`/projects/${batchId}`);
+            navigate(`/projects/${batchId}`);
         } catch (err) {
             if (err instanceof BalanceExhaustedError) {
                 setShowUpsell(true);
@@ -193,7 +191,7 @@ export default function CreatePageClient() {
             setError(err instanceof Error ? err.message : 'Failed to start generation. Please try again.');
             setIsGenerating(false);
         }
-    }, [hasSubject, isGenerating, product, personaEnabled, personaBrief, brandLogo, aspectRatios, conceptCount, ctaEnabled, brandPalette, router]);
+    }, [hasSubject, isGenerating, product, personaEnabled, personaBrief, brandLogo, aspectRatios, conceptCount, ctaEnabled, brandPalette, navigate]);
 
     const hintText = !hasSubject
         ? 'Add a product or cast a virtual model to start. The AI paints a different background for each creative.'
@@ -278,7 +276,7 @@ export default function CreatePageClient() {
                         </p>
                         <button
                             type="button"
-                            onClick={() => router.push('/#pricing')}
+                            onClick={() => navigate('/#pricing')}
                             className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-text1 px-6 py-3 text-[14px] font-semibold text-canvas"
                         >
                             View plans

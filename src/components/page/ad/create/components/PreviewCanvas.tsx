@@ -1,7 +1,5 @@
-'use client'
-
 import { memo } from 'react';
-import { AdAspectRatio, AdUploadedComponent, AdTaskStatus } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+import { AdAspectRatio, AdUploadedComponent, AdTaskStatus } from "@shared/types/supabase/ad/AdGenerationBatch";
 
 const ASPECT_CLASS: Record<AdAspectRatio, string> = {
     '1:1': 'aspect-square',

@@ -1,12 +1,10 @@
-'use client'
-
 import {memo, useCallback, useMemo, useState} from "react";
-import {useSearchParams} from "next/navigation";
+import {useSearchParams} from "react-router";
 import {OAuthProvider, useAuth} from "@/context/AuthContext";
 import AuthForm from "@/components/page/sign-in/AuthForm";
 
 function SignInPageClient() {
-    const searchParams = useSearchParams();
+    const [searchParams] = useSearchParams();
 
     const { signInWithOAuth } = useAuth();
 

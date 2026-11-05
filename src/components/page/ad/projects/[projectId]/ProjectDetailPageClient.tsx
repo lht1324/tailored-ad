@@ -1,8 +1,6 @@
-'use client'
-
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { Link } from "react-router";
+import { useNavigate } from "react-router";
 import { ArrowLeft, AlertTriangle, CheckCircle2, Clock, Layers, Loader2, Palette, Pencil, RefreshCw } from 'lucide-react';
 import AppHeader from "@/components/page/ad/app-header/AppHeader";
 import { useAuth } from "@/context/AuthContext";
@@ -11,11 +9,11 @@ import CreativeRow from "@/components/page/ad/projects/[projectId]/components/Cr
 import AdLightboxModal from "@/components/page/ad/projects/[projectId]/components/AdLightboxModal";
 import DownloadMenuButton from "@/components/page/ad/projects/[projectId]/components/DownloadMenuButton";
 import { downloadItemsAsZip, downloadRawItemsAsZip, type CompositeDownloadOptions, type RawDownloadItem } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
-import { fontMap } from "@/lib/fonts";
-import { adProjectClientAPI, getProjectProgress } from "@/lib/api/client/ad/adProjectClientAPI";
-import { buildProjectImageUrl } from "@/lib/projectImageUrl";
-import { AdCreativeResult, AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
-import { AdDesignLayout } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+import { fontMap } from "@shared/fonts";
+import { adGenerationBatchClientAPI, getBatchProgress } from "@client/api/ad/adGenerationBatchClientAPI";
+import { buildProjectImageUrl } from "@shared/projectImageUrl";
+import { AdCreativeResult, AdGenerationBatch, AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
+import { AdDesignLayout } from "@shared/types/supabase/ad/AdGenerationBatch";
 
 type DetailStatus = 'loading' | 'ready' | 'error';
 
@@ -58,7 +56,7 @@ function buildCompositeItem(
 }
 
 export default function ProjectDetailPageClient({ projectId }: { projectId: string }) {
-    const router = useRouter();
+    const navigate = useNavigate();
     const [project, setProject] = useState<AdGenerationBatch | null>(null);
     const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
     const [brandLogoSignedUrl, setBrandLogoSignedUrl] = useState<string | null>(null);
@@ -85,9 +83,9 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
         const isStale = () => requestId !== fetchRequestIdRef.current || options?.isCancelled?.() === true;
         if (showPolling) setIsPolling(true);
         try {
-            const data = await adProjectClientAPI.getProject(projectId);
+            const data = await adGenerationBatchClientAPI.getAdGenerationBatchById(projectId);
             if (isStale()) return;
-            setProject(data.project);
+            setProject(data.batch);
             setSignedUrls(data.signedUrls);
             setBrandLogoSignedUrl(data.brandLogoSignedUrl ?? null);
             setStatus('ready');
@@ -133,7 +131,7 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
 
     const progress = useMemo(() => {
         if (!project) return null;
-        return getProjectProgress(project);
+        return getBatchProgress(project);
     }, [project]);
 
     const sortedCreatives = useMemo(() => {
@@ -209,24 +207,24 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
         if (!lightboxKey) return;
         const { creativeIndex: cIdx, ratioKey } = parseTileKey(lightboxKey);
         if (Number.isNaN(cIdx)) return;
-        router.push(`/projects/${projectId}/edit?creative=${cIdx}&ratio=${encodeURIComponent(ratioKey)}`);
-    }, [lightboxKey, router, projectId]);
+        navigate(`/projects/${projectId}/edit?creative=${cIdx}&ratio=${encodeURIComponent(ratioKey)}`);
+    }, [lightboxKey, navigate, projectId]);
 
     const onChangeSort = useCallback((e: ChangeEvent<HTMLSelectElement>) => {
         setSortMode(e.target.value as SortMode);
     }, []);
 
     const onClickBack = useCallback(() => {
-        router.push('/projects');
-    }, [router]);
+        navigate('/projects');
+    }, [navigate]);
 
     const onClickRefresh = useCallback(() => {
         fetchProject(true);
     }, [fetchProject]);
 
     const onClickOpenEditor = useCallback(() => {
-        router.push(`/projects/${projectId}/edit`);
-    }, [router, projectId]);
+        navigate(`/projects/${projectId}/edit`);
+    }, [navigate, projectId]);
 
     // 전체 다운로드 — 완성 타일만 ZIP
     const allCompletedItems = useMemo(() => {
@@ -350,7 +348,7 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
                     </button>
                     <div className="mt-8 rounded-[1.5rem] border border-hairline bg-surface px-8 py-16 text-center">
                         <p className="text-[13px] text-[#F87171]">{error ?? 'Project not found.'}</p>
-                        <Link href="/projects" className="mt-4 inline-flex rounded-full bg-text1 px-6 py-2.5 text-[13px] font-semibold text-canvas">
+                        <Link to="/projects" className="mt-4 inline-flex rounded-full bg-text1 px-6 py-2.5 text-[13px] font-semibold text-canvas">
                             Go to Projects
                         </Link>
                     </div>
@@ -559,7 +557,7 @@ export default function ProjectDetailPageClient({ projectId }: { projectId: stri
                     const url = buildProjectImageUrl(projectId, cIdx, ratioKey, 'full');
                     const ratioLabel = ratioKey.replace('_', ':');
                     const creative = sortedCreatives.find((c) => c.creativeIndex === cIdx);
-                    const ir = creative?.result?.imageResults?.[ratioKey as AdRatioKey] as { design?: import("@/lib/api/types/supabase/ad/AdGenerationBatch").AdImageResult['design']; score?: number | null } | undefined;
+                    const ir = creative?.result?.imageResults?.[ratioKey as AdRatioKey] as { design?: import("@shared/types/supabase/ad/AdGenerationBatch").AdImageResult['design']; score?: number | null } | undefined;
                     const copyForLightbox = creative?.result?.copy as unknown as { fontFamily?: string | null; fontWeight?: number | null; headlineColor?: string | null } | undefined;
                     const designHeadlineColor = (ir as unknown as { design?: { headline?: { color?: string | null } } })?.design?.headline?.color as string | null | undefined;
                     return (

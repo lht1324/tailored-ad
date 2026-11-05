@@ -1,15 +1,13 @@
-'use client'
-
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from "react-router";
 import { FolderOpen, Loader2, Plus, RefreshCw } from 'lucide-react';
 import AppHeader from "@/components/page/ad/app-header/AppHeader";
 import { useAuth } from "@/context/AuthContext";
 import { useBatchEvents } from "@/components/public/useBatchEvents";
 import ProjectCard from "@/components/page/ad/projects/components/ProjectCard";
-import { adProjectClientAPI } from "@/lib/api/client/ad/adProjectClientAPI";
-import { AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
-import { buildProjectImageUrl } from "@/lib/projectImageUrl";
+import { adGenerationBatchClientAPI } from "@client/api/ad/adGenerationBatchClientAPI";
+import { AdGenerationBatch, AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
+import { buildProjectImageUrl } from "@shared/projectImageUrl";
 
 type FilterKey = 'all' | 'running' | 'completed';
 
@@ -24,7 +22,7 @@ function isRunningStatus(status: string): boolean {
 }
 
 export default function ProjectsPageClient() {
-    const router = useRouter();
+    const navigate = useNavigate();
     const { user } = useAuth();
     const [projects, setProjects] = useState<AdGenerationBatch[]>([]);
     const [thumbnailCreativeIndexes, setThumbnailCreativeIndexes] = useState<Record<string, number>>({});
@@ -45,8 +43,8 @@ export default function ProjectsPageClient() {
         else setIsLoading(true);
         setError(null);
         try {
-            const data = await adProjectClientAPI.listProjects({ limit: 20, offset: 0 });
-            setProjects(data.projects);
+            const data = await adGenerationBatchClientAPI.getAdGenerationBatches({ limit: 20, offset: 0 });
+            setProjects(data.batches);
             setThumbnailCreativeIndexes((data as unknown as { thumbnailCreativeIndexes?: Record<string, number> }).thumbnailCreativeIndexes ?? {});
             setThumbnailRatioKeys((data as unknown as { thumbnailRatioKeys?: Record<string, AdRatioKey> }).thumbnailRatioKeys ?? {});
             setHasMore(data.pagination.count === 20);
@@ -85,12 +83,12 @@ export default function ProjectsPageClient() {
     }, [fetchProjects]);
 
     const onClickProject = useCallback((projectId: string) => {
-        router.push(`/projects/${projectId}`);
-    }, [router]);
+        navigate(`/projects/${projectId}`);
+    }, [navigate]);
 
     const onClickEditProject = useCallback((projectId: string) => {
-        router.push(`/projects/${projectId}/edit`);
-    }, [router]);
+        navigate(`/projects/${projectId}/edit`);
+    }, [navigate]);
 
     const filtered = useMemo(() => {
         if (filter === 'all') return projects;
@@ -100,8 +98,8 @@ export default function ProjectsPageClient() {
 
     const onClickLoadMore = useCallback(async () => {
         try {
-            const data = await adProjectClientAPI.listProjects({ limit: 20, offset: projects.length });
-            setProjects((prev) => [...prev, ...data.projects]);
+            const data = await adGenerationBatchClientAPI.getAdGenerationBatches({ limit: 20, offset: projects.length });
+            setProjects((prev) => [...prev, ...data.batches]);
             const moreThumbs = (data as unknown as { thumbnailCreativeIndexes?: Record<string, number> }).thumbnailCreativeIndexes ?? {};
             const moreRatios = (data as unknown as { thumbnailRatioKeys?: Record<string, AdRatioKey> }).thumbnailRatioKeys ?? {};
             setThumbnailCreativeIndexes((prev) => ({ ...prev, ...moreThumbs }));

@@ -1,10 +1,8 @@
-'use client'
-
 import React, {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react'
-import { User } from '@/lib/api/types/supabase/Users'
-import { authClient } from "@/lib/auth/client";
-import {usersClientAPI} from "@/lib/api/client/usersClientAPI";
-import {consumeStoredUtm} from "@/lib/utm";
+import { User } from '@shared/types/supabase/Users'
+import { authClient } from "@client/auth";
+import {userClientAPI} from "@client/api/userClientAPI";
+import {consumeStoredUtm} from "@client/utm";
 
 export enum OAuthProvider {
     Google = "google",
@@ -30,14 +28,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // 세션 email → 우리 users 행 (ID 체계가 달라서 email 매핑. 없으면 null)
     const loadProfile = useCallback(async (email: string) => {
-        const profile = await usersClientAPI.getUserByEmail(email);
+        const profile = await userClientAPI.getUserByEmail(email);
         setUser(profile);
         setProfileKnown(true);
         // UTM 귀속 기록 (10-20) — 로그인 1회만. 저장값은 consume이라 재사용 안 됨.
         if (profile) {
             const utm = consumeStoredUtm();
             if (utm) {
-                void usersClientAPI.patchUserByUserId(profile.id, utm).catch(() => {
+                void userClientAPI.patchUserByUserId(profile.id, utm).catch(() => {
                     /* 귀속 실패는 무시 — 핵심 흐름(로그인) 막지 않음 */
                 });
             }
@@ -80,7 +78,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // 빌드타임 NEXT_PUBLIC_BASE_URL 금지 — prod 번들에 localhost가 박혀 OAuth가 localhost로 튐.
             // 클라 런타임 origin이 항상 정답 (dev localhost·ngrok·prod 실도메인 전부).
             // callbackURL은 trusted domains에 등록돼 있어야 함 (localhost 기본 허용).
-            const callbackURL = `${window.location.origin}/callback/auth${redirectTo ? `?redirectTo=${redirectTo}` : ""}`;
+            // 워커가 verifier를 교환하는 경로다 (`worker/routes/auth.ts`의 /callback).
+            // 끝나면 redirectTo(내부 경로)로 돌려보낸다.
+            const callbackURL = `${window.location.origin}/api/auth/callback${redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ""}`;
             const { error } = await authClient.signIn.social({
                 provider,
                 callbackURL,

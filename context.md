@@ -1,142 +1,67 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-10-30 05:55)
+# TailoredAd — 작업 기록 (Last Updated: 2026-11-05 02:34)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
 
-## 0. 최근 세션 기록 (10-25 ~ 10-30)
+## 0. 최근 세션 기록 (10-31 ~ 11-05) — **Next → Vite + Hono 이관**
 
-### 생성 파이프라인 감사 보고서 작성 (10-30) — `PIPELINE_AUDIT.md`
-- **범위 정정**: §10.0에 "수정 3곳"으로 적혀 있던 것은 틀렸다. 전수 조사 결과 **호출부 19곳 / 대상 라우트 11개**다.
-- **결제도 같이 죽어 있다 (신규 발견)**: `api/webhook/dodo/route.ts:32`가 `/api/dodo/process`를 같은 self-fetch로 호출한다. 즉 **Dodo 401을 고쳐 결제가 성공해도 크레딧이 적립되지 않는다.** 웹훅은 200을 반환하므로 Dodo는 성공으로 기록한다 → **돈만 받고 아무것도 안 주는 상태**.
-- **죽은 호출 1건 발견**: `api/webhook/fungies/route.ts:36`이 `/api/fungies/process`를 부르는데 **해당 라우트 파일이 없다**(`src/app/api/fungies/` 부재). 폐기된 결제사 잔재 → 삭제 대상.
-- **gateway 표 누락 3개**: `image/generation/persona` · `image/process/persona` · `dodo/process`는 `ROUTE_ENTRIES`에 등록돼 있지 않다. 디스패치 전환 시 추가 필요.
-- **11개 라우트 전부 `getIsValidRequestS2S`** 인증 → 세션·userId 없이 내부 호출 가능(전환에 장애 없음).
-- **사고를 10일간 숨긴 3가지 구조적 결함**도 보고서에 명시: ⓐ `.catch()`가 에러를 삼킴 ⓑ 실패를 상태로 남기지 않음(`queued` 방치) ⓒ 장기 정체 감시 없음. **큐로 바꿔도 이 3개를 같이 고치지 않으면 재발한다.**
-- **2단계 설계 확정(문서화만, 미착수)**: Phase 1 = in-process 디스패치(헬퍼 1개 수정, 호출부 무수정, 2~3시간) / Phase 2 = Cloudflare Queues(재시도·DLQ·30초 제약 해소, 1일). Service Binding·Workflows·호스팅 이전은 **지금 채택 안 함**(이유 문서화).
-- **Phase 1의 한계 명시**: `waitUntil`은 응답 후 **최대 30초**. 4-creative 팬아웃이 넘기면 잘릴 수 있다 → Phase 2 필요 근거.
-- **상대 경로 호출(`/foo`)은 불가** 실측: `fetch`는 절대 URL만 받아 `TypeError: Failed to parse URL`. 우회 불가 확인.
+### 결론: 코드 이관 완료, **배포만 남음**
 
+- 새 스택: **React 19 + Vite 8 + Hono 4 + `@cloudflare/vite-plugin`**, 포트 **3002 단일 서버**
+- 브랜치 **`vite-hono`** (worktree `~/Projects/tailored-ad-vite`) · 복귀 지점 태그 **`pre-vite`**
+- 실측: `typecheck`·`build` 초록, **실제 배치 1건 완주**(4장, 점수 8.8~9.1) → 파이프라인 end-to-end 검증됨
+- **prod는 여전히 구 Next 버전이 서빙 중** (변경 없음)
 
-### 실행 모델·플랫폼 정리 (10-30, 사장님 논의 — 문서화만)
-- **"Workers 런타임 1개에서 전부 돌려야 한다"는 전제는 틀렸다.** 정확히는 **1 코드(워커 스크립트) = N invocation**. 단계마다 새 실행이 깨어나고 **각자 새 시간 예산**을 받는다. 체인 전체가 한 예산에 들어갈 필요 없음.
-- **오케스트레이터는 상주 프로세스가 아니다.** 매 단계 `DB 상태 읽기 → 다음 단계 판단 → 함수 호출 → 상태 쓰기 → 종료`를 반복하는 **평범한 함수**. Temporal·Inngest·CF Workflows 전부 이 구조.
-- **suspend/resume은 "잠들었다 깨는" 게 아니라 "처음부터 재생(replay) + 완료 단계 건너뛰기"** 다. isolate는 죽고, 재개 시 함수가 처음부터 다시 돌며 완료된 step 결과를 캐시에서 받는다.
-  → **실무 규칙: 부수효과(API 호출·DB 쓰기·결제)는 반드시 step 안에.** step 밖에 있으면 재실행 때 중복 실행된다. `Math.random()`·`Date.now()`도 step 밖에서는 재실행마다 값이 달라져 분기가 어긋난다.
-- **타임아웃은 "코드 한 줄"이 아니라 "실행 1회(invocation)" 단위**이고, 실제 계정은 CPU 시간이다. 네트워크 대기가 대부분인 우리 단계(2~8초)는 CPU를 거의 쓰지 않는다.
-- **Phase 1에는 suspend/resume 개념이 없다.** `waitUntil`은 "응답 후 한 번 깨어나 체인을 쭉 이어서 실행(최대 30초)"일 뿐이다. 사장님이 그린 "단계마다 잘려 실행되는" 그림은 **Phase 2(Queues)** 다.
-- **자기 zone fetch가 원래 안 좋은 패턴인 이유**(CF 이전부터): 컴퓨트 2배, 타입 소실, 인증 컨텍스트 단절, 느림. Next.js 공식 문서도 "서버 컴포넌트에서 자기 Route Handler를 fetch하지 말고 로직을 함수로 빼라"고 명시. **CF는 원래 안 좋은 패턴을 아예 불가능하게 만들었을 뿐.**
-- **`BASE_URL`의 정확한 용도**: OAuth 리다이렉트·웹훅 수신·이메일 링크·DB에 저장하는 URL = **외부인이 우리를 부르는 주소**. **내부 통신용이 아니다.** 브라우저→서버 호출은 진짜 외부 요청이라 문제없다(client-gateway가 정상인 이유). 문제는 서버→자기 자신뿐.
-- **호스팅 결론**: 지금 CF 유지. 버그 1개 때문에 이전하는 건 비용 낭비이고, 30초·유실 문제는 플랫폼을 바꿔도 남는다(큐가 답). 분리가 필요해지면 **CF 방패 + 단일 컨테이너(Fly/Railway, 1일/$10~20)**. AWS·Azure·GCP는 이 규모에서 2~4일 + 상시 운영 부담이라 비추천. Heroku는 방향 아님. **WAF(방패)는 지금 필요 없다** — 트래픽·어뷰징이 없고, 백엔드를 CF 밖으로 빼면 오히려 원본 IP 노출로 방어가 약해져 mTLS·IP 은닉이 추가로 필요해진다.
-- **env 정리(개선 후보, 미착수)**: `getServerEnv`의 `process.env` 폴백이 **조용히 동작하는 것**이 DODO_ENV 사고의 원인. 운영에서 폴백 발생 시 경고 + `wrangler types` 기반 타입 env(문자열 키 제거) 후보. **버그는 아니므로 A0 이후.**
+### 옮긴 것
+| | |
+|---|---|
+| 라우트 | 34개 전부 (API 25 + 웹훅 3계열 + 페이지 2) |
+| 화면 | 랜딩 · legal 3 · 블로그(목록+6편) · sign-in · projects · 상세 · create · profile · checkout · **에디터** |
+| 인증 | Neon Auth → Hono 미들웨어 + `/api/auth/*` 프록시 + OAuth 콜백(verifier 교환) |
+| 페이지 가드 | `proxy.ts` → 워커 (`run_worker_first` + `ASSETS`) |
+| 파이프라인 | Workflows W1·W2·W3 — base · ratios · analysis · **persona** · 크레딧 |
+| SEO | 정적 프리렌더 **11경로** + `llms.txt`(정적 생성) |
+| R2 | AWS SDK → **`aws4fetch`** (Cloudflare 권장, @smithy 패키징 문제 회피) |
+| 구조 | `lib/{client,server,shared}` 3분할 + `src`=화면, `worker`=서버 진입 |
 
-### prod 생성 경로 버그 발견 (10-30) — 3장 생성 시도 중
-- 3단계 크리에이티브 3장을 prod에서 만들려다 **"Preparing concept"에서 영구 정지**. 3면 실측으로 원인 확정:
-  `ad_creative_specs=[]`·`status=queued`·`updated_at=null` (DB) + **Replicate 예측 10-09 이후 0건** + 10-20 배치도 10일째 queued.
-- **원인**: `/api/image`가 업로드 후 `internalFireAndForgetFetch(BASE_URL/api/creative/specs)`로 다음 단계 호출 →
-  prod `BASE_URL=https://tailoredad.com` = **워커가 자기 zone fetch** (Workers에서 죽는 패턴). `.catch()`가 삼켜 흔적 없음.
-  dev는 `BASE_URL=dev.tailoredad.com`(터널)이라 진짜 외부 요청 → 동작. **출시 이후 생성 성공 0건.**
-- **부작용 없음**: 실패 배치는 완성 이미지가 없어 크레딧 차감 0 (10장 유지).
-- 수정 방향: internalFetch 3곳(specs·prompt·persona)을 게이트웨이식 **in-process 직접 호출**로 교체. **미착수.**
-  **10-30 정정**: 실제는 **호출부 19곳 / 대상 라우트 11개**이며, 결제 웹훅도 같은 원인으로 죽어 있다. `PIPELINE_AUDIT.md` 참조.
-- 같은 이유로 **PH 런치·유료 집행은 여전히 보류**가 맞다 (결제 이전에 생성이 안 된다).
+### 폐기·대체
+- `client-gateway` → **Hono 미들웨어**(세션 검증 단일화)
+- `dodo/process` → `processDodoEvent()` 함수 + `waitUntil`
+- `webhook/fungies` → 삭제(죽은 라우트)
+- 내부 파이프라인 라우트 6개(`image/generation·process/*`, `creative/:i/analysis`) → **워크플로 step**
+- `INTERNAL_FIRE_AND_FORGET_API_SECRET` → self-fetch 폐기로 용도 소멸 → **웹훅 URL 서명 키로 재사용**
 
-### 3단계 시딩 — 크리에이티브 3장 준비 (10-30)
-- 제품 3종 선정 후 **입력 이미지 확보·전처리 완료**: `seed-outreach/` (gitignore 등록, `public/` 금지).
-  - Material Kitchen **The 8" Knife** — 투명 PNG → trim + 흰 배경 + 여백 → 1400×1400
-  - Chamberlain **Social Dog Medium Roast** — 투명 PNG → 흰 배경 평탄화 → 2048×2048
-  - L:A BRUKET **092 Hand Cream SRL** — 원본 JPG 1438×1798 (라벨 글자가 많아 정체성 보존 최혹독 테스트)
-- 브랜드 팔레트는 **이미지에서 실제 추출**(6색 양자화): MK `#4B4743/#A1A0A0/#E7E6E6` · CB `#EF8976/#714E53/#F7EDE6` · LA `#10130D/#A7A9A0/#DBDEDF`
-- **생성 설정 명세 확정** (concept 1 · 1:1+4:5 · CTA off · 인물 없음 · 제품 노트·팔레트·헤드라인 후보) → `context.md` §10.2
-- 사장님이 직접 실행하기로 함 (10-30). 실행 전 §10.0 버그 수정 또는 dev 우회 결정 필요.
+### 이번에 잡은 치명 버그 (전부 실측으로 확인)
+1. **완료 마커 RPC**: `JSON.stringify(null)`이 **jsonb의 JSON null**이라 PL/pgSQL의 `p_error is not null`이 참 → 오류가 없는데 실패 분기를 타서 `imageFileExtension`을 버림 → **base 저장 실패 → 파이프라인 전체 정지**. SQL NULL 전달로 수정.
+2. **R2**: `@smithy/core`의 `browser` 필드가 **배포본에 없는 `*.browser.js`**를 가리켜 `S3Client` 생성 즉사 → `aws4fetch`로 교체.
+3. **웹훅 경로**: `/webhook/*`이 `run_worker_first`에 없어 워커에 도달 못 함 → `/api/webhook/*`로 이동.
+4. **OAuth verifier 교환**: 페이지 요청은 워커에 안 오므로 `/api/auth/callback`으로 옮겨 교환.
+5. **이미지 프록시**: 페이지 가드가 `/projects/*`를 먼저 잡아 index.html 반환 → **이미지 라우트를 가드보다 앞에** 마운트.
+6. **base 실패 폴백**: 실패한 비율을 DB 기록에 의존해 제외 → 기록 실패 시 **같은 비율 무한 재시도(과금)**. 코드로 확정 제외.
+7. **env**: `DODO_ENV` 폐기 → `ENVIRONMENT`(런타임 값). R2 버킷 선택도 `NODE_ENV`(빌드 상수) → `ENVIRONMENT`.
+8. **Replicate 웹훅 위조**: 서명이 없는 제공자라 **웹훅 URL에 HMAC 서명**을 붙이고 수신 시 검증.
 
-### 카피 제1원칙 채택 (10-25, 사장님 지시)
-- **"AI 냄새 없이 쓴다"를 제1원칙으로 확정.** 체크리스트 10개를 `MARKETING_PLAN.md` §5.4에 등재.
-- 핵심 5개: **엠대시 0개**(metaTitle 브랜드 구분자만 예외) · 자기평가 부사 금지(honest/genuinely/actually) ·
-  "X, not Y" 페이지당 1개 이하 · 3항 나열(triad) 연타 금지 · 격언식 표어 금지.
-- **퇴고 절차**: 초안 → 체크리스트 → grep 잔여 검사(0건 확인) → 사장님 eyeball. 이 순서 없이는 출고 금지.
-- 블로그 글 1 적용 실적: 엠대시 12→0 · 자기평가 부사 5→0 · "X, not Y" 6→1 · 표어 3→0 · 중복 정보 제거.
-- 원어민 관용구 자체 교정 4건 (litigate→scrutinize, rides on→baked into, treat as a stop→pull the render, carry→do).
+### 이관 중 발견한 규칙 (재발 방지)
+- **`secrets.required`를 선언하면 `.dev.vars`에서 그 목록만 로드된다.** 웹훅 키를 빠뜨려 400이 났음.
+- **Cloudflare `assets`는 `foo.html`을 `/foo`로, `foo/index.html`을 `/foo/`로 서빙**한다(`html_handling: auto-trailing-slash`). 프리렌더 파일명 규칙이 여기 맞춰져야 한다.
+- **작업자(Workers)에서 `process.env.NODE_ENV`는 빌드 타임 상수**다. dev 빌드를 배포하면 prod가 dev 분기를 탄다 → 런타임 `ENVIRONMENT`를 쓴다.
 
-### 블로그 2단계 완성 + prod 배포 (10-25)
-- **글 5장 추가** (`fab6f41`): creatify·predis 대안 + best-ai-ad-tools 리스트클 + ecommerce·skincare 업종. 규격은 `src/lib/content/blog/` 재사용.
-- **가격 실측 검증 2건** (중요): Creatify는 2026-10에 요금 개편 — 공식 페이지 **Free 10크레딧 · Standard $15/55 · Pro $55/280** (구 리뷰의 $39/$99는 구가격). Predis는 **Core $32/월(연낙 $19) · Rise $79 · Enterprise+ $249**, 체험 3일·카드 요구·**체험 후 환불 불가**(공식 FAQ).
-- **`/llms.txt`** (`c2e8a4f`): `src/app/llms.txt/route.ts`가 콘텐츠 레지스트리에서 **자동 생성**(`force-static`). 정적 파일로 두면 글 추가 시 수동 갱신이 필요해 라우트로 만듦. gotcha: 가격이 PricingSection·landingJsonLd·llms.txt **삼중 관리**.
-- **푸터 Blog 링크** (`8476002`): orphan 해소. `Portfolio·Workflow·Pricing·FAQ·Blog·TailoredAd Studio`.
-- **Bro Find AI 배지 제거** (`abb9cdc`): 실측 결과 리스팅에 "Verified" 3곳 + 링크 `rel="noopener noreferrer"`(dofollow 성립) → **목적 달성 확인 후 판정 실>득**. 이유 = "0 UPVOTES"가 전 페이지에 노출(역사회증거) + 라이트 푸터에서 다크 카드가 시각적 지배. 재부착 가능한 결정.
-- **prod 배포 3회** (원인 추적 포함):
-  1. `5508c71` — 머지·배포 성공했으나 **글 6개 전부 404**
-  2. `de39591` — **원인: OpenNext 증분 캐시**. 기본 더미 캐시는 ●(SSG) 라우트를 못 꺼냄(`/blog` 같은 ○ 정적은 에셋이라 정상 → 목록만 열리고 본문 404). `static-assets` 오버라이드 적용으로 해결 (`.open-next/cache` → `assets/cdn-cgi/_next_cache` 복사, R2·KV 불필요, revalidate 안 쓰는 앱 전제 — 우리 revalidate 0건 확인)
-  3. `0a24517` — **더블브랜딩 재발** 발견·수정: `<title>TailoredAd | … — TailoredAd</title>`. layout template(`TailoredAd | %s`)과 페이지 title 접미사 중복 — 10-19 사고의 재발
-- **최종 prod 실측**: `/blog` + 글 6개 + `/llms.txt` 전부 200, 타이틀 정상, 기존 페이지 회귀 없음.
-
-### 개발 포트 변경 + docker compose 부활 (10-25, `ec9e5ef`·`cdf0bdb`)
-- **TailoredAd = 클라 3002 / 서버 3003.** 전체 배치(사장님 확정): ShortReal 3000/3001 · TailoredAd 3002/3003 · LocalAgentsLink 3004/3005 · jaeholee.xyz 3006/3007
-- 변경 6곳: `package.json` scripts(`-p 3002`/`-p 3003`) · `docker-compose.yml`(3003:3003) · `.env.local`(`NEXT_PUBLIC_BASE_URL=localhost:3003`) · `next.config.ts` dev CORS · `callback/auth/route.ts` 리다이렉트 2곳 · baseFetch 주석
-- **docker compose 정상 동작 확인** — 과거 "브릿지 veth 고장"은 해소됨. `docker compose up`으로 서버 기동(컨테이너 내부도 3003). 기록상의 네이티브 폴백(`DOCKER=true npm run dev:worker`)은 예비 경로로만 유지
-
-### Cloudflare Tunnel 전환 — ngrok 은퇴 (10-25/26)
-- **터널 1개가 4개 서브도메인 동시 서빙** (ngrok 무료 1도메인 제약 해소). 이름 `dev`, ID `097484fe-3d99-4d45-8936-aeee558895ce`.
-- ingress (`~/.cloudflared/config.yml`): dev.tailoredad.com→3003 · dev.shortreal.ai→3001 · dev.localagents.link→3005 · **dev.jaeholee.xyz**→3007
-- **철자 주의**: 4번째 도메인은 `jaeholee.xyz`(홑 o). `jaehoolee.xyz`(겹 o)는 NS 없는 미위임 이름
-- **cert.pem은 1영역 스코프** — 로그인 화면의 다중 선택은 인증서에 반영 안 됨. 영역별 `cert.pem.<영역>` 백업 4개 확보 → 새 서브도메인은 **재로그인 없이** 백업 교체 + `route dns` 한 줄로 가능
-- **`BASE_URL` 4개 프로젝트 전부 dev.* 도메인으로 교체** (서버 self-fetch·웹훅 수신용). `NEXT_PUBLIC_BASE_URL`은 localhost 유지(브라우저 직행)
-- **prod Worker 라우트가 서브도메인을 침범하지 않음** 실측 (dev.*에 Web Analytics beacon 0건 = 워커 아닌 터널이 서빙)
-- 검증: dev.tailoredad.com 200 · 나머지 3개 502(터널 도달, 서버 미기동 상태)
-
-### short_real의 client-gateway가 CF 이관 시 깨질 위험 (10-26 발견)
-- short_real은 게이트웨이가 **fetch 프록시** 방식(`BASE_URL`로 실제 HTTP 재요청). Vercel에서는 옳지만 **CF Workers는 자기 zone fetch가 금지** (tailored-ad에서 non-JSON 즉사 실측).
-- tailored-ad는 이미 **in-process 직접 호출**로 개조돼 운영 중: `ROUTE_ENTRIES` 표 → `matchRoute` → 매칭 1개만 lazy import → `new NextRequest("http://internal…")` 가짜 객체(네트워크 호출 아님) → 핸들러 함수 직접 호출 → Response 그대로 반환.
-- **gotcha**: 새 API 라우트 추가 시 `ROUTE_ENTRIES`에 1줄 필수(누락 시 게이트웨이 경유 404) · `x-internal-secret`으로 내부 인증 · `http://internal`의 origin을 절대 URL로 쓰지 말 것
-- short_real 쪽 잔재: `PUBLIC_ROUTES`의 `/api/polar/products`(폐기된 결제사), 죽은 조건 `route.path === targetPath || route.path === \`${targetPath}\``
-- → **short_real CF 이관 전 게이트웨이 개조가 선행 조건.** 인수인계 브리핑 전달 완료(10-26)
-
-### 3단계 시딩 — 타깃 리스트 확보 (10-28)
-- **explee 조사 후 미사용 결정**: explee는 "AI가 리드 찾아 콜드메일 자동 발송 + 미팅 예약"하는 에이전트(105M CEO급 컨택트·97% 인박스·메일당 $0.04). ⓐ 브랜드별 맞춤 이미지 첨부 불가 ⓑ 자동발송이 우리 계획과 상충 ⓒ 유료. 09-20 기록의 "DB로만 쓰자"는 판단은 제품 구조상 반쪽짜리였음 — 철회.
-- **타깃 25곳 확보** (`MAILING_LIST.md` 신설): 웹 검색으로 후보 수집 → 각 사이트 contact 페이지 직접 크롤링으로 이메일 추출(2026-10-28). ★ 적합 19곳 + ⚠️ 규모 클 수 있음 6곳
-- **드랍쉬퍼 5곳 제외** (사장님 10-28): 브랜드명 없고 수명 2~6주라 증언 가치 낮음
-
-### 3단계 시딩 — 2차 실측 검증 (10-28, `MAILING_LIST.md` §3)
-- **1차 25곳의 구조적 결함 발견**: 주소가 `orders@`·`support@`·`help@` 등 **CS/주문 큐**인 곳이 다수. CS 담당자는 영업 메일을 넘길 의무가 없어 회신율이 최하위. 규모도 중견 이상 편중.
-- **후보 131개 도메인 실측 스캔** → **1군 34곳 · 2군 15곳 · 제외 82곳** 확정. 1차 리스트는 "발송 대상 아님"으로 문서에 명시하고 보존.
-- **스캔 방법**: 홈 요청으로 생존·Shopify 판별(`cdn.shopify.com`/`myshopify.com`) → `/products.json?limit=250`으로 상품 수 → 홈 인라인 픽셀 + **GTM 컨테이너 원문 파싱**으로 광고 신호 → contact/about/policies 크롤링으로 주소 추출 → `%20`·`u003e`·`your@email.com`류 오탐 수동 제거.
-- **확정 불가 항목 3개 (문서에 한계로 명시)**:
-  - **광고 집행 여부 — 자동 판별 불가**. Shopify는 Meta 픽셀을 **Web Pixels API(서버측)**로 심어 HTML에 `fbq`가 없다. `미확인 ≠ 광고 안 함`. Ad Library는 로그인 장벽(403 실측)으로 자동 조회 실패 → 육안 확인 필요.
-  - **Instagram 팔로워 — 전면 차단**(비로그인 조회 빈 응답). 규모는 상품 수·인지도로만 추정.
-  - **상품 수 — 절반 이상 429**(Shopify 봇 차단). 숫자는 실측값, `?`는 미확보.
-- **실명 주소 2곳 확보**: ~~`reilly@methodicalcoffee.com`~~ · `brandon@3sixteen.com`. 광고 픽셀 감지 7곳.
-  **10-29 정정**: `reilly@`는 **실제로 없었다** (폼만). 자동 추출 오탐.
-- **커피를 11곳으로 두껍게**: 구독제라 매달 새 소재 수요가 구조적으로 발생 → 관계 성립 시 재구매 지속성 최고.
-
-### 3단계 시딩 — 필터표 + 사장님 수동 검증 (10-29)
-- **필터표 작성** (`MAILING_LIST.csv`, 52곳 × 15컬럼): Numbers/Sheets에서 조건 필터 가능. 컬럼 = 군·업종·브랜드·도메인·이메일·주소유형·상품수·카탈로그·Meta광고·GoogleAds·TikTok·광고신호·점수·우선순위·비고.
-- **자동 수집 방법**: 홈 HTML + `/products.json` + **GTM 컨테이너 원문 파싱**(Shopify는 Meta 픽셀을 Web Pixels API로 심어 HTML에 `fbq`가 없음).
-- **429 실측**: 52곳을 1분에 돌리면 IP가 차단된다(44건 429). **4초 간격 + 브라우저 헤더**로 재수집해 52/52 확보.
-- **변별력 없는 신호는 점수에서 제외**: Klaviyo 47/52 · Shopify 50/52 → 상수라 제외. 남은 신호 = Meta 10 · GoogleAds 20 · TikTok 2.
-- **★ 핵심 발견 — 파트너십·미디어 주소가 최고 등급**: 같은 회사·같은 제품이라도 `partners@`·`business@`·`collaborations@`는 **업무 자체가 외부 제안 검토**다. CS·주문 주소는 넘길 의무가 없다. 점수 가중치를 실명 중심에서 **파트너십 +6 · 미디어 +5 · 도매 +4 · 실명 +3 · 일반 +1 · CS 0**으로 재편.
-- **사장님 수동 확인으로 오탐 5건 제거** (52곳 중 10%): `Methodical Coffee`·`Bocce's Bakery`·`Recess`·`Osea`·`Farmhouse Pottery`는 **폼만 있고 이메일 없음**. Farmhouse는 AI 챗봇이 연결을 제안했으나 부담스러워 중단 → **폼·챗봇만 있는 곳은 캠페인에서 제외** 결정.
-- **확인된 파트너십·미디어 주소**: `partners@materialkitchen.com` · `business@chamberlaincoffee.com` · `collaborations@labruket.com`(Justine) · `allison@georgehowellcoffee.com`(Media) · `brandon@3sixteen.com`(Wholesale). L:A BRUKET은 상업담당 실명 2명도 있음(`carla.kromberg@` DACH · `laurine.combasson@` FR/UK/BNL).
-- **1차 발송 대상 3곳 선정안**: Material Kitchen(`partners@`) · Chamberlain Coffee(`business@`) · L:A BRUKET(`collaborations@`). 대안 George Howell·3sixteen. **25장 선생성 금지** — 3통 반응 보고 확장.
-- **Meta Ad Library API 이월**: 토큰에 Meta 앱 + 신원 확인 필요(문서 확인). 3곳 고르는 데 30분짜리 심사를 붙이는 건 낭비 → 확장 단계로 미룸. **API에 이미지/영상 구분 필드는 없음**(`ad_snapshot_url`의 `<video>` 유무로 추정 가능).
-
-### 채널 전략 결정 (10-28, 사장님 논의)
-- **PH(Product Hunt) 보류**: 실결제 E2E 미통과 상태에서 띄우면 유입이 결제 실패로 전소. 증언·결제 검증 후로 미룸.
-- **유료 백링크 대행 불매**: 스팸 풋프린트·페널티 리스크. 도메인 초창기는 링크 수보다 활동신호가 중요.
-- **검색광고(2단계)를 맨 뒤로**: 하루 $5~10은 소액이 아님(월 $150~300). 해당 키워드 CPC $2~6라 클릭 1~2개/일 → 통계적으로 못 읽는 표본. 검색광고의 실값은 "랜딩 전환률 측정"인데, **아웃리치 링크에 UTM만 붙이면 무료로 같은 데이터를 얻는다** → 증언 1건 + 랜딩→가입 5% 확인 후 **2~3주 $300~500 단발**로만 집행.
-- **X(Twitter) = 발송 채널 아님, 발굴 채널**: DTC 대표는 X에 없고, 상호 팔로우 없으면 DM 자체가 막히며 제재가 빠름. 대신 `"ad creative" expensive`·`CAC rising`·`creative testing` 검색으로 **고통을 공개적으로 말한 리드**를 찾아 공개 답장하는 용도로만.
-- **Instagram = 전시장**(발송 아님): 0 팔로워 문제는 팔로워가 아니라 **증거물 부족**이 원인. 시딩 결과물이 곧 포트폴리오이자 콘텐츠라 별도 SNS 제작 불필요.
-- **타깃 재정의**: 중견 DTC가 아니라 **광고는 돌리는데 팀이 작은 곳**. 판별 기준 = Meta Ad Library 집행 + IG 5k~100k + 상품 10~80 + 스튜디오급 제품 사진 + 직통 주소 확보 가능.
-- **발송 인프라 경고 (미해결)**: `support@tailoredad.com`은 **Cloudflare Email Routing = 수신 전용**이라 발송 불가. DMARC 레코드도 없음. 업계는 메인 도메인 대신 보조 도메인 + 워밍업 + 인박스 로테이션으로 회피하지만, 우리 규모(하루 5~8통 수동)는 **메인 도메인 + 물량 억제**로 흡수하는 게 정답.
+### 아직 안 한 것
+- **배포**: `vite-hono` → `develop` → `master`(`--no-ff`) → `npm run deploy` → prod 스모크
+- **생성 품질 3건** → §12
+- 잔여 정리 → §12
 
 ## 1. 개요
 
 - **브랜드**: TailoredAd — "Tailored ads, not templates" (Harnessed AI ad studio)
 - **도메인**: `tailoredad.com` 서빙 중 (prod 런칭 완료). HTTPS 301 강제 ON
-- **스택**: Next.js 16 + Tailwind v4 + Neon(DB+Auth) + R2 + Upstash SSE + Replicate/OpenRouter + Dodo, Cloudflare Workers(OpenNext)
+- **스택**: React 19 + Vite 8 + Hono 4 + Tailwind v4 + Neon(DB+Auth) + R2 + Upstash SSE + Replicate/OpenRouter + Dodo, Cloudflare Workers(`@cloudflare/vite-plugin`)
+  - 구 Next 16 + OpenNext 버전은 **태그 `pre-vite`**로 보존
 - **Git**: Git Flow (`master` 프로덕션 / `develop` 작업). develop 푸시됨
-- **포트**: 클라 **3002** (`npm run dev`) / 서버 **3003** (`docker compose up` — 정상 동작. 예비 폴백 `DOCKER=true npm run dev:worker`)
+- **포트**: **3002 단일** (`npm run dev` = 클라 + 워커 동일 오리진. 3003/홀수 반납)
 - **dev 접근**: `https://dev.tailoredad.com` (Cloudflare Tunnel 경유). ngrok 사용 안 함
 - **테마**: 라이트가 기본 (`theme-light`), 다크는 토글
-- **배포**: dev 켜둔 채 배포 가능 (distDir 분리 — dev `.next-dev` / docker `.next-docker` / prod `.next`)
+- **배포**: `npm run build`(= typecheck → vite build → 프리렌더) → `wrangler deploy`. 워커 이름 `tailored-ad` 유지 필수
 
 ## 2. 현재 정책·결정 (유지 중인 것)
 
@@ -207,10 +132,9 @@
 - [ ] 4단계 유료 (2개월 차, 조건: 트라이얼 5+·증언 3+·LTV 추정 가능)
 
 ### 제품 트랙
-- [ ] **🔴 P0: prod 생성 경로 죽음 (10-30)** — `/api/image` → `internalFireAndForgetFetch(BASE_URL/api/creative/specs)`가 **워커 자기 zone fetch**라 prod에서 실패. 배치는 `queued`·`specs=[]`로 영구 정지, Replicate 제출 0건. **출시 이후 생성 성공 0건** (10-20 배치도 10일째 queued).
-  수정: `lib/utils/internalFetch.ts` 1곳 → in-process 디스패처 위임 (**호출부 19곳은 무수정**). 상세 = **`PIPELINE_AUDIT.md`** (§10.0의 "3곳" 표기는 오기 — 실제 19곳/11라우트).
-  **같은 원인으로 결제 적립도 죽어 있다** (`api/webhook/dodo/route.ts:32` → `/api/dodo/process`).
-  → 이거 고치기 전에는 prod 유료 전환·PH 런치·시딩 모두 의미 없음.
+- [x] **P0: prod 생성 경로 죽음 → Vite+Hono 이관에서 구조적으로 해소 (11-05)**
+  self-fetch 제거(함수 직접 호출 + Workflows) · 결제 적립도 함수 호출로 전환 · 실제 배치 1건 완주 확인.
+  상세는 `PIPELINE_ARCHITECTURE.md`, 이관 경위는 §0.
 - [ ] **Dodo live 체크아웃 401** (지원 문의 대기): live `/checkouts` 직접 호출도 401.
   **10-28 정정**: live **Products API는 정상 동작**(prod 게이트웨이 `/api/client-gateway?path=/api/dodo/products`가 live 키로 3플랜 반환) → 키·계정 자체는 유효. 401은 **checkouts 라우트 국소 문제**로 범위 축소됨.
   잔량: live E2E (로그인→잔액→실결제→적립→환불) + R2 쓰기 첫 생성 확인.
@@ -235,8 +159,8 @@ cloudflared tunnel run dev   # dev.* 4개 도메인 터널 (사장님 Warp 탭)
 
 ## 8. 대시보드 작업 메모
 
-- Cloudflare Variables/Secrets: `NEXT_PUBLIC_*` 3개는 Variable, 나머지 전부 Secret.
-- `NEXT_PUBLIC_*`은 빌드타임에 박히므로 변수 변경 후 리빌드 필수.
+- Cloudflare Variables/Secrets: `VITE_*` 3개는 Variable, 나머지 전부 Secret.
+- `VITE_*`은 빌드타임에 박히므로 변수 변경 후 리빌드 필수.
 - Neon Auth trusted domains: localhost 기본. **dev.tailoredad.com·prod 도메인 등록 필요할 수 있음 (미확인)**
 - Google OAuth: prod·GitHub는 자체 앱 (GitHub 앱 재사용可 — 콜백 URL 추가). localhost 포트가 3000→3002로 바뀌었으니 **OAuth 콜백 등록도 확인 필요**
 - Upstash: `tailored-ad-ratelimit` (AWS 도쿄, Free). 월 명령어 40만 전후로 PAYG + budget cap
@@ -381,31 +305,16 @@ prod의 `BASE_URL=https://tailoredad.com` = **워커가 자기 zone을 fetch** �
 > 사장님 지시(10-28): 이번에 하지 않고 전부 다음으로 묶음. 아래만 보면 이어서 재개 가능.
 > 사장님 지시(10-30): 파이프라인 수정은 "한 번 싹 훑는 작업"이라 지금 착수하지 않음 → 아래 A0로 이월.
 
-### A0. 파이프라인 수정 (P0 — **최우선**, 상세 `PIPELINE_AUDIT.md`)
+### A0. 파이프라인 수정 — **완료 (10-31 ~ 11-05)**
 
-> **설계 확정: `PIPELINE_ARCHITECTURE.md`** (10-30, 10-31 정정). route는 문, 파이프라인은 **Workflow 클래스(`BatchPipeline`)가 소유**.
-> 엔진 = **Cloudflare Workflows**(Queue 아님), 내부 라우트 11개 삭제, 상태 쓰기는 RPC 유지(읽기 전용).
-> 구현 순서: **W0 ✅(10-31) → W1(1장 end-to-end) → W2 → W3 → W4(배포·prod 스모크) → W5**.
-> **W4 배포 전까지 prod 생성은 죽어 있는 상태 유지 → 유입 금지** (시딩·PH 계속 보류)
-> 근거·조사 결과·리스크·검증 계획 전부 `PIPELINE_AUDIT.md`. 여기는 실행 체크리스트만.
-
-**Phase 1 — in-process 디스패치 (2~3시간)**
-- [ ] `src/lib/internalDispatch.ts` 신설 — 경로 매칭 → lazy import → 핸들러 직접 호출 (게이트웨이 패턴). 매칭 실패는 loudly 실패
-- [ ] `src/lib/utils/internalFetch.ts` 수정 — 호스트가 `BASE_URL`과 같으면 디스패처 위임, 다르면 기존 fetch. **시그니처 불변**
-- [ ] `ROUTE_ENTRIES`에 누락 3개 추가 (`image/generation/persona`·`image/process/persona`·`dodo/process`)
-- [ ] 실패를 DB 상태로 기록 (`status='failed'` + code·message)
-- [ ] `api/webhook/fungies/route.ts` 죽은 호출 삭제 (대상 라우트 부재)
-- [ ] dev 검증: creative 1·비율 1개 / creative 4·비율 2개 / persona / 실패 유도
-- [ ] prod 스모크: trial로 1장 완주 + Replicate 신규 예측 확인
-- [ ] develop 커밋 → master `--no-ff` 머지 → 배포
-
-**Phase 2 — Cloudflare Queues (1일, Phase 1 안정화 후)**
-- [ ] 메시지 스키마 + 컨슈머 구성 (단계 로직은 기존 핸들러 재사용)
-- [ ] 단계별 idempotency (`UPDATE … WHERE status='expected'`)
-- [ ] DLQ + 실패 알림 + `queued` 장기 정체 Cron 감시
-- [ ] **replay 규칙 준수 확인** — 부수효과는 전부 step 안으로. step 밖 API 호출·DB 쓰기·랜덤/시각 의존 금지 (`context.md` §9)
-- [ ] Phase 2 진입 판단 기준: Phase 1 배포 후 **4-creative 배치가 30초를 넘거나, 유실이 1건이라도 관측되면** 즉시 착수
-
+- [x] W0 워커 엔트리·워크플로 바인딩
+- [x] W1 assignSpecs · prepareCreativePrompt · submitBaseImage · handleBaseResult
+- [x] W2 submitRatios · handleRatioResult · analyzeCreative
+- [x] W3 submitPersona · handlePersonaResult · processDodoEvent(크레딧)
+- [x] 내부 파이프라인 라우트 11개 삭제 (전부 step 함수로)
+- [x] Replicate 웹훅 3종을 `/api/webhook/replicate/*`로 이전 + **URL HMAC 서명**
+- [ ] **W4 배포·prod 스모크** ← 남은 것 (§12)
+- [ ] W5 정체 감시·lint
 
 ### A. 결제 검증 (제품 트랙 최우선)
 - [ ] prod Pricing에서 Starter 실결제 1건 ($9.50, `FIRSTORDER50`) → `subscription_grants` 유료 1건 + 100장 확인 → 웹훅 적립 → 환불
@@ -432,3 +341,35 @@ prod의 `BASE_URL=https://tailoredad.com` = **워커가 자기 zone을 fetch** �
 - [ ] OPTIMIZATION_PLAN.md 트랙 착수
 - [ ] short_real client-gateway CF 대응 (다른 세션 인계)
 
+---
+
+## 12. 다음 세션 착수 목록 (11-05 기준)
+
+### A. 생성 품질 (이관 결함 아님 — 프롬프트 설계 문제)
+실측 근거: 배치 `719651d2` · `3163adbc` — 파이프라인은 완주하지만 결과물이 **"사람 옆에 놓인 거대한 신발"**.
+
+| | 원인 | 수정 |
+|---|---|---|
+| **A** | 페르소나가 **흉상**(`head and shoulders`) → 발이 없어 "신고 있는" 그림 불가 | `POST_AD_PERSONA_PROMPT.ts`를 **전신 스탠딩**으로 |
+| **B1** | `combined` 모드가 `hero_shot`(단독 거상)·`environment_shot`(세계 속 배치)를 허용 → **축이 "옆에 두라"고 지시** | `creativeCombinationSampler.ts`에서 두 축 제외 → `lifestyle_shot`·`product_in_hand`만 |
+| **B2** | 프롬프트에 착용·스케일 규칙 없음 → LLM이 `"beside"`, `"resting on the floor"`를 씀 | `POST_AD_CREATIVE_PROMPT.ts`에 **강제 규칙**(footwear=worn, 실물 크기, 금지 표현 목록) |
+| **B3** | 지시만으로는 LLM이 어김 | `prepareCreativePrompt.ts`에 **금지어 린트 → 1회 재생성 → 잔존 시 제거** |
+| **C** | 모델이 `":headline"`처럼 **콜론 붙인 키**를 반환 → `copy.headline` 유실 | 키 정규화(선행 `:` 제거) |
+
+**판정 실험**: A·B·C 적용 후 새 배치 1회 → 신발을 **신고 있으면** 프롬프트 문제였고, 여전히 옆에 놓이면 **모델 한계**(모델 교체 또는 합성 방식 변경).
+
+### B. 배포 (이관의 마지막 단계)
+- [ ] `vite-hono` → `develop` 머지
+- [ ] `develop` → `master` **`--no-ff`**
+- [ ] `npm run deploy` (사장님 승인 후)
+- [ ] prod 스모크: 로그인 → 생성 1회 → 이미지·썸네일·에디터 저장 확인
+- [ ] (선택) Replicate 웹훅 재조회 검증은 **불필요** — URL HMAC으로 대체됨
+
+### C. 잔여 정리 (배포 후 가능)
+- [ ] `/dev/status` 확인용 화면 제거 또는 게이트
+- [ ] `ThemeToggle`(원본 주석 "임시 데모용") 처리 결정
+- [ ] `INTERNAL_FIRE_AND_FORGET_API_SECRET` 이름 정리(이제 웹훅 서명 키)
+- [ ] `AppImage` 이미지 최적화 부재 → 원본 크기 그대로 (LCP)
+- [ ] 프리렌더를 `createRoot` → `hydrateRoot`로 (이중 렌더 제거)
+- [ ] `usageServerAPI`에 "테이블 2개" 예외 주석
+- [ ] 마케팅 트랙(§6·§11 B)은 **생성 품질 통과 후** 재개 — 시딩 이미지가 그 품질에 의존

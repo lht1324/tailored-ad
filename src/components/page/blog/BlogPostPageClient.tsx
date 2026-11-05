@@ -1,14 +1,12 @@
-'use client'
-
-import Link from 'next/link';
+import { Link } from "react-router";
 import { useMemo } from 'react';
 import { ArrowRight, Check, X } from 'lucide-react';
 import AdFooter from "@/components/page/ad/public/AdFooter";
 import ThemeToggle from "@/components/page/ad/public/ThemeToggle";
 import Reveal from "@/components/page/ad/Reveal";
 import BrandMark from "@/components/public/BrandMark";
-import { formatBlogDate } from "@/lib/content/blog/formatBlogDate";
-import type { BlogPostContent, BlogPostCompetitor } from "@/lib/content/blog/types";
+import { formatBlogDate } from "@shared/content/blog/formatBlogDate";
+import type { BlogPostContent, BlogPostCompetitor } from "@shared/content/blog/types";
 
 /**
  * 블로그 본문 템플릿 — BlogPostContent 규격이면 무엇이든 같은 구조로 렌더한다.
@@ -22,12 +20,12 @@ function BlogHeader() {
     return (
         <header className="border-b border-hairline px-4 py-4">
             <nav className="mx-auto flex max-w-6xl items-center justify-between">
-                <Link href="/" className="flex items-center gap-2.5">
+                <Link to="/" className="flex items-center gap-2.5">
                     <BrandMark size={24} />
                     <span className="text-[16px] font-bold tracking-tight text-text1">TailoredAd</span>
                 </Link>
                 <Link
-                    href="/create"
+                    to="/create"
                     className="rounded-full bg-text1 px-4 py-2 text-[13px] font-semibold text-canvas transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
                 >
                     Start creating
@@ -151,7 +149,7 @@ function CtaBand({ post }: { post: BlogPostContent }) {
                     </p>
                 </div>
                 <Link
-                    href="/create"
+                    to="/create"
                     className="group inline-flex shrink-0 items-center gap-2 rounded-full bg-canvas px-6 py-3 text-[14px] font-semibold text-text1 transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
                 >
                     {post.ctaLabel}
@@ -171,7 +169,7 @@ function RelatedPosts({ relatedPosts }: { relatedPosts: BlogPostContent[] }) {
                 {relatedPosts.map((related) => (
                     <Link
                         key={related.slug}
-                        href={`/blog/${related.slug}`}
+                        to={`/blog/${related.slug}`}
                         className="rounded-[1.25rem] border border-hairline bg-surface p-6 transition-colors duration-200 hover:border-accent/50"
                     >
                         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-accent">{related.eyebrow}</p>

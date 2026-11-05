@@ -1,9 +1,7 @@
-'use client'
-
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import dynamic from 'next/dynamic';
-import Link from 'next/link';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { lazy, Suspense } from 'react';
+import { Link } from "react-router";
+import { useParams, useNavigate, useSearchParams } from "react-router";
 import { ArrowLeft, Check, Download, Loader2 } from 'lucide-react';
 import AppHeader from "@/components/page/ad/app-header/AppHeader";
 import { useAuth } from "@/context/AuthContext";
@@ -13,23 +11,21 @@ import Inspector, { type EditorCopy } from "@/components/page/ad/projects/[proje
 import type { AdStillInput } from "@/components/page/ad/projects/[projectId]/edit/AdStillComposition";
 import { COMPOSITE_SIZES } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
 import { downloadCompositedImage } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
-import { fontMap } from "@/lib/fonts";
-import { adProjectClientAPI } from "@/lib/api/client/ad/adProjectClientAPI";
-import { buildProjectImageUrl } from "@/lib/projectImageUrl";
-import { patchFetch } from "@/lib/api/client/baseFetch";
-import { AdCreativeResult, AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
-import type { AdDesignLayout } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+import { fontMap } from "@shared/fonts";
+import { adGenerationBatchClientAPI } from "@client/api/ad/adGenerationBatchClientAPI";
+import { buildProjectImageUrl } from "@shared/projectImageUrl";
+import { patchFetch } from "@client/api/baseFetch";
+import { AdCreativeResult, AdGenerationBatch, AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
+import type { AdDesignLayout } from "@shared/types/supabase/ad/AdGenerationBatch";
 
-const EditorCanvas = dynamic(
+const EditorCanvas = lazy(
     () => import("@/components/page/ad/projects/[projectId]/edit/EditorCanvas"),
-    {
-        ssr: false,
-        loading: () => (
-            <div className="flex aspect-[4/5] items-center justify-center rounded-[1.5rem] border border-hairline bg-surface text-[13px] text-text2">
-                Loading canvas…
-            </div>
-        ),
-    },
+);
+
+const CanvasFallback = () => (
+    <div className="flex aspect-[4/5] items-center justify-center rounded-[1.5rem] border border-hairline bg-surface text-[13px] text-text2">
+        Loading canvas…
+    </div>
 );
 
 type EditorStatus = 'loading' | 'ready' | 'error';
@@ -61,10 +57,11 @@ function toEditorCopy(copy: AdCreativeResult['copy']): EditorCopy {
 }
 
 export default function EditorPageClient() {
-    const router = useRouter();
+    const navigate = useNavigate();
+    // `/projects/:projectId/edit` 라우트가 파라미터를 보장한다 (래퍼에서 없으면 404 처리).
     const params = useParams<{ projectId: string }>();
-    const projectId = params.projectId;
-    const searchParams = useSearchParams();
+    const projectId = params.projectId as string;
+    const [searchParams] = useSearchParams();
     const paramCreative = searchParams.get('creative');
     const paramRatio = searchParams.get('ratio');
 
@@ -87,8 +84,8 @@ export default function EditorPageClient() {
 
     const fetchProject = useCallback(async () => {
         try {
-            const data = await adProjectClientAPI.getProject(projectId);
-            setProject(data.project);
+            const data = await adGenerationBatchClientAPI.getAdGenerationBatchById(projectId);
+            setProject(data.batch);
             setSignedUrls(data.signedUrls);
             setBrandLogoSignedUrl(data.brandLogoSignedUrl ?? null);
             setStatus('ready');
@@ -204,13 +201,13 @@ export default function EditorPageClient() {
     const onSelectAsset = useCallback((ci: number, rk: string) => {
         if (resolved && ci === resolved.creativeIndex && rk === resolved.ratioKey) return;
         if (isDirty && !window.confirm('Unsaved changes will be lost. Switch asset?')) return;
-        router.replace(`/projects/${projectId}/edit?creative=${ci}&ratio=${encodeURIComponent(rk)}`, { scroll: false });
-    }, [resolved, isDirty, router, projectId]);
+        navigate(`/projects/${projectId}/edit?creative=${ci}&ratio=${encodeURIComponent(rk)}`);
+    }, [resolved, isDirty, navigate, projectId]);
 
     const onClickBack = useCallback(() => {
         if (isDirty && !window.confirm('Unsaved changes will be lost. Leave editor?')) return;
-        router.push(`/projects/${projectId}`);
-    }, [isDirty, router, projectId]);
+        navigate(`/projects/${projectId}`);
+    }, [isDirty, navigate, projectId]);
 
     const onClickSave = useCallback(async () => {
         if (!resolved || !design || !copy || !isDirty || isSaving || !isEditable) return;
@@ -329,7 +326,7 @@ export default function EditorPageClient() {
                     </button>
                     <div className="mt-8 rounded-[1.5rem] border border-hairline bg-surface px-8 py-16 text-center">
                         <p className="text-[13px] text-[#F87171]">{error ?? 'Project not found.'}</p>
-                        <Link href="/projects" className="mt-4 inline-flex rounded-full bg-text1 px-6 py-2.5 text-[13px] font-semibold text-canvas">
+                        <Link to="/projects" className="mt-4 inline-flex rounded-full bg-text1 px-6 py-2.5 text-[13px] font-semibold text-canvas">
                             Go to Projects
                         </Link>
                     </div>
@@ -405,6 +402,7 @@ export default function EditorPageClient() {
                                     className="relative"
                                     style={{ width: `min(100%, calc((100vh - 300px) * ${canvasAspect.toFixed(4)}))` }}
                                 >
+                                    <Suspense fallback={<CanvasFallback />}>
                                     <EditorCanvas ratioKey={resolved.ratioKey} input={canvasInput ?? {
                                         imageUrl: resolved.imageUrl,
                                         design,
@@ -419,6 +417,7 @@ export default function EditorPageClient() {
                                     onSelectHeadline={isEditable && design.headline ? () => setSelectedElement((prev) => (prev === 'headline' ? null : 'headline')) : undefined}
                                     onSelectCta={isEditable && design.cta ? () => setSelectedElement((prev) => (prev === 'cta' ? null : 'cta')) : undefined}
                                     />
+                                    </Suspense>
                                 </div>
                             </div>
                             <p className="mt-3 text-center font-mono text-[11px] uppercase tracking-[0.08em] text-text2">
@@ -446,7 +445,7 @@ export default function EditorPageClient() {
                         <p className="text-[13px] text-text2">No completed images to edit yet.</p>
                         <button
                             type="button"
-                            onClick={() => router.push(`/projects/${projectId}`)}
+                            onClick={() => navigate(`/projects/${projectId}`)}
                             className="mt-4 inline-flex rounded-full bg-text1 px-6 py-2.5 text-[13px] font-semibold text-canvas"
                         >
                             Back to Project

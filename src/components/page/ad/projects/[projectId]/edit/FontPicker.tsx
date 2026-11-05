@@ -1,8 +1,6 @@
-'use client';
-
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
-import { fontMap } from "@/lib/fonts";
+import { fontMap } from "@shared/fonts";
 
 /**
  * 폰트 피커 — 네이티브 select는 option별 font-family를 무시해서 커스텀.

@@ -1,10 +1,8 @@
-'use client'
-
 import { memo, useMemo } from 'react';
-import Image from 'next/image';
+import AppImage from "@/components/public/AppImage";
 import { Clock, Layers, AlertTriangle, CheckCircle2, Loader2, ImageIcon, Pencil } from 'lucide-react';
-import { AdGenerationBatch, AdRatioKey } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
-import { getProjectProgress } from "@/lib/api/client/ad/adProjectClientAPI";
+import { AdGenerationBatch, AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
+import { getBatchProgress } from "@client/api/ad/adGenerationBatchClientAPI";
 
 const STATUS_STYLE: Record<string, string> = {
     queued: 'bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400',
@@ -45,7 +43,7 @@ interface ProjectCardProps {
 }
 
 function ProjectCard({ project, thumbnailUrl, thumbnailRatio, onClick, onEdit }: ProjectCardProps) {
-    const progress = useMemo(() => getProjectProgress(project), [project]);
+    const progress = useMemo(() => getBatchProgress(project), [project]);
     const totalAssets = project.concept_count * project.aspect_ratios.length;
 
     const statusLabel = STATUS_LABEL[project.status] ?? project.status;
@@ -72,7 +70,7 @@ function ProjectCard({ project, thumbnailUrl, thumbnailRatio, onClick, onEdit }:
             <div className="relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden bg-canvas">
                 {thumbnailUrl ? (
                     <>
-                        <Image
+                        <AppImage
                             src={thumbnailUrl}
                             alt={`Project ${project.id.slice(0, 6)} thumbnail`}
                             fill

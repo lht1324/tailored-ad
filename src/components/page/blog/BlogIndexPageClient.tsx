@@ -1,12 +1,10 @@
-'use client'
-
-import Link from 'next/link';
+import { Link } from "react-router";
 import AdFooter from "@/components/page/ad/public/AdFooter";
 import ThemeToggle from "@/components/page/ad/public/ThemeToggle";
 import Reveal from "@/components/page/ad/Reveal";
 import BrandMark from "@/components/public/BrandMark";
-import { formatBlogDate } from "@/lib/content/blog/formatBlogDate";
-import type { BlogPostContent, BlogPostKind } from "@/lib/content/blog/types";
+import { formatBlogDate } from "@shared/content/blog/formatBlogDate";
+import type { BlogPostContent, BlogPostKind } from "@shared/content/blog/types";
 
 /**
  * /blog 목록 — 블로그 대문. 우산 경로의 리스트 페이지.
@@ -25,12 +23,12 @@ function BlogHeader() {
     return (
         <header className="border-b border-hairline px-4 py-4">
             <nav className="mx-auto flex max-w-6xl items-center justify-between">
-                <Link href="/" className="flex items-center gap-2.5">
+                <Link to="/" className="flex items-center gap-2.5">
                     <BrandMark size={24} />
                     <span className="text-[16px] font-bold tracking-tight text-text1">TailoredAd</span>
                 </Link>
                 <Link
-                    href="/create"
+                    to="/create"
                     className="rounded-full bg-text1 px-4 py-2 text-[13px] font-semibold text-canvas transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
                 >
                     Start creating
@@ -65,7 +63,7 @@ export default function BlogIndexPageClient({ posts }: { posts: BlogPostContent[
                                 {group.posts.map((post, index) => (
                                     <Reveal key={post.slug} delay={0.04 * (groupIndex + index)}>
                                         <Link
-                                            href={`/blog/${post.slug}`}
+                                            to={`/blog/${post.slug}`}
                                             className="block rounded-[1.25rem] border border-hairline bg-surface p-7 transition-colors duration-200 hover:border-accent/50"
                                         >
                                             <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-accent">{post.eyebrow}</p>

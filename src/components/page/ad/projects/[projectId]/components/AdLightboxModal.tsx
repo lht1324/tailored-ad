@@ -1,12 +1,10 @@
-'use client'
-
 import { memo, useCallback, useEffect, useState } from 'react';
-import Image from 'next/image';
+import AppImage from "@/components/public/AppImage";
 import { X, Pencil } from 'lucide-react';
 import AdOverlay from "@/components/public/AdOverlay";
 import DownloadMenuButton from "@/components/page/ad/projects/[projectId]/components/DownloadMenuButton";
 import { downloadCompositedImage, downloadRawFile, buildRawFileName } from "@/components/page/ad/projects/[projectId]/components/compositeDownload";
-import { AdDesignLayout } from "@/lib/api/types/supabase/ad/AdGenerationBatch";
+import { AdDesignLayout } from "@shared/types/supabase/ad/AdGenerationBatch";
 
 interface AdLightboxModalProps {
     imageUrl: string;
@@ -144,7 +142,7 @@ function AdLightboxModal({ imageUrl, projectShortId, ratioKey, ratioLabel, creat
 
                 <div className="flex flex-1 items-center justify-center overflow-hidden bg-canvas p-4 min-h-0">
                     <div className="relative w-fit max-w-full">
-                        <Image
+                        <AppImage
                             src={imageUrl}
                             alt={`Creative ${creativeIndex + 1} · ${ratioLabel}`}
                             width={1200}

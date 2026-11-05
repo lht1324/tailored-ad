@@ -1,7 +1,5 @@
-'use client'
-
 import { memo } from 'react';
-import Link from 'next/link';
+import { Link } from "react-router";
 import { ArrowRight } from 'lucide-react';
 import BrandMark from "@/components/public/BrandMark";
 import { useAuth } from "@/context/AuthContext";
@@ -43,7 +41,7 @@ function AdHeader() {
                         <>
                             <ProfileMenu />
                             <Link
-                                href="/projects"
+                                to="/projects"
                                 className="inline-flex items-center gap-1.5 rounded-full bg-text1 px-5 py-2.5 text-[13px] font-semibold text-canvas transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
                             >
                                 Open studio
@@ -53,7 +51,7 @@ function AdHeader() {
                     ) : (
                         <>
                             <Link
-                                href="/sign-in"
+                                to="/sign-in"
                                 className="rounded-full px-4 py-2 text-[13px] font-medium text-text2 transition-colors duration-200 hover:text-text1"
                             >
                                 Sign in

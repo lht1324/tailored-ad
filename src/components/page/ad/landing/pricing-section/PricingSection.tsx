@@ -1,14 +1,12 @@
-'use client'
-
 import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from "react-router";
 import { Check } from 'lucide-react';
 import Reveal from "@/components/page/ad/Reveal";
 import { useAuth } from "@/context/AuthContext";
-import { usersClientAPI } from "@/lib/api/client/usersClientAPI";
-import { SubscriptionPlan } from "@/lib/api/types/supabase/Users";
-import type { DodoPaidPlan as PaidPlan } from "@/lib/dodo";
-import { dodoClientAPI } from "@/lib/api/client/dodoClientAPI";
+import { userClientAPI } from "@client/api/userClientAPI";
+import { SubscriptionPlan } from "@shared/types/supabase/Users";
+import type { DodoPaidPlan as PaidPlan } from "@shared/dodo";
+import { dodoClientAPI } from "@client/api/dodoClientAPI";
 
 interface Plan {
     planId: PaidPlan;
@@ -137,7 +135,7 @@ function PricingCard({ plan, busy, showDiscountNote, onClickCheckout }: {
 
 export default function PricingSection() {
     const { user } = useAuth();
-    const router = useRouter();
+    const navigate = useNavigate();
     const [busyPlan, setBusyPlan] = useState<PaidPlan | null>(null);
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
     const [discountEligible, setDiscountEligible] = useState(false);
@@ -189,7 +187,7 @@ export default function PricingSection() {
                 setDiscountEligible(true);
                 return;
             }
-            void usersClientAPI.getUserUsageSummary(user.id).then((summary) => {
+            void userClientAPI.getUserUsageSummary(user.id).then((summary) => {
                 if (live) setDiscountEligible(!!summary && !summary.hasPaid);
             });
         });
@@ -200,15 +198,15 @@ export default function PricingSection() {
 
     const onClickCheckout = useCallback(async (plan: Plan) => {
         if (!user) {
-            router.push('/sign-in?redirectTo=/#pricing');
+            navigate('/sign-in?redirectTo=/#pricing');
             return;
         }
         // 구독 중이면 체크아웃 대신 Projects로 (이중 구독 방지)
         try {
-            const summary = await usersClientAPI.getUserUsageSummary(user.id);
+            const summary = await userClientAPI.getUserUsageSummary(user.id);
             const activePlan = (summary as unknown as { plan?: string | null } | null)?.plan;
             if (activePlan && activePlan !== 'none') {
-                router.push('/projects');
+                navigate('/projects');
                 return;
             }
         } catch {
@@ -234,7 +232,7 @@ export default function PricingSection() {
         } finally {
             setBusyPlan(null);
         }
-    }, [user, router]);
+    }, [user, navigate]);
 
     return (
         <section id="pricing" className="scroll-mt-24 border-t border-hairline bg-surface/40 px-4 py-24 md:py-32">
