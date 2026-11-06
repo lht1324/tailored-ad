@@ -6,6 +6,7 @@ import { ReplicateModelId, selectImageModel, type ImageInputTag } from "@server/
 import { requireServerEnv } from "@server/serverEnv";
 import { buildSignedWebhookUrl } from "@server/webhooks/signature";
 import { StepError } from "@server/pipeline/types";
+import { buildCaptionWrapper } from "@server/pipeline/steps/buildCaptionWrapper";
 import type { AdGenerationBatch, AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
 
 /**
@@ -147,11 +148,7 @@ export async function submitRatios(input: SubmitRatiosInput): Promise<SubmitRati
                     originalUrls = [];
                 }
 
-                const wrappedCaption =
-                    "INSTRUCTION: Use the input image ONLY to preserve the product/person identity " +
-                    "(shape, color, material, lace, perforations, stitching). Do NOT copy its background, " +
-                    "floor, shadows or wall — recreate the product with pixel-perfect edges on the new scene " +
-                    `described below.\n\nSCENE: ${caption}`;
+                const wrappedCaption = buildCaptionWrapper(batch, caption);
 
                 await replicateClient.postAdImageEditPrediction({
                     prompt: wrappedCaption,

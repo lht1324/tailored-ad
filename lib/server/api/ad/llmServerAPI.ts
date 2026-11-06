@@ -48,10 +48,14 @@ export const llmServerAPI = {
         productImageBase64?: string | null;
         personImageBase64?: string | null;
         brandLogoBase64?: string | null;
+        /** 1회 재생성용 교정 지시 — 이전 출력의 위반 사항을 문장으로 전달한다 */
+        feedback?: string | null;
     }): Promise<{
         success: boolean;
         creativePrompt?: string;
         copy?: AdCopySpec;
+        /** 제품 쓰임 — worn | held | using | placed (모드에 따라 고정값) */
+        relationship?: string;
         reasoning?: string;
         ratioReasonings?: Partial<Record<AdRatioKey, string>>;
         error?: { message: string; code: string };
@@ -122,7 +126,7 @@ ${noteLines}
 ${attachedInfo}
 
 Instruction: Generate the ratio-specific I2I caption and ad copy according to the system prompt.
-`;
+${params.feedback ? `\nCORRECTION REQUIRED (your previous output violated these rules):\n${params.feedback}\n` : ''}`;
 
             const systemMessage = hasProductImage && hasPersonImage
                 ? POST_AD_CREATIVE_PROMPT
@@ -159,6 +163,7 @@ Instruction: Generate the ratio-specific I2I caption and ad copy according to th
                 const parsed: {
                     reasoning: string;
                     ratio_reasonings: Partial<Record<AdRatioKey, string>>;
+                    relationship?: string;
                     creative_prompt: string;
                     copy: AdCopySpec;
                 } = cleanAndParseJSON(generatedContent);
@@ -175,6 +180,7 @@ Instruction: Generate the ratio-specific I2I caption and ad copy according to th
                     success: true,
                     creativePrompt: parsed.creative_prompt,
                     copy: parsed.copy,
+                    relationship: parsed.relationship,
                     reasoning: parsed.reasoning,
                     ratioReasonings: parsed.ratio_reasonings,
                 };

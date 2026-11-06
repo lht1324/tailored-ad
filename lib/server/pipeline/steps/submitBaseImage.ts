@@ -7,6 +7,7 @@ import { selectImageModel, type ImageInputTag } from "@server/replicateInputMapp
 import { AdRatioKey } from "@shared/types/supabase/ad/AdGenerationBatch";
 import { StepError } from "@server/pipeline/types";
 import { buildSignedWebhookUrl } from "@server/webhooks/signature";
+import { buildCaptionWrapper } from "@server/pipeline/steps/buildCaptionWrapper";
 
 /**
  * 단계: 기준(base) 이미지 Replicate 제출 (원래 `api/image/generation/base/route.ts`).
@@ -76,7 +77,7 @@ export async function submitBaseImage(input: SubmitBaseImageInput): Promise<Subm
 
     const webhookUrl = await buildSignedWebhookUrl(baseUrl, "/api/webhook/replicate/image/base", { batchId, creativeIndex: String(creativeIndex), ratioKey: baseRatio, attempt: String(attempt) });
 
-    const wrappedCaption = `INSTRUCTION: Use the input image ONLY to preserve the product/person identity (shape, color, material, lace, perforations, stitching). Do NOT copy its background, floor, shadows or wall — recreate the product with pixel-perfect edges on the new scene described below.\n\nSCENE: ${caption}`;
+    const wrappedCaption = buildCaptionWrapper(batch, caption);
 
     const tagOrder: ImageInputTag[] = [
         ...(batch.product_image ? ["PRODUCT_IMAGE" as const] : []),

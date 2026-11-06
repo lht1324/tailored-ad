@@ -142,6 +142,13 @@ export const PRODUCT_ONLY_CREATIVE_PROMPT = `
       "[Product anchor — exactly 'PRODUCT_IMAGE' verbatim] + [Background+Lighting clause — material, hue, light physics (e.g., 'pale stone plinth and sand-toned plaster under soft golden rim light')] + [Composition/Framing clause — ratio token + negative space + framing cue]"
       Rule: Split the prompt into Background+Lighting (part A) and Composition (part B). Example good split: "PRODUCT_IMAGE on pale stone plinth and sand-toned plaster under soft golden rim light, vertical 9:16 canvas with product upper third and 60% void below — minimal modern stillness."
 
+      PLACEMENT AND SCALE (MANDATORY):
+      - No person is attached, so the product is PLACED. Name the surface it rests on and add a
+        contact shadow where it meets that surface.
+      - State its real-world size relative to the scene (a bottle ≈ hand-length on a shelf, a sofa
+        fills a living-room wall). NEVER carry over the reference photo's frame coverage — a packshot
+        that filled the source frame is not life-size in the scene.
+
       Examples of GOOD (do this):
       - "PRODUCT_IMAGE hero-raised on a pale stone plinth in a sun-baked studio, vertical 9:16 canvas with 60% sand-toned void below, low golden sun carving long shadows through dusty air, minimal modern stillness."
       - "PRODUCT_IMAGE in a clinical packshot centered in a square 1:1 frame with 12% equal bone-white margins, soft studio diffused wrap light feathering across the surface, muted palette whispering quiet luxury."
@@ -235,6 +242,7 @@ export const PRODUCT_ONLY_CREATIVE_PROMPT = `
       "ratio_reasonings": {
         "<aspect_ratio>": "1 sentence: why this composition works for the requested canvas. 15-25 words."
       },
+      "relationship": "placed",
       "creative_prompt": "One single sentence I2I prompt with the requested ratio token and explicit negative space / material / light physics. No word-count limit.",
       "copy": {
         "headline": "3-8 word English headline, no period (always generated; rendering may be toggled off)",
@@ -302,7 +310,8 @@ export const PRODUCT_ONLY_CREATIVE_PROMPT = `
   <constraint>
     - Return valid JSON only. No prose, no markdown, no code fences, no commentary outside JSON.
     - Language: ALL output text MUST be English only. This includes reasoning, ratio_reasonings, creative_prompt, and copy (headline/cta). Korean, Chinese, or any non-English output is strictly forbidden.
-    - Keys MUST be exactly: reasoning, ratio_reasonings, creative_prompt, copy. No extra top-level keys.
+    - Keys MUST be exactly: reasoning, ratio_reasonings, relationship, creative_prompt, copy. No extra top-level keys.
+    - "relationship" MUST be exactly "placed" in this mode (no person is attached).
     - ratio_reasonings MUST contain exactly one key: <aspect_ratio>. creative_prompt is a string, not a record.
     - Prompts are one sentence, period-terminated, ratio token included.
     - Never paint text into image. If you include any of [text, word, letter, headline, CTA, logo, watermark, price tag, discount language, sale, promo, $] inside creative_prompt, the generation is wasted and billed. (Numerals with % for sizes and negative space, e.g. "60% void", are required — not banned.)
@@ -683,14 +692,14 @@ export const POST_AD_CREATIVE_PROMPT = `
       Goal: Transform 5 discrete axes into ONE unified creative concept sentence (internal, not output) that will be rendered for the requested ratio in Unit 2.
 
       1. **Camera Translation (8-way)**:
-         - hero_shot: product as monument, low angle, breathing room, pedestal or plinth, product occupies 35-45% of frame
+         - hero_shot: product as monument, low angle, breathing room, pedestal or plinth, product occupies 35-45% of frame — **UNAVAILABLE while a person is attached** (it defines a solo product). Treat it as lifestyle_shot.
          - packshot: clinical, shadowless, product front-facing, 50-60% fill, pure e-commerce legibility
          - lifestyle_shot: product in use, human context, mid-action, environment tells the story
          - detail_close: macro texture, material truth, 70-85% fill, tactile surface (stitching, grain, droplet)
          - flat_lay: top-down, geometric grid, curated props, 90-degree overhead, editorial flat-lay
          - overhead_angle: 45-degree top-down, depth stacking, shadow play on surface
          - product_in_hand: human hand as scale anchor, 35mm intimacy, skin texture, grip tension
-         - environment_shot: product as inhabitant of a world, 20-30% fill, environment dominates, atmospheric
+         - environment_shot: product as inhabitant of a world, 20-30% fill, environment dominates, atmospheric — **UNAVAILABLE while a person is attached** (it places the product in a world without the person). Treat it as lifestyle_shot.
         *Constraint*: One camera logic only. Do NOT hybridize.
 
       2. **Lighting Translation (8-way, SINGLE light logic)**:
@@ -758,15 +767,35 @@ export const POST_AD_CREATIVE_PROMPT = `
       - **2:3 (Portrait, 1080x1620)**: Editorial poster. Elongated elegance, fashion mag. 50% negative, strong vertical rhythm. Language cue: "elongated", "editorial column", "poster proportion".
 
       Sentence Architecture (MANDATORY ORDER — Context-First, 2-part unification):
-      "[Relationship anchor — tags ONLY, verbatim from the Relationship Vocabulary below] + [Background+Lighting clause — material, hue, light physics] + [Composition/Framing clause — ratio token + negative space + framing cue]"
+      "[Relationship anchor — tags ONLY, verbatim from the STAGING block below] + [Background+Lighting clause — material, hue, light physics] + [Composition/Framing clause — ratio token + negative space + framing cue]"
       Rule: You MAY add one role descriptor (e.g. 'the woman', 'the chef') inside the Composition clause. Split the prompt into Background+Lighting (part A) and Composition (part B). Example good split: "PERSON_IMAGE holding PRODUCT_IMAGE in soft morning warmth, vertical 9:16 canvas with generous breathing void — minimal modern stillness."
 
-      Relationship Vocabulary (choose ONE per creative, anchor verbatim identical across ratios):
-      - holding: "PERSON_IMAGE holding PRODUCT_IMAGE" — default. DTC/UGC intimacy, product_in_hand.
-      - wearing: "PERSON_IMAGE wearing PRODUCT_IMAGE" — fashion, apparel, beauty-worn.
-      - using: "PERSON_IMAGE using PRODUCT_IMAGE" — tools, cosmetics, devices mid-action.
-      - beside: "PRODUCT_IMAGE beside PERSON_IMAGE" — editorial, environmental, product leads.
-      Arbitration: camera decides prominence but the relationship must stay compatible — product_in_hand forces holding; detail_close/packshot/flat_lay keep product leading with the person contextual yet recognizable; lifestyle/environment accept any. Never depict a relationship you did not choose. Never drop an attached subject.
+      STAGING OVERRIDES THE SENTENCE ARCHITECTURE ABOVE (decide this first, then write the sentence):
+      Step 1 — read the product image and name how this object is actually used in real life.
+      Step 2 — commit to exactly ONE relationship. The caption MUST open with its anchor verbatim:
+        - worn  → "PERSON_IMAGE wearing PRODUCT_IMAGE"   footwear, apparel, jewellery, eyewear, watch
+        - held  → "PERSON_IMAGE holding PRODUCT_IMAGE"   bottle, jar, box, phone, cup, bag in hand
+        - using → "PERSON_IMAGE using PRODUCT_IMAGE"     tool, cosmetics, dispenser, device in action
+      Step 3 — the camera axis is a STYLE hint only. When it conflicts with the relationship,
+        THE RELATIONSHIP WINS. hero_shot and environment_shot define a SOLO product and are
+        unavailable while a person is attached: treat them as lifestyle_shot.
+        product_in_hand is valid only for held and using. When the relationship is worn, render the
+        worn body part as the hero detail instead (foot, ankle, wrist, shoulder) — never a hand
+        holding the product.
+      BANNED STAGING (a person is attached): "beside", "next to", "standing next to", "in front of",
+      "behind", "resting on", "lying on", "placed on the floor", "on the ground next to".
+      Never depict the relationship as two separate subjects sharing a frame.
+
+      SCALE AND CONTACT (MANDATORY — one concrete clause each):
+      - Real-world size relative to the person, stated as a body anchor: footwear ≈ foot-length
+        ("both feet in frame, the sneaker at foot-length"), bottle ≈ hand-length, phone ≈ palm-length,
+        bag ≈ torso-width, furniture ≈ body-height. NEVER carry over the reference photo's frame
+        coverage — a packshot shoe is not life-size in the scene just because it filled the source frame.
+      - The product must touch the person. Footwear: both soles flat on the floor, laces tied,
+        a contact shadow under each sole. Held objects: fingers wrapped around the product, grip
+        shadow on the palm. Used objects: the product meets its target (skin, cup, surface).
+      - State the size on the body, not in centimetres alone: "the sneaker reads at foot-length
+        against his stance" beats "30 cm".
 
       Examples of GOOD (do this):
       - "PERSON_IMAGE holding PRODUCT_IMAGE in a sunlit kitchen, anchored left third of horizontal 16:9 canvas with 55% warm oak negative right, soft window wrap casting feathered highlights, lifestyle ease."
@@ -776,6 +805,7 @@ export const POST_AD_CREATIVE_PROMPT = `
       - "hero_shot, golden_hour, warm, centered, classic_product"  // keyword listing, banned
       - "Make a beautiful ad with text saying SALE" // asks to paint text, banned
       - "PRODUCT_IMAGE in the center" // vague, no material/light/palette embodiment
+      - "PERSON_IMAGE standing next to PRODUCT_IMAGE on the floor" // two separate subjects, banned when a person is attached
 
       Hard Constraints per Prompt:
       - One sentence. Ends with a period.
@@ -862,6 +892,7 @@ export const POST_AD_CREATIVE_PROMPT = `
       "ratio_reasonings": {
         "<aspect_ratio>": "1 sentence: why this composition works for the requested canvas. 15-25 words."
       },
+      "relationship": "worn | held | using",
       "creative_prompt": "One single sentence I2I prompt with the requested ratio token and explicit negative space / material / light physics. No word-count limit.",
       "copy": {
         "headline": "3-8 word English headline, no period (always generated; rendering may be toggled off)",
@@ -912,7 +943,7 @@ export const POST_AD_CREATIVE_PROMPT = `
       "ratio_reasonings": {
         "9_16": "Vertical 9:16 holds the pair small beneath 65% sand void — editorial pause earns the scroll stop."
       },
-      "creative_prompt": "PRODUCT_IMAGE beside PERSON_IMAGE low in a vertical 9:16 canvas, a sculptural stone diffuser on rippled dune sand, the figure standing downwind in a sand linen shirt and rolled chinos, barefoot, golden-hour amber stretching both their shadows long across the sand, dry grass tufts bowing, 65% breathing void above, editorial solitude, wind-combed grass drawing parallel lines to the horizon, the diffuser's stone pitted by weather.",
+      "creative_prompt": "PERSON_IMAGE using PRODUCT_IMAGE, a sculptural stone diffuser at knee height on rippled dune sand, the figure crouched with one palm on its crown, sand linen shirt and rolled chinos, barefoot, golden-hour amber stretching both their shadows long across the sand, 65% breathing void above, editorial solitude, wind-combed grass drawing parallel lines to the horizon, the diffuser's stone pitted by weather.",
       "copy": { "headline": "2,300 Homes Breathe Easier", "cta": null, "fontFamily": "Merriweather", "fontWeight": 400, "headlineColor": "black" }
     }
   </few_shot_examples>
@@ -920,7 +951,8 @@ export const POST_AD_CREATIVE_PROMPT = `
   <constraint>
     - Return valid JSON only. No prose, no markdown, no code fences, no commentary outside JSON.
     - Language: ALL output text MUST be English only. This includes reasoning, ratio_reasonings, creative_prompt, and copy (headline/cta). Korean, Chinese, or any non-English output is strictly forbidden.
-    - Keys MUST be exactly: reasoning, ratio_reasonings, creative_prompt, copy. No extra top-level keys.
+    - Keys MUST be exactly: reasoning, ratio_reasonings, relationship, creative_prompt, copy. No extra top-level keys.
+    - "relationship" MUST be exactly one of "worn", "held", "using", and creative_prompt MUST open with "PERSON_IMAGE <verb> PRODUCT_IMAGE" using the same verb.
     - ratio_reasonings MUST contain exactly one key: <aspect_ratio>. creative_prompt is a string, not a record.
     - Prompts are one sentence, period-terminated, ratio token included.
     - Never paint text into image. If you include any of [text, word, letter, headline, CTA, logo, watermark, price tag, discount language, sale, promo, $] inside creative_prompt, the generation is wasted and billed. (Numerals with % for sizes and negative space, e.g. "60% void", are required — not banned.)

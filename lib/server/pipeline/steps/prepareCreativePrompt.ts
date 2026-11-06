@@ -112,6 +112,86 @@ function normalizeCopyFields(copy: AdCopySpec, batchId: string, creativeIndex: n
     return copy;
 }
 
+/** 관계 앵커 — 인물이 첨부된 배치에서 제품이 '어떻게 쓰이는지'를 문장에 고정한다. */
+const RELATIONSHIP_VERBS = ['wearing', 'holding', 'using'] as const;
+type RelationshipVerb = (typeof RELATIONSHIP_VERBS)[number];
+
+/** 인물과 제품을 분리 배치하는 표현 — 인물 첨부 시 금지 (거대한 제품이 옆에 놓이는 원인) */
+const SEPARATED_STAGING_PATTERN =
+    /\b(?:standing\s+next\s+to|next\s+to|beside|resting\s+on|lying\s+on|placed\s+on\s+the\s+floor|on\s+the\s+ground\s+next\s+to)\b/i;
+
+function readRelationshipAnchor(caption: string): RelationshipVerb | null {
+    const match = caption.match(/\bPERSON_IMAGE\s+(wearing|holding|using)\s+PRODUCT_IMAGE\b/i);
+    if (!match) {
+        return null;
+    }
+    const verb = match[1].toLowerCase();
+    return RELATIONSHIP_VERBS.find((value) => value === verb) ?? null;
+}
+
+function normalizeRelationship(value: string | undefined): RelationshipVerb | null {
+    if (!value) {
+        return null;
+    }
+    const lowered = value.trim().toLowerCase();
+    return RELATIONSHIP_VERBS.find((verb) => verb === lowered) ?? null;
+}
+
+/** 인물+제품 배치에서 문장이 '쓰임'을 지키는지 검사한다. 위반 사유를 문장으로 돌려준다. */
+function findStagingViolations(caption: string, relationship: string | undefined): string[] {
+    const violations: string[] = [];
+    const anchor = readRelationshipAnchor(caption);
+    const declared = normalizeRelationship(relationship);
+
+    if (!anchor) {
+        violations.push(
+            'The caption must contain "PERSON_IMAGE wearing PRODUCT_IMAGE", "PERSON_IMAGE holding PRODUCT_IMAGE", or "PERSON_IMAGE using PRODUCT_IMAGE".',
+        );
+    }
+    if (relationship && !declared) {
+        violations.push(`"relationship" must be exactly one of worn, held, using — received "${relationship}".`);
+    }
+    if (anchor && declared) {
+        const declaredVerb = declared === 'using' ? 'using' : declared === 'wearing' ? 'wearing' : 'holding';
+        if (anchor !== declaredVerb) {
+            violations.push(
+                `The declared relationship "${relationship}" does not match the caption anchor "${anchor}".`,
+            );
+        }
+    }
+    const separated = caption.match(SEPARATED_STAGING_PATTERN);
+    if (separated) {
+        violations.push(
+            `The caption contains banned separated staging "${separated[0]}". A person is attached, so the product must be worn, held, or in use — never placed beside them.`,
+        );
+    }
+
+    return violations;
+}
+
+/** 재생성도 실패했을 때의 결정적 보정 — 앵커를 앞에 붙이고 분리 표현을 중화한다. */
+function repairCombinedCaption(caption: string, relationship: string | undefined): string {
+    const verb = readRelationshipAnchor(caption) ?? normalizeRelationship(relationship) ?? 'using';
+    const contact = verb === 'wearing'
+        ? 'both feet in frame, soles flat on the floor, a contact shadow under each sole'
+        : verb === 'holding'
+            ? 'fingers wrapped around it, grip shadow on the palm'
+            : 'meeting its target in active use';
+
+    const neutralized = caption
+        .replace(/\b(?:standing\s+next\s+to|next\s+to|beside)\b/gi, 'with')
+        .replace(/\b(?:resting|lying)\s+on\s+(?:the\s+)?(?:floor|ground)\b/gi, 'in contact with the wearer')
+        .replace(/\bplaced\s+on\s+the\s+floor\b/gi, 'in contact with the wearer')
+        .replace(/\s{2,}/g, ' ')
+        .replace(/\s+([,.;])/g, '$1')
+        .trim();
+
+    if (readRelationshipAnchor(neutralized)) {
+        return neutralized;
+    }
+    return `PERSON_IMAGE ${verb} PRODUCT_IMAGE at real-world scale, ${contact}, ${neutralized}`;
+}
+
 /**
  * creative 프롬프트 1장 생성 + 저장. creative마다 1회.
  * 멱등: 이미 prompt가 저장돼 있으면 아무것도 하지 않고 기존 값을 반환한다.
@@ -136,7 +216,11 @@ export async function prepareCreativePrompt(
 
     const baseRatio: AdRatioKey = selectBaseRatio(adGenerationBatch.aspect_ratios);
 
-    const llmResult = await llmServerAPI.postCreativeBaseImagePrompt({
+    const mode = adGenerationBatch.product_image && adGenerationBatch.person_image
+        ? 'combined'
+        : adGenerationBatch.person_image ? 'person-only' : 'product-only';
+
+    const baseRequest = {
         creativeIndex,
         creativeSpec: adCreativeSpec,
         baseRatio,
@@ -148,7 +232,26 @@ export async function prepareCreativePrompt(
         productImageBase64,
         personImageBase64,
         brandLogoBase64,
-    });
+    };
+
+    let llmResult = await llmServerAPI.postCreativeBaseImagePrompt(baseRequest);
+
+    // 인물+제품 배치: '쓰임'을 어긴 문장은 1회 재생성한다 (프롬프트 지시만으로는 새는 경우가 있다)
+    if (mode === 'combined' && llmResult.success && llmResult.creativePrompt) {
+        const violations = findStagingViolations(llmResult.creativePrompt, llmResult.relationship);
+        if (violations.length > 0) {
+            console.warn(
+                `[prompt] staging violation (creative #${creativeIndex} batch ${batchId}): ${violations.join(' ')}`,
+            );
+            const retried = await llmServerAPI.postCreativeBaseImagePrompt({
+                ...baseRequest,
+                feedback: violations.join(' '),
+            });
+            if (retried.success && retried.creativePrompt) {
+                llmResult = retried;
+            }
+        }
+    }
 
     if (!llmResult.success || !llmResult.creativePrompt || !llmResult.copy) {
         console.error(`[prompt] LLM failed creative #${creativeIndex} batch ${batchId}:`, llmResult.error);
@@ -158,19 +261,31 @@ export async function prepareCreativePrompt(
         );
     }
 
+    // 재생성도 실패하면 결정적으로 보정한다 — 잘못된 이미지에 과금하는 것보다 낫다
+    let finalPrompt = llmResult.creativePrompt;
+    if (mode === 'combined') {
+        const remaining = findStagingViolations(finalPrompt, llmResult.relationship);
+        if (remaining.length > 0) {
+            console.error(
+                `[prompt] staging still violated after retry — repairing (creative #${creativeIndex} batch ${batchId}): ${remaining.join(' ')}`,
+            );
+            finalPrompt = repairCombinedCaption(finalPrompt, llmResult.relationship);
+        }
+    }
+
     const copy = normalizeCopyFields({ ...llmResult.copy }, batchId, creativeIndex);
 
     await adGenerationBatchServerAPI.updateCreativePromptOutputs(
         batchId,
         creativeIndex,
-        llmResult.creativePrompt,
+        finalPrompt,
         baseRatio,
         copy,
     );
 
     return {
         creativeIndex,
-        creativePrompt: llmResult.creativePrompt,
+        creativePrompt: finalPrompt,
         copy,
     };
 }

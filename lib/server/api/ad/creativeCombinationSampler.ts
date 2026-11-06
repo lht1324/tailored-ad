@@ -112,7 +112,9 @@ const MODE_EXCLUDED_VALUES: Record<CreativeMode, Partial<Record<CreativeAxisName
         camera: ['packshot'],
     },
     'combined': {
-        camera: ['packshot', 'detail_close', 'flat_lay', 'overhead_angle'],
+        // 인물이 있으면 제품은 '입거나 들거나 쓰는' 것이어야 한다.
+        // hero_shot(단독 거상)·environment_shot(세계 속 배치)은 인물 없는 구도라 제외.
+        camera: ['packshot', 'detail_close', 'flat_lay', 'overhead_angle', 'hero_shot', 'environment_shot'],
     },
 };
 
