@@ -1,55 +1,47 @@
-# TailoredAd — 작업 기록 (Last Updated: 2026-11-05 02:34)
+# TailoredAd — 작업 기록 (Last Updated: 2026-11-07 02:48)
 
 > short_real의 `/ad`(AI 스틸 광고)를 독립 앱·독립 브랜드로 분리한 프로젝트.
 > 포트폴리오(jaeholee.xyz) 관련 내용은 제외.
 
-## 0. 최근 세션 기록 (10-31 ~ 11-05) — **Next → Vite + Hono 이관**
+## 0. 최근 세션 기록 (11-06 ~ 11-07) — **생성 품질 판정 완료**
 
-### 결론: 코드 이관 완료, **배포만 남음**
+### 결론: 프롬프트 결함이었다. 수정 후 신발을 신었다.
 
-- 새 스택: **React 19 + Vite 8 + Hono 4 + `@cloudflare/vite-plugin`**, 포트 **3002 단일 서버**
-- 브랜치 **`vite-hono`** (worktree `~/Projects/tailored-ad-vite`) · 복귀 지점 태그 **`pre-vite`**
-- 실측: `typecheck`·`build` 초록, **실제 배치 1건 완주**(4장, 점수 8.8~9.1) → 파이프라인 end-to-end 검증됨
-- **prod는 여전히 구 Next 버전이 서빙 중** (변경 없음)
+**현재 상태**
+- 스택: React 19 + Vite 8 + Hono 4 + `@cloudflare/vite-plugin` (Next 원본은 태그 `pre-vite`)
+- 폴더: `~/Projects/tailored-ad` **하나** (worktree 정리 완료)
+- 브랜치: `develop` (origin보다 앞섬, **push 안 됨**)
+- 검증: `typecheck`·`build` 초록, 프리렌더 11경로, **배치 2회 완주** (`719651d2`, `3956437d`)
+- prod: 아직 구 Next 서빙 중 (변경 없음)
 
-### 옮긴 것
-| | |
-|---|---|
-| 라우트 | 34개 전부 (API 25 + 웹훅 3계열 + 페이지 2) |
-| 화면 | 랜딩 · legal 3 · 블로그(목록+6편) · sign-in · projects · 상세 · create · profile · checkout · **에디터** |
-| 인증 | Neon Auth → Hono 미들웨어 + `/api/auth/*` 프록시 + OAuth 콜백(verifier 교환) |
-| 페이지 가드 | `proxy.ts` → 워커 (`run_worker_first` + `ASSETS`) |
-| 파이프라인 | Workflows W1·W2·W3 — base · ratios · analysis · **persona** · 크레딧 |
-| SEO | 정적 프리렌더 **11경로** + `llms.txt`(정적 생성) |
-| R2 | AWS SDK → **`aws4fetch`** (Cloudflare 권장, @smithy 패키징 문제 회피) |
-| 구조 | `lib/{client,server,shared}` 3분할 + `src`=화면, `worker`=서버 진입 |
+**이번 세션에 한 일**
+1. worktree `tailored-ad-vite` 제거 → `tailored-ad`가 Vite+Hono를 들고 있게 정리
+2. Next 잔재 삭제 (`.next-docker`는 docker로, `.open-next`, `next-env.d.ts`, `.neon`)
+3. API 계층 정리 (`1cc2320`, `0b509b1`) — 테이블 단수형, `imageServerAPI` → `storage/imageStorage`
+4. **생성 품질 원인 분석** → `GENERATION_QUALITY.md`
+5. **태그·모순 정리 (`255d7aa`)** — 문장 구조가 태그를 쓰도록, note 충돌 해소, 스키마 예시 수정, 페르소나 전신화
+6. **staging 우선 구조 (`a8d95d5`)** — 관계 먼저 결정, 단독 구도 축 제거, 스케일·접지 강제, 린트
+7. **판정 배치 통과** — `3956437d`, 1:1 두 장 모두 신발을 신음
 
-### 폐기·대체
-- `client-gateway` → **Hono 미들웨어**(세션 검증 단일화)
-- `dodo/process` → `processDodoEvent()` 함수 + `waitUntil`
-- `webhook/fungies` → 삭제(죽은 라우트)
-- 내부 파이프라인 라우트 6개(`image/generation·process/*`, `creative/:i/analysis`) → **워크플로 step**
-- `INTERNAL_FIRE_AND_FORGET_API_SECRET` → self-fetch 폐기로 용도 소멸 → **웹훅 URL 서명 키로 재사용**
+**핵심 교훈**
+- FLUX 3는 참조의 **쓰임을 추론하지 않는다.** 관계를 문장으로 말해야 한다 (`image 1`, `image 2` 위치 참조).
+- 참조 이미지의 **화면 점유율을 보존**하려 한다. 실물 크기를 말하지 않으면 제품이 거대해진다.
+- 프롬프트가 **3벌 복사본**이라 한쪽만 고치면 모순이 남는다 → 통합 검토 대상(급하지 않음).
 
-### 이번에 잡은 치명 버그 (전부 실측으로 확인)
-1. **완료 마커 RPC**: `JSON.stringify(null)`이 **jsonb의 JSON null**이라 PL/pgSQL의 `p_error is not null`이 참 → 오류가 없는데 실패 분기를 타서 `imageFileExtension`을 버림 → **base 저장 실패 → 파이프라인 전체 정지**. SQL NULL 전달로 수정.
-2. **R2**: `@smithy/core`의 `browser` 필드가 **배포본에 없는 `*.browser.js`**를 가리켜 `S3Client` 생성 즉사 → `aws4fetch`로 교체.
-3. **웹훅 경로**: `/webhook/*`이 `run_worker_first`에 없어 워커에 도달 못 함 → `/api/webhook/*`로 이동.
-4. **OAuth verifier 교환**: 페이지 요청은 워커에 안 오므로 `/api/auth/callback`으로 옮겨 교환.
-5. **이미지 프록시**: 페이지 가드가 `/projects/*`를 먼저 잡아 index.html 반환 → **이미지 라우트를 가드보다 앞에** 마운트.
-6. **base 실패 폴백**: 실패한 비율을 DB 기록에 의존해 제외 → 기록 실패 시 **같은 비율 무한 재시도(과금)**. 코드로 확정 제외.
-7. **env**: `DODO_ENV` 폐기 → `ENVIRONMENT`(런타임 값). R2 버킷 선택도 `NODE_ENV`(빌드 상수) → `ENVIRONMENT`.
-8. **Replicate 웹훅 위조**: 서명이 없는 제공자라 **웹훅 URL에 HMAC 서명**을 붙이고 수신 시 검증.
+**이관 중 잡은 치명 버그 8건 (재발 방지)**
+1. 완료 마커 RPC가 `JSON.stringify(null)`을 jsonb JSON null로 보내 실패 분기를 탐 → `imageFileExtension` 유실
+2. `@smithy/core`의 browser 필드가 없는 파일을 가리켜 `S3Client` 즉사 → `aws4fetch`
+3. 웹훅 경로가 `run_worker_first` 밖 → `/api/webhook/*`로 이동
+4. OAuth verifier 교환을 `/api/auth/callback`으로 이동
+5. 페이지 가드가 이미지 라우트보다 먼저 마운트 → 순서 수정
+6. base 실패 폴백이 DB 기록에 의존 → 무한 재시도(과금) → 코드로 확정 제외
+7. `process.env.NODE_ENV`는 빌드 상수 → 런타임 `ENVIRONMENT`
+8. Replicate 웹훅에 서명이 없음 → URL HMAC
 
-### 이관 중 발견한 규칙 (재발 방지)
-- **`secrets.required`를 선언하면 `.dev.vars`에서 그 목록만 로드된다.** 웹훅 키를 빠뜨려 400이 났음.
-- **Cloudflare `assets`는 `foo.html`을 `/foo`로, `foo/index.html`을 `/foo/`로 서빙**한다(`html_handling: auto-trailing-slash`). 프리렌더 파일명 규칙이 여기 맞춰져야 한다.
-- **작업자(Workers)에서 `process.env.NODE_ENV`는 빌드 타임 상수**다. dev 빌드를 배포하면 prod가 dev 분기를 탄다 → 런타임 `ENVIRONMENT`를 쓴다.
-
-### 아직 안 한 것
-- **배포**: `vite-hono` → `develop` → `master`(`--no-ff`) → `npm run deploy` → prod 스모크
-- **생성 품질 3건** → §12
-- 잔여 정리 → §12
+**다른 PC에서 이어서 작업할 때**
+- `.dev.vars`는 git에 없다 (PC별). 기존 PC에서 복사해야 한다.
+- dev DB: project `divine-sea-22567219`, branch `br-proud-field-b33lwnit`
+- 포트 3002 (dev 서버 하나, 짝수 = 기본)
 
 ## 1. 개요
 
@@ -87,7 +79,7 @@
 ## 3. 프롬프트·생성 잔량 (미완)
 
 - [ ] LLM 프롬프트 base-only 2순위: softbox 기구명사 금지 + levitating→grounded + Full-color 강제 (Note 강제는 완료)
-- [ ] 상대 크기 앵커 규칙 (인물 있으면 신체 대비 · 없으면 fill — 미적용)
+- [x] 상대 크기 앵커 규칙 — 완료 (`a8d95d5`: 신체 대비·실물 크기·접지 강제)
 - [ ] C 단위 LLM 2회 분리 검토 (base·ratio mutual blind — 재구성 품질 보고 결정)
 - [ ] 프롬프트 eyeball (FLUX 3 기준)
 - [ ] B9 c01-1:1 실패분 재생성 + 19칸 선정 매핑 보완
@@ -343,23 +335,22 @@ prod의 `BASE_URL=https://tailoredad.com` = **워커가 자기 zone을 fetch** �
 
 ---
 
-## 12. 다음 세션 착수 목록 (11-05 기준)
+## 12. 다음 세션 착수 목록 (11-07 기준)
 
-### A. 생성 품질 (이관 결함 아님 — 프롬프트 설계 문제)
-실측 근거: 배치 `719651d2` · `3163adbc` — 파이프라인은 완주하지만 결과물이 **"사람 옆에 놓인 거대한 신발"**.
-
-| | 원인 | 수정 |
-|---|---|---|
-| **A** | 페르소나가 **흉상**(`head and shoulders`) → 발이 없어 "신고 있는" 그림 불가 | `POST_AD_PERSONA_PROMPT.ts`를 **전신 스탠딩**으로 |
-| **B1** | `combined` 모드가 `hero_shot`(단독 거상)·`environment_shot`(세계 속 배치)를 허용 → **축이 "옆에 두라"고 지시** | `creativeCombinationSampler.ts`에서 두 축 제외 → `lifestyle_shot`·`product_in_hand`만 |
-| **B2** | 프롬프트에 착용·스케일 규칙 없음 → LLM이 `"beside"`, `"resting on the floor"`를 씀 | `POST_AD_CREATIVE_PROMPT.ts`에 **강제 규칙**(footwear=worn, 실물 크기, 금지 표현 목록) |
-| **B3** | 지시만으로는 LLM이 어김 | `prepareCreativePrompt.ts`에 **금지어 린트 → 1회 재생성 → 잔존 시 제거** |
-| **C** | 모델이 `":headline"`처럼 **콜론 붙인 키**를 반환 → `copy.headline` 유실 | 키 정규화(선행 `:` 제거) |
-
-**판정 실험**: A·B·C 적용 후 새 배치 1회 → 신발을 **신고 있으면** 프롬프트 문제였고, 여전히 옆에 놓이면 **모델 한계**(모델 교체 또는 합성 방식 변경).
+### A. 생성 품질 — **판정 완료**
+- [x] A 페르소나 전신화 (`255d7aa`)
+- [x] B1 단독 구도 축 제거 — `combined` 카메라 = `lifestyle_shot` · `product_in_hand`
+- [x] B2 착용·스케일·접지 강제
+- [x] B3 금지어 린트 → 1회 재생성 → 결정적 보정
+- [x] 판정 배치 통과 (`3956437d`: 1:1 두 장 모두 신발을 신음)
+- [ ] **C 키 정규화** — `":headline"` 콜론 키 제거 (**미수정**)
+- [ ] 다른 카테고리 1회 — 향수병으로 `held`/`using` 확인 (신발 과적합 검사)
+- [ ] 카메라 풀 재검토 — `detail_close`를 `combined`에 다시 허용할지
+- [ ] `grounding: true` A/B — 상품 동일성에 역효과 가능성
+- [ ] 로고 경로 실검증 — 배치 68개 중 로고 0건, **한 번도 실행 안 됨**
+- [ ] 프롬프트 3벌 → 1벌 통합 (유지보수, 급하지 않음)
 
 ### B. 배포 (이관의 마지막 단계)
-- [ ] `vite-hono` → `develop` 머지
 - [ ] `develop` → `master` **`--no-ff`**
 - [ ] `npm run deploy` (사장님 승인 후)
 - [ ] prod 스모크: 로그인 → 생성 1회 → 이미지·썸네일·에디터 저장 확인
@@ -370,6 +361,6 @@ prod의 `BASE_URL=https://tailoredad.com` = **워커가 자기 zone을 fetch** �
 - [ ] `ThemeToggle`(원본 주석 "임시 데모용") 처리 결정
 - [ ] `INTERNAL_FIRE_AND_FORGET_API_SECRET` 이름 정리(이제 웹훅 서명 키)
 - [ ] `AppImage` 이미지 최적화 부재 → 원본 크기 그대로 (LCP)
-- [ ] 프리렌더를 `createRoot` → `hydrateRoot`로 (이중 렌더 제거)
+- [ ] 프리렌더 `createRoot` → `hydrateRoot` (이중 렌더 제거)
 - [ ] `usageServerAPI`에 "테이블 2개" 예외 주석
-- [ ] 마케팅 트랙(§6·§11 B)은 **생성 품질 통과 후** 재개 — 시딩 이미지가 그 품질에 의존
+- [ ] 마케팅 트랙(§6·§11 B)은 **배포 후** 재개 — 시딩 이미지가 생성 품질에 의존
