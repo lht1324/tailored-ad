@@ -75,10 +75,17 @@ export const llmServerAPI = {
             if (productImageBase64) imageBase64List.push(productImageBase64);
             if (personImageBase64) imageBase64List.push(personImageBase64);
             if (brandLogoBase64) imageBase64List.push(brandLogoBase64);
-            const attachedOrder = [productImageBase64 ? 'product' : null, personImageBase64 ? 'person' : null, brandLogoBase64 ? 'brand_logo' : null].filter(Boolean).join(', ');
-            const attachedInfo = imageBase64List.length > 0
-                ? `Attached images: ${imageBase64List.length} image(s) in order [${attachedOrder}] — primary ground truth.`
-                : `Attached images: none — use notes and axes only.`;
+            // 참조는 번호가 아니라 태그로만 지칭한다. 번호를 주면 모델이 로고까지 세어
+            // "image 3"처럼 쓰고, 그 번호는 Replicate 전송 순서와 어긋난다.
+            const referenceLines = [
+                productImageBase64 ? '- PRODUCT_IMAGE = the product photo' : null,
+                personImageBase64 ? '- PERSON_IMAGE = the person photo' : null,
+            ].filter((line): line is string => line !== null);
+
+            const attachedInfo = referenceLines.length > 0
+                ? `Attached references (refer to them by TAG, never by number):\n${referenceLines.join('\n')}`
+                    + (brandLogoBase64 ? '\nA brand logo is attached separately — contrast/placement reference only, NOT a content reference.' : '')
+                : 'Attached references: none — use notes and axes only.';
 
             const serifFonts = ['Crimson Text', 'Merriweather', 'Playfair Display'];
             const sansFonts = ['Barlow', 'Barlow Condensed', 'Fira Sans', 'Fjalla One', 'Inter', 'Lato', 'League Gothic', 'League Spartan', 'Montserrat', 'Nunito', 'Open Sans', 'Oswald', 'Pathway Gothic One', 'Poppins', 'PT Sans', 'PT Sans Narrow', 'Raleway', 'Roboto', 'Russo One', 'Source Sans 3', 'Titillium Web', 'Work Sans'];
@@ -114,7 +121,7 @@ ${noteLines}
 
 ${attachedInfo}
 
-Instruction: Generate ratio-specific I2I captions and ad copy according to the system prompt.
+Instruction: Generate the ratio-specific I2I caption and ad copy according to the system prompt.
 `;
 
             const systemMessage = hasProductImage && hasPersonImage

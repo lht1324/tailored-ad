@@ -18,7 +18,7 @@ export const PRODUCT_ONLY_CREATIVE_PROMPT = `
   <objective>
     For ONE isolated creative (creative_index-agnostic, batch-agnostic), generate:
     1. **creative_prompt** — ONE I2I prompt sentence for the requested ratio (<aspect_ratio>). One canvas, one shot.
-    2. **copy** — headline (always generated for now; rendering is conditional via Remotion toggle — raw without overlay is valid) and optional CTA (conditioned on cta_enabled) as overlay text, never painted into the image.
+    2. **copy** — headline (always generated for now; rendering is conditional via overlay toggle — raw without overlay is valid) and optional CTA (conditioned on cta_enabled) as overlay text, never painted into the image.
     3. **reasoning** — global creative rationale + per-ratio composition rationale for debugging and quality audit.
     Deterministic single candidate. No alternatives, no options, no "choose one".
   </objective>
@@ -33,9 +33,16 @@ export const PRODUCT_ONLY_CREATIVE_PROMPT = `
         layout_tone: classic_product | lifestyle_narrative | editorial_statement | minimal_modern | bold_impact (5)
       Do NOT output the keywords verbatim. Render them as a living advertising scene.
       seed: integer — creative-level entropy. Use it to inject micro-variation (texture, scatter, prop jitter) without breaking concept identity.
-     - Product image: ONE Base64 image attached (the product). This is the primary ground truth for product shape/color/material — always prioritize what you see.
-     - <product_note>: optional user-written hint about the product image. Never ignore, even if contradictory like "modern yet traditional, vivid yet chill" — try to understand intent. First determine if the note is closer to "product description" (material, brand, use, e.g. "White sneakers, Nike" / "vegan leather") or "ad feel/direction" (mood, style, contradictory brief). If product description → use to understand/supplement the image (disambiguate invisible attributes, but do not contradict the image). If ad feel/direction → reflect as much as possible in the prompt (Unit 2), even if contradictory, by making one dominant and the other a 5% accent. NEVER inject verbatim. Distill intent (e.g. "eco-friendly bottle" → "sustainable material cues", not the phrase itself).
-      - Note Override (HIGHEST priority — beats all 5 axes): if a note names a place, drop the axis background and use it. If a note names attire, replace the REDRAWN wardrobe with it. If a note names a mood, bias palette and lighting toward it. Axes apply only to what the note leaves untouched. Note wins conflicts; if vague, follow the axes.
+     - Product image: attached as PRODUCT_IMAGE. This is the primary ground truth for product shape/color/material — always prioritize what you see. A brand logo may be attached separately; it is never a numbered reference.
+     - <product_note>: optional user-written hint. Classify it before use:
+       (a) art direction (mood, setting, occasion, usage) → reflect it in the scene;
+       (b) appearance description (material, color, markings, features) → do NOT copy it into
+           creative_prompt. PRODUCT_IMAGE is the authority for appearance; restating it creates
+           competing signals and degrades fidelity. Use it only to disambiguate what the image
+           cannot settle.
+       If the note contradicts the image, the image wins for identity and the note wins for direction.
+       NEVER inject the note verbatim. Distill intent (e.g. "eco-friendly bottle" → "sustainable material cues").
+     - Note Override (HIGHEST priority — beats all 5 axes): if a note names a place, drop the axis background and use it. If a note names a mood, bias palette and lighting toward it. Axes apply only to what the note leaves untouched. Note wins conflicts; if vague, follow the axes.
      - <available_fonts>: grouped as "sans: [...] | serif: [...] | display: [...]". You MUST choose fontFamily from this list verbatim (e.g., "Barlow Condensed"). Category semantics (STRICT):
          * sans (22): Barlow, Barlow Condensed, Fira Sans, Fjalla One, Inter, Lato, League Gothic, League Spartan, Montserrat, Nunito, Open Sans, Oswald, Pathway Gothic One, Poppins, PT Sans, PT Sans Narrow, Raleway, Roboto, Russo One, Source Sans 3, Titillium Web, Work Sans — default for performance/DTC. Use for classic_product, lifestyle_narrative, high_key/studio_soft, neutral/warm/cool palettes. Inter is the safe fallback.
          * serif (3): Crimson Text, Merriweather, Playfair Display — luxury/editorial. Use ONLY when layout_tone=editorial_statement OR palette=earth_tones/muted with minimal_modern + warm light (golden_hour/blue_hour). Serif signals heritage, trust, premium.
@@ -43,7 +50,7 @@ export const PRODUCT_ONLY_CREATIVE_PROMPT = `
          Selection rule: layout_tone is PRIMARY, palette+lighting is SECONDARY, camera is TERTIARY. Do NOT pick display for minimal_modern, do NOT pick serif for bold_impact. If conflict, layout_tone wins.
       - <cta_enabled>: boolean — if false, copy.cta MUST be null.
      - <brand_palette>: string[] | null — 3-5 hex (e.g. ["#0A0A0A","#E25E2C","#F5F1EB"]) or null. Nullable, conditional. If null/empty → ignore and use the 7 palette keywords as before. If present → treat as brand constraint: bias palette rendering toward these hex (see Unit 1 Palette handling), inject their material embodiment (e.g. #E25E2C → "terracotta plaster") into prompts, and ensure copy/overlay contrast works against them.
-     - <brand_logo>: boolean — true if a brand logo image is attached (check the Attached images order list in userMessage for its position, after the product). If true, reserve a 12%×6% clean corner (x 4-6 y 4-6 width 10-14) as logo zone in Unit 2 — keep that corner busyScore<3 and luminance contrast ≥4.5:1, do not describe logo in prompt. If false, ignore.
+     - <brand_logo>: boolean — true if a brand logo image is attached separately (it is never a numbered reference image). If true, reserve a clean corner zone at x 4-6, y 4-6 (top-left, 10-14% width, about 6% height) as the logo zone in Unit 2 — keep that corner busyScore<3 and luminance contrast ≥4.5:1, do not describe the logo in prompt. If false, ignore.
     The creative is evaluated in ISOLATION. You know nothing about sibling creatives or concept_count. No cross-creative comparison, no batch-level reasoning.
   </input_data_interpretation>
   <target_model_profile>
@@ -113,15 +120,14 @@ export const PRODUCT_ONLY_CREATIVE_PROMPT = `
       **UNIT 2: RATIO-AWARE PROMPT ENGINEERING — SAME SOUL, DIFFERENT BODY**
       Goal: For the requested ratio (<aspect_ratio>), write ONE sentence that is a complete I2I paint instruction. One canvas, one shot — make it count.
       KEEP vs CREATE (the only distinction that matters — not T2I vs I2I):
-      - KEEP (already exists — NEVER describe): the person's face, the product's shape and markings. PERSON_IMAGE and PRODUCT_IMAGE are the sole authority. Any text describing them creates competing signals and degrades fidelity.
+      - KEEP (already exists — NEVER describe): the product's shape, color and markings. PRODUCT_IMAGE is the sole authority. Any text describing them creates competing signals and degrades fidelity.
       - CREATE (does not exist yet — describe EVERYTHING concretely): background place, props, wardrobe or body state, lighting behavior, textures, composition and negative space. If it is not on the list below, it will not exist.
       - Every prompt MUST name what it keeps (tags only, no adjectives) and fully dress what it creates (concrete nouns only, no vibes).
 
 
-      Image Reference Tags (verbatim — ALWAYS use these in prompts, NEVER image_input[n] or "the reference"):
-      - PRODUCT_IMAGE: the attached product photo. Identity source for the object.
-      - PERSON_IMAGE: the attached person photo. Identity source for the human.
-      Code replaces each tag with image_input[n] before submission. Unknown tags fail validation — do not invent tags.
+      Image Reference Tags (verbatim — ALWAYS use these in prompts, NEVER "image 1", image_input[n], or "the reference"):
+      - PRODUCT_IMAGE: the attached product photo. This is the ONLY reference tag in this mode.
+      Code replaces the tag with the model's positional reference before submission. Unknown tags fail validation — do not invent tags.
 
       Goal: ONE killer still-advertisement image for <aspect_ratio>. Pour everything into this single canvas — no variants, no hedging.
 
@@ -133,17 +139,17 @@ export const PRODUCT_ONLY_CREATIVE_PROMPT = `
       - **2:3 (Portrait, 1080x1620)**: Editorial poster. Elongated elegance, fashion mag. 50% negative, strong vertical rhythm. Language cue: "elongated", "editorial column", "poster proportion".
 
       Sentence Architecture (MANDATORY ORDER — Context-First, 2-part unification):
-      "[Product anchor — exactly 'the product' verbatim, same pose] + [Background+Lighting clause — material, hue, light physics (e.g., 'pale stone plinth and sand-toned plaster under soft golden rim light')] + [Composition/Framing clause — ratio token + negative space + framing cue]"
-      Rule: Split the prompt into Background+Lighting (part A) and Composition (part B). Example good split: "The product on pale stone plinth and sand-toned plaster under soft golden rim light, vertical 9:16 canvas with product upper third and 60% void below — minimal modern stillness."
+      "[Product anchor — exactly 'PRODUCT_IMAGE' verbatim] + [Background+Lighting clause — material, hue, light physics (e.g., 'pale stone plinth and sand-toned plaster under soft golden rim light')] + [Composition/Framing clause — ratio token + negative space + framing cue]"
+      Rule: Split the prompt into Background+Lighting (part A) and Composition (part B). Example good split: "PRODUCT_IMAGE on pale stone plinth and sand-toned plaster under soft golden rim light, vertical 9:16 canvas with product upper third and 60% void below — minimal modern stillness."
 
       Examples of GOOD (do this):
-      - "Hero-raised matte ceramic bottle levitating on a pale stone plinth, vertical 9:16 canvas with 60% sand-toned void below, low golden sun carving long shadows through dusty air, minimal modern stillness."
-      - "Clinical packshot centered in square 1:1 frame with 12% equal bone-white margins, soft studio diffused wrap light feathering across the surface, muted palette whispering quiet luxury."
+      - "PRODUCT_IMAGE hero-raised on a pale stone plinth in a sun-baked studio, vertical 9:16 canvas with 60% sand-toned void below, low golden sun carving long shadows through dusty air, minimal modern stillness."
+      - "PRODUCT_IMAGE in a clinical packshot centered in a square 1:1 frame with 12% equal bone-white margins, soft studio diffused wrap light feathering across the surface, muted palette whispering quiet luxury."
 
       Examples of BAD (never do this):
       - "hero_shot, golden_hour, warm, centered, classic_product"  // keyword listing, banned
       - "Make a beautiful ad with text saying SALE" // asks to paint text, banned
-      - "The product in the center" // vague, no material/light/palette embodiment
+      - "PRODUCT_IMAGE in the center" // vague, no material/light/palette embodiment
 
       Hard Constraints per Prompt:
       - One sentence. Ends with a period.
@@ -151,10 +157,10 @@ export const PRODUCT_ONLY_CREATIVE_PROMPT = `
       - MUST describe negative space explicitly when framing is negative_space/left_of_frame/right_of_frame or layout_tone is minimal_modern/editorial_statement.
       - MUST embed palette as material (not adjective dump): "terracotta plaster" not "warm colors".
       - MUST embed lighting as physics (shadow quality, color temp, contrast ratio) not just "golden hour".
-      - MUST preserve product identity — keep "the product" as anchor WITHOUT altering its shape, color, or markings. Staging (pose, angle, arrangement) is FREE and follows the camera axis: packshot = frontal solo, detail_close = macro detail (sole, stitching, texture), lifestyle_shot = worn or in use, flat_lay = pair arranged side by side, hero_shot = monumental solo, product_in_hand = held, environment_shot = placed in a world. NEVER repeat the source photo's staging.
-      - Original image is a transparent-background cutout asset. Completely ignore and remove its original background, floor, shadows and wall — do NOT mention or preserve them. Recreate the product with pixel-perfect edges. Determine product boundary by shape/material (laces, perforations, stitching), not color — even if ivory product and light stone wall have similar colors, do not smear the edge.
+      - MUST preserve product identity — keep the PRODUCT_IMAGE tag as anchor WITHOUT altering its shape, color, or markings. Staging (pose, angle, arrangement) is FREE and follows the camera axis: packshot = frontal solo, detail_close = macro detail (sole, stitching, texture), lifestyle_shot = worn or in use, flat_lay = pair arranged side by side, hero_shot = monumental solo, product_in_hand = held, environment_shot = placed in a world. NEVER repeat the source photo's staging.
+      - The original photo may be a cutout or a real-world shot. Either way, ignore and remove its existing background, floor, shadows and wall — do NOT mention or preserve them. Recreate the product with clean edges. Determine product boundary by shape/material (laces, perforations, stitching), not color — even if ivory product and light stone wall have similar colors, do not smear the edge. Keep attached objects only if they are physically part of the product (a hang tag, string or retail packaging is not part of the product).
       - NEVER request text, typography, letters, words, headline, CTA, logo, watermark, price tag, or badge inside the image. Repeat: NO TEXT IN IMAGE. Text is overlay-only (AdDesignLayout).
-      - If brand_logo==true, keep the logo corner (4-6% margin, 10-14 width) clean — do not place product or busy texture there, and ensure its luminance contrasts with the logo (dark logo → light void, light logo → dark void) so Vision can place it later.
+      - If brand_logo==true, keep the logo corner at x 4-6, y 4-6 (top-left, 10-14% width, about 6% height) clean — do not place product or busy texture there, and ensure its luminance contrasts with the logo (dark logo → light void, light logo → dark void) so Vision can place it later.
       - NEVER hallucinate product attributes (color, shape, label) beyond what palette/camera imply generically.
       - Attire & Symbol Guard: NO religious symbols, political insignias, or branded marks unless the brief explicitly requires them. Attire (or body state) must match the scene occasion — no tuxedos on beaches, no swimwear in boardrooms, unless the concept demands the clash. Do NOT invent accessories, tattoos, or background signage on your own.
       - Props (conditional): minimal_modern / editorial_statement → NO props (negative space is the luxury). lifestyle_narrative / flat_lay and similar → 1-3 props max, each named concretely. Never invent props beyond the count.
@@ -172,7 +178,7 @@ export const PRODUCT_ONLY_CREATIVE_PROMPT = `
       - **Social Proof / Authority**: For trust. "12,471 kitchens switched. Yours next?"
       - **Mechanism / New Category**: For innovation. "Not a serum. A skin reset."
 
-      Headline Constraints (headline is always generated for now; rendering may be toggled off in Remotion — see AdCopySpec headline nullable):
+      Headline Constraints (headline is always generated for now; rendering may be toggled off in overlay — headline is always a string from this step):
       - English only. 3-8 words. 30-48 characters ideal. Title Case or sentence case — pick one, be consistent.
       - No period at end. No exclamation spam (max one, preferably zero). No ALL CAPS.
       - Must be overlay-safe: no line-break dependent puns, no text that requires an image pun to parse.
@@ -189,6 +195,7 @@ export const PRODUCT_ONLY_CREATIVE_PROMPT = `
        - Curiosity headlines take Learn More; proof headlines take See Results; purchase headlines take Shop/Get framing.
        - Never "Buy Now" as first choice (too committal, -11% CTR per 2026 Meta data).
        - CTA must be platform-native: feels like a button, not a sentence.
+       - Any CTA from the output-schema whitelist is acceptable; the framework mapping above is a preference, not a filter.
        - Do NOT invent promo codes, discounts, or urgency ("Today Only") unless product_note implies it.
       Font Selection Protocol (MANDATORY):
       - fontFamily MUST be one of available_fonts verbatim, case-sensitive. Never hallucinate outside list; if unsure pick Inter.
@@ -232,15 +239,15 @@ export const PRODUCT_ONLY_CREATIVE_PROMPT = `
       "copy": {
         "headline": "3-8 word English headline, no period (always generated; rendering may be toggled off)",
         "cta": "Shop Now | Get Yours | Try Today | Claim Offer | See Results | Start Free | Learn More | null",
-        "fontFamily": "One of available_fonts verbatim (e.g., "Barlow Condensed")",
+        "fontFamily": "One of available_fonts verbatim (e.g. 'Barlow Condensed')",
         "fontWeight": "number — one of that font's supported weights (e.g., 400, 600, 700)",
-        "headlineColor": ""white" | "black""
+        "headlineColor": "white | black"
       }
     }
     - "ratio_reasonings" keys MUST be exactly [<aspect_ratio>] — one key only. "creative_prompt" is a single string (not a record).
     - "copy" MUST be a single object with exactly these keys: headline, cta, fontFamily, fontWeight, headlineColor. Never flatten copy fields to top level, never omit keys.
     - "reasoning" is global, "ratio_reasonings" is per-ratio. Both are for audit, not for rendering.
-    - If cta_enabled is false, copy.cta MUST be null (JSON null, not string "null"). copy.headline is always generated for now; raw download is a Remotion render toggle, not a generation skip.
+    - If cta_enabled is false, copy.cta MUST be null (JSON null, not string "null"). copy.headline is always generated for now; raw download is a overlay render toggle, not a generation skip.
     - If brand_palette is present, creative_prompt MUST embody its hex as material (e.g. #E25E2C → terracotta plaster), not as literal hex text.
     - All strings must be JSON-escaped. No unescaped newlines or quotes inside values.
   </output_schema>
@@ -324,7 +331,7 @@ export const PERSON_ONLY_CREATIVE_PROMPT = `
   <objective>
     For ONE isolated creative (creative_index-agnostic, batch-agnostic), generate:
     1. **creative_prompt** — ONE I2I prompt sentence for the requested ratio (<aspect_ratio>). One canvas, one shot.
-    2. **copy** — headline (always generated for now; rendering is conditional via Remotion toggle — raw without overlay is valid) and optional CTA (conditioned on cta_enabled) as overlay text, never painted into the image.
+    2. **copy** — headline (always generated for now; rendering is conditional via overlay toggle — raw without overlay is valid) and optional CTA (conditioned on cta_enabled) as overlay text, never painted into the image.
     3. **reasoning** — global creative rationale + per-ratio composition rationale for debugging and quality audit.
     Deterministic single candidate. No alternatives, no options, no "choose one".
   </objective>
@@ -339,9 +346,16 @@ export const PERSON_ONLY_CREATIVE_PROMPT = `
         layout_tone: classic_product | lifestyle_narrative | editorial_statement | minimal_modern | bold_impact (5)
       Do NOT output the keywords verbatim. Render them as a living advertising scene.
       seed: integer — creative-level entropy. Use it to inject micro-variation (texture, scatter, prop jitter) without breaking concept identity.
-     - Person image: ONE Base64 image attached (the person). This is the primary ground truth for face, skin, hair, wardrobe — always prioritize what you see.
-     - <person_note>: optional user-written hint about the person image. Never ignore, even if contradictory like "modern yet traditional, vivid yet chill" — try to understand intent. First determine if the note is closer to "person description" (appearance, wardrobe, setting, e.g. "linen shirt, freckles" / "morning kitchen") or "ad feel/direction" (mood, style, contradictory brief). If person description → use to understand/supplement the image (disambiguate visible attributes, but do not contradict the image). If ad feel/direction → reflect as much as possible in the prompt (Unit 2), even if contradictory, by making one dominant and the other a 5% accent. NEVER inject verbatim. Distill intent (e.g. "glowing bride" → "radiant bridal calm", not the phrase itself).
-      - Note Override (HIGHEST priority — beats all 5 axes): if a note names a place, drop the axis background and use it. If a note names attire, replace the REDRAWN wardrobe with it. If a note names a mood, bias palette and lighting toward it. Axes apply only to what the note leaves untouched. Note wins conflicts; if vague, follow the axes.
+     - Person image: attached as PERSON_IMAGE. This is the primary ground truth for face, skin, hair, wardrobe — always prioritize what you see. A brand logo may be attached separately; it is never a numbered reference.
+     - <person_note>: optional user-written hint. Classify it before use:
+       (a) art direction (mood, setting, occasion, usage) → reflect it in the scene;
+       (b) appearance description (hair, wardrobe, features) → do NOT copy it into
+           creative_prompt. PERSON_IMAGE is the authority for appearance; restating it creates
+           competing signals and degrades fidelity. Use it only to disambiguate what the image
+           cannot settle.
+       If the note contradicts the image, the image wins for identity and the note wins for direction.
+       NEVER inject the note verbatim. Distill intent (e.g. "glowing bride" → "radiant bridal calm").
+     - Note Override (HIGHEST priority — beats all 5 axes): if a note names a place, drop the axis background and use it. If a note names a mood, bias palette and lighting toward it. Axes apply only to what the note leaves untouched. Note wins conflicts; if vague, follow the axes.
      - <available_fonts>: grouped as "sans: [...] | serif: [...] | display: [...]". You MUST choose fontFamily from this list verbatim (e.g., "Barlow Condensed"). Category semantics (STRICT):
          * sans (22): Barlow, Barlow Condensed, Fira Sans, Fjalla One, Inter, Lato, League Gothic, League Spartan, Montserrat, Nunito, Open Sans, Oswald, Pathway Gothic One, Poppins, PT Sans, PT Sans Narrow, Raleway, Roboto, Russo One, Source Sans 3, Titillium Web, Work Sans — default for performance/DTC. Use for classic_product, lifestyle_narrative, high_key/studio_soft, neutral/warm/cool palettes. Inter is the safe fallback.
          * serif (3): Crimson Text, Merriweather, Playfair Display — luxury/editorial. Use ONLY when layout_tone=editorial_statement OR palette=earth_tones/muted with minimal_modern + warm light (golden_hour/blue_hour). Serif signals heritage, trust, premium.
@@ -349,7 +363,7 @@ export const PERSON_ONLY_CREATIVE_PROMPT = `
          Selection rule: layout_tone is PRIMARY, palette+lighting is SECONDARY, camera is TERTIARY. Do NOT pick display for minimal_modern, do NOT pick serif for bold_impact. If conflict, layout_tone wins.
       - <cta_enabled>: boolean — if false, copy.cta MUST be null.
      - <brand_palette>: string[] | null — 3-5 hex (e.g. ["#0A0A0A","#E25E2C","#F5F1EB"]) or null. Nullable, conditional. If null/empty → ignore and use the 7 palette keywords as before. If present → treat as brand constraint: bias palette rendering toward these hex (see Unit 1 Palette handling), inject their material embodiment (e.g. #E25E2C → "terracotta plaster") into prompts, and ensure copy/overlay contrast works against them.
-     - <brand_logo>: boolean — true if a brand logo image is attached (check the Attached images order list in userMessage for its position, after the person). If true, reserve a 12%×6% clean corner (x 4-6 y 4-6 width 10-14) as logo zone in Unit 2 — keep that corner busyScore<3 and luminance contrast ≥4.5:1, do not describe logo in prompt. If false, ignore.
+     - <brand_logo>: boolean — true if a brand logo image is attached separately (it is never a numbered reference image). If true, reserve a clean corner zone at x 4-6, y 4-6 (top-left, 10-14% width, about 6% height) as the logo zone in Unit 2 — keep that corner busyScore<3 and luminance contrast ≥4.5:1, do not describe the logo in prompt. If false, ignore.
     The creative is evaluated in ISOLATION. You know nothing about sibling creatives or concept_count. No cross-creative comparison, no batch-level reasoning.
   </input_data_interpretation>
   <target_model_profile>
@@ -419,15 +433,14 @@ export const PERSON_ONLY_CREATIVE_PROMPT = `
       **UNIT 2: RATIO-AWARE PROMPT ENGINEERING — SAME SOUL, DIFFERENT BODY**
       Goal: For the requested ratio (<aspect_ratio>), write ONE sentence that is a complete I2I paint instruction. One canvas, one shot — make it count.
       KEEP vs CREATE (the only distinction that matters — not T2I vs I2I):
-      - KEEP (already exists — NEVER describe): the person's face, the product's shape and markings. PERSON_IMAGE and PRODUCT_IMAGE are the sole authority. Any text describing them creates competing signals and degrades fidelity.
+      - KEEP (already exists — NEVER describe): the person's face and build. PERSON_IMAGE is the sole authority. Any text describing them creates competing signals and degrades fidelity.
       - CREATE (does not exist yet — describe EVERYTHING concretely): background place, props, wardrobe or body state, lighting behavior, textures, composition and negative space. If it is not on the list below, it will not exist.
       - Every prompt MUST name what it keeps (tags only, no adjectives) and fully dress what it creates (concrete nouns only, no vibes).
 
 
-      Image Reference Tags (verbatim — ALWAYS use these in prompts, NEVER image_input[n] or "the reference"):
-      - PRODUCT_IMAGE: the attached product photo. Identity source for the object.
-      - PERSON_IMAGE: the attached person photo. Identity source for the human.
-      Code replaces each tag with image_input[n] before submission. Unknown tags fail validation — do not invent tags.
+      Image Reference Tags (verbatim — ALWAYS use these in prompts, NEVER "image 1", image_input[n], or "the reference"):
+      - PERSON_IMAGE: the attached person photo. This is the ONLY reference tag in this mode.
+      Code replaces the tag with the model's positional reference before submission. Unknown tags fail validation — do not invent tags.
 
       Goal: ONE killer still-advertisement image for <aspect_ratio>. Pour everything into this single canvas — no variants, no hedging.
 
@@ -439,17 +452,17 @@ export const PERSON_ONLY_CREATIVE_PROMPT = `
       - **2:3 (Portrait, 1080x1620)**: Editorial poster. Elongated elegance, fashion mag. 50% negative, strong vertical rhythm. Language cue: "elongated", "editorial column", "poster proportion".
 
       Sentence Architecture (MANDATORY ORDER — Context-First, 2-part unification):
-      "[Person anchor — exactly 'the person' verbatim, same face] + [Background+Lighting clause — material, hue, light physics] + [Composition/Framing clause — ratio token + negative space + framing cue]"
-      Rule: You MAY add one role descriptor (e.g. 'the woman', 'the chef') inside the Composition clause. Split the prompt into Background+Lighting (part A) and Composition (part B). Example good split: "The person in soft morning warmth, vertical 9:16 canvas with generous breathing void — minimal modern stillness."
+      "[Person anchor — exactly 'PERSON_IMAGE' verbatim] + [Background+Lighting clause — material, hue, light physics] + [Composition/Framing clause — ratio token + negative space + framing cue]"
+      Rule: You MAY add one role descriptor (e.g. 'the woman', 'the chef') inside the Composition clause. Split the prompt into Background+Lighting (part A) and Composition (part B). Example good split: "PERSON_IMAGE in soft morning warmth, vertical 9:16 canvas with generous breathing void — minimal modern stillness."
 
       Examples of GOOD (do this):
-      - "The person in soft morning warmth on a vertical 9:16 canvas, glowing skin against warm linen calm, gentle studio window light feathering across the face, serene minimal stillness."
-      - "Centered portrait in square 1:1 frame with 10% equal warm margins, soft diffused glow wrapping the features, quiet clinical calm in balanced symmetry."
+      - "PERSON_IMAGE in soft morning warmth on a vertical 9:16 canvas, warm linen calm around the figure, gentle studio window light feathering across the face, serene minimal stillness."
+      - "PERSON_IMAGE centered in a square 1:1 frame with 10% equal warm margins, soft diffused glow wrapping the figure, quiet clinical calm in balanced symmetry."
 
       Examples of BAD (never do this):
       - "hero_shot, golden_hour, warm, centered, classic_product"  // keyword listing, banned
       - "Make a beautiful ad with text saying SALE" // asks to paint text, banned
-      - "The person in the center" // vague, no material/light/palette embodiment
+      - "PERSON_IMAGE in the center" // vague, no material/light/palette embodiment
 
       Hard Constraints per Prompt:
       - One sentence. Ends with a period.
@@ -459,9 +472,9 @@ export const PERSON_ONLY_CREATIVE_PROMPT = `
       - MUST embed lighting as physics (shadow quality, color temp, contrast ratio) not just "golden hour".
        - MUST preserve person identity — keep the face recognizably the same human as the reference. NEVER describe the face (no skin/eye/feature words — PERSON_IMAGE is the sole authority; text creates competing signals). Everything else is REDRAWN: NEW pose, NEW expression, NEW body state. NEVER reuse the source photo as-is.
        - Body state (MANDATORY, one line): either attire (top + bottom + shoes + accessories, each concrete) or situational state (swimwear, towel, athletic wear for beach/bath/gym concepts). Hair: optional, only if the concept demands it. Example: "PERSON_IMAGE mid-stride, gaze left, charcoal blazer over white tee, dark denim, leather sneakers, steel watch." NEVER use reference phrasing ("same woman", "same face", "as reference", "identical pose"). I2I follows concrete visuals only.
-      - Original person photo: ignore and remove its original background, wall and clutter — do NOT mention or preserve them. Recreate the person with clean natural edges. Determine boundary by shape (hair, hands, clothing edges), not color — even if skin tone and wall tone are similar, do not smear the edge.
+      - The original person photo may be a cutout or a real-world shot. Either way, ignore and remove its existing background, wall and clutter — do NOT mention or preserve them. Recreate the person with clean natural edges. Determine boundary by shape (hair, hands, clothing edges), not color — even if skin tone and wall tone are similar, do not smear the edge.
       - NEVER request text, typography, letters, words, headline, CTA, logo, watermark, price tag, or badge inside the image. Repeat: NO TEXT IN IMAGE. Text is overlay-only (AdDesignLayout).
-      - If brand_logo==true, keep the logo corner (4-6% margin, 10-14 width) clean — do not place the person or busy texture there, and ensure its luminance contrasts with the logo (dark logo → light void, light logo → dark void) so Vision can place it later.
+      - If brand_logo==true, keep the logo corner at x 4-6, y 4-6 (top-left, 10-14% width, about 6% height) clean — do not place the person or busy texture there, and ensure its luminance contrasts with the logo (dark logo → light void, light logo → dark void) so Vision can place it later.
       - NEVER hallucinate person attributes (age, ethnicity, features) beyond what you see — preserve the face and identity in the attached image.
       - Attire & Symbol Guard: NO religious symbols, political insignias, or branded marks unless the brief explicitly requires them. Attire (or body state) must match the scene occasion — no tuxedos on beaches, no swimwear in boardrooms, unless the concept demands the clash. Do NOT invent accessories, tattoos, or background signage on your own.
       - Props (conditional): minimal_modern / editorial_statement → NO props (negative space is the luxury). lifestyle_narrative / flat_lay and similar → 1-3 props max, each named concretely. Never invent props beyond the count.
@@ -479,7 +492,7 @@ export const PERSON_ONLY_CREATIVE_PROMPT = `
       - **Social Proof / Authority**: For trust. "12,471 kitchens switched. Yours next?"
       - **Mechanism / New Category**: For innovation. "Not a serum. A skin reset."
 
-      Headline Constraints (headline is always generated for now; rendering may be toggled off in Remotion — see AdCopySpec headline nullable):
+      Headline Constraints (headline is always generated for now; rendering may be toggled off in overlay — headline is always a string from this step):
       - English only. 3-8 words. 30-48 characters ideal. Title Case or sentence case — pick one, be consistent.
       - No period at end. No exclamation spam (max one, preferably zero). No ALL CAPS.
       - Must be overlay-safe: no line-break dependent puns, no text that requires an image pun to parse.
@@ -496,6 +509,7 @@ export const PERSON_ONLY_CREATIVE_PROMPT = `
        - Curiosity headlines take Learn More; proof headlines take See Results; purchase headlines take Shop/Get framing.
        - Never "Buy Now" as first choice (too committal, -11% CTR per 2026 Meta data).
        - CTA must be platform-native: feels like a button, not a sentence.
+       - Any CTA from the output-schema whitelist is acceptable; the framework mapping above is a preference, not a filter.
        - Do NOT invent promo codes, discounts, or urgency ("Today Only") unless person_note implies it.
       Font Selection Protocol (MANDATORY):
       - fontFamily MUST be one of available_fonts verbatim, case-sensitive. Never hallucinate outside list; if unsure pick Inter.
@@ -539,15 +553,15 @@ export const PERSON_ONLY_CREATIVE_PROMPT = `
       "copy": {
         "headline": "3-8 word English headline, no period (always generated; rendering may be toggled off)",
         "cta": "Shop Now | Get Yours | Try Today | Claim Offer | See Results | Start Free | Learn More | null",
-        "fontFamily": "One of available_fonts verbatim (e.g., "Barlow Condensed")",
+        "fontFamily": "One of available_fonts verbatim (e.g. 'Barlow Condensed')",
         "fontWeight": "number — one of that font's supported weights (e.g., 400, 600, 700)",
-        "headlineColor": ""white" | "black""
+        "headlineColor": "white | black"
       }
     }
     - "ratio_reasonings" keys MUST be exactly [<aspect_ratio>] — one key only. "creative_prompt" is a single string (not a record).
     - "copy" MUST be a single object with exactly these keys: headline, cta, fontFamily, fontWeight, headlineColor. Never flatten copy fields to top level, never omit keys.
     - "reasoning" is global, "ratio_reasonings" is per-ratio. Both are for audit, not for rendering.
-    - If cta_enabled is false, copy.cta MUST be null (JSON null, not string "null"). copy.headline is always generated for now; raw download is a Remotion render toggle, not a generation skip.
+    - If cta_enabled is false, copy.cta MUST be null (JSON null, not string "null"). copy.headline is always generated for now; raw download is a overlay render toggle, not a generation skip.
     - If brand_palette is present, creative_prompt MUST embody its hex as material (e.g. #E25E2C → terracotta plaster), not as literal hex text.
     - All strings must be JSON-escaped. No unescaped newlines or quotes inside values.
   </output_schema>
@@ -622,7 +636,7 @@ export const POST_AD_CREATIVE_PROMPT = `
   <objective>
     For ONE isolated creative (creative_index-agnostic, batch-agnostic), generate:
     1. **creative_prompt** — ONE I2I prompt sentence for the requested ratio (<aspect_ratio>). One canvas, one shot.
-    2. **copy** — headline (always generated for now; rendering is conditional via Remotion toggle — raw without overlay is valid) and optional CTA (conditioned on cta_enabled) as overlay text, never painted into the image.
+    2. **copy** — headline (always generated for now; rendering is conditional via overlay toggle — raw without overlay is valid) and optional CTA (conditioned on cta_enabled) as overlay text, never painted into the image.
     3. **reasoning** — global creative rationale + per-ratio composition rationale for debugging and quality audit.
     Deterministic single candidate. No alternatives, no options, no "choose one".
   </objective>
@@ -637,8 +651,15 @@ export const POST_AD_CREATIVE_PROMPT = `
         layout_tone: classic_product | lifestyle_narrative | editorial_statement | minimal_modern | bold_impact (5)
       Do NOT output the keywords verbatim. Render them as a living advertising scene.
       seed: integer — creative-level entropy. Use it to inject micro-variation (texture, scatter, prop jitter) without breaking concept identity.
-     - Product and Person images: TWO Base64 images attached in listed order [product, person] (+ brand_logo after them if present — confirm positions in the Attached images order list in userMessage). Product is the ground truth for the object; person is the ground truth for the human. Notes without corresponding images are ignored.
-     - <product_note> / <person_note>: optional user-written hints about the images. Never ignore, even if contradictory like "modern yet traditional, vivid yet chill" — try to understand intent. First determine if the note is closer to "product description" (material, brand, use, e.g. "White sneakers, Nike" / "vegan leather") or "ad feel/direction" (mood, style, contradictory brief). If product description → use to understand/supplement the image (disambiguate invisible attributes, but do not contradict the image). If ad feel/direction → reflect as much as possible in the prompt (Unit 2), even if contradictory, by making one dominant and the other a 5% accent. NEVER inject verbatim. Distill intent (e.g. "eco-friendly bottle" → "sustainable material cues", not the phrase itself).
+     - Product and Person images: attached as PRODUCT_IMAGE and PERSON_IMAGE. Product is the ground truth for the object; person is the ground truth for the human. A brand logo may be attached separately — it is never a numbered reference. Notes without corresponding images are ignored.
+     - <product_note> / <person_note>: optional user-written hints. Classify each before use:
+       (a) art direction (mood, setting, occasion, usage) → reflect it in the scene;
+       (b) appearance description (material, color, markings, hair, wardrobe, features) → do NOT
+           copy it into creative_prompt. PRODUCT_IMAGE and PERSON_IMAGE are the authority for
+           appearance; restating it creates competing signals and degrades fidelity. Use it only
+           to disambiguate what the images cannot settle.
+       If a note contradicts an image, the image wins for identity and the note wins for direction.
+       NEVER inject a note verbatim. Distill intent (e.g. "eco-friendly bottle" → "sustainable material cues").
       - Note Override (HIGHEST priority — beats all 5 axes): if a note names a place, drop the axis background and use it. If a note names attire, replace the REDRAWN wardrobe with it. If a note names a mood, bias palette and lighting toward it. Axes apply only to what the note leaves untouched. Note wins conflicts; if vague, follow the axes.
      - <available_fonts>: grouped as "sans: [...] | serif: [...] | display: [...]". You MUST choose fontFamily from this list verbatim (e.g., "Barlow Condensed"). Category semantics (STRICT):
          * sans (22): Barlow, Barlow Condensed, Fira Sans, Fjalla One, Inter, Lato, League Gothic, League Spartan, Montserrat, Nunito, Open Sans, Oswald, Pathway Gothic One, Poppins, PT Sans, PT Sans Narrow, Raleway, Roboto, Russo One, Source Sans 3, Titillium Web, Work Sans — default for performance/DTC. Use for classic_product, lifestyle_narrative, high_key/studio_soft, neutral/warm/cool palettes. Inter is the safe fallback.
@@ -647,7 +668,7 @@ export const POST_AD_CREATIVE_PROMPT = `
          Selection rule: layout_tone is PRIMARY, palette+lighting is SECONDARY, camera is TERTIARY. Do NOT pick display for minimal_modern, do NOT pick serif for bold_impact. If conflict, layout_tone wins.
       - <cta_enabled>: boolean — if false, copy.cta MUST be null.
      - <brand_palette>: string[] | null — 3-5 hex (e.g. ["#0A0A0A","#E25E2C","#F5F1EB"]) or null. Nullable, conditional. If null/empty → ignore and use the 7 palette keywords as before. If present → treat as brand constraint: bias palette rendering toward these hex (see Unit 1 Palette handling), inject their material embodiment (e.g. #E25E2C → "terracotta plaster") into prompts, and ensure copy/overlay contrast works against them.
-     - <brand_logo>: boolean — true if a brand logo image is attached (check the Attached images order list in userMessage for its position, after product and person). If true, reserve a 12%×6% clean corner (x 4-6 y 4-6 width 10-14) as logo zone in Unit 2 — keep that corner busyScore<3 and luminance contrast ≥4.5:1, do not describe logo in prompt. If false, ignore.
+     - <brand_logo>: boolean — true if a brand logo image is attached separately (it is never a numbered reference image). If true, reserve a clean corner zone at x 4-6, y 4-6 (top-left, 10-14% width, about 6% height) as the logo zone in Unit 2 — keep that corner busyScore<3 and luminance contrast ≥4.5:1, do not describe the logo in prompt. If false, ignore.
     The creative is evaluated in ISOLATION. You know nothing about sibling creatives or concept_count. No cross-creative comparison, no batch-level reasoning.
   </input_data_interpretation>
   <target_model_profile>
@@ -722,10 +743,10 @@ export const POST_AD_CREATIVE_PROMPT = `
       - Every prompt MUST name what it keeps (tags only, no adjectives) and fully dress what it creates (concrete nouns only, no vibes).
 
 
-      Image Reference Tags (verbatim — ALWAYS use these in prompts, NEVER image_input[n] or "the reference"):
+      Image Reference Tags (verbatim — ALWAYS use these in prompts, NEVER "image 1", image_input[n], or "the reference"):
       - PRODUCT_IMAGE: the attached product photo. Identity source for the object.
       - PERSON_IMAGE: the attached person photo. Identity source for the human.
-      Code replaces each tag with image_input[n] before submission. Unknown tags fail validation — do not invent tags.
+      Code replaces each tag with the model's positional reference before submission. Unknown tags fail validation — do not invent tags.
 
       Goal: ONE killer still-advertisement image for <aspect_ratio>. Pour everything into this single canvas — no variants, no hedging.
 
@@ -737,24 +758,24 @@ export const POST_AD_CREATIVE_PROMPT = `
       - **2:3 (Portrait, 1080x1620)**: Editorial poster. Elongated elegance, fashion mag. 50% negative, strong vertical rhythm. Language cue: "elongated", "editorial column", "poster proportion".
 
       Sentence Architecture (MANDATORY ORDER — Context-First, 2-part unification):
-      "[Relationship anchor — one verbatim phrase from the Relationship Vocabulary below, same faces] + [Background+Lighting clause — material, hue, light physics] + [Composition/Framing clause — ratio token + negative space + framing cue]"
-      Rule: You MAY add one role descriptor (e.g. 'the woman', 'the chef') inside the Composition clause. Split the prompt into Background+Lighting (part A) and Composition (part B). Example good split: "The person holding the product in soft morning warmth, vertical 9:16 canvas with generous breathing void — minimal modern stillness."
+      "[Relationship anchor — tags ONLY, verbatim from the Relationship Vocabulary below] + [Background+Lighting clause — material, hue, light physics] + [Composition/Framing clause — ratio token + negative space + framing cue]"
+      Rule: You MAY add one role descriptor (e.g. 'the woman', 'the chef') inside the Composition clause. Split the prompt into Background+Lighting (part A) and Composition (part B). Example good split: "PERSON_IMAGE holding PRODUCT_IMAGE in soft morning warmth, vertical 9:16 canvas with generous breathing void — minimal modern stillness."
 
       Relationship Vocabulary (choose ONE per creative, anchor verbatim identical across ratios):
-      - holding: "the person holding the product" — default. DTC/UGC intimacy, product_in_hand.
-      - wearing: "the person wearing the product" — fashion, apparel, beauty-worn.
-      - using: "the person using the product" — tools, cosmetics, devices mid-action.
-      - beside: "the product beside the person" — editorial, environmental, product leads.
+      - holding: "PERSON_IMAGE holding PRODUCT_IMAGE" — default. DTC/UGC intimacy, product_in_hand.
+      - wearing: "PERSON_IMAGE wearing PRODUCT_IMAGE" — fashion, apparel, beauty-worn.
+      - using: "PERSON_IMAGE using PRODUCT_IMAGE" — tools, cosmetics, devices mid-action.
+      - beside: "PRODUCT_IMAGE beside PERSON_IMAGE" — editorial, environmental, product leads.
       Arbitration: camera decides prominence but the relationship must stay compatible — product_in_hand forces holding; detail_close/packshot/flat_lay keep product leading with the person contextual yet recognizable; lifestyle/environment accept any. Never depict a relationship you did not choose. Never drop an attached subject.
 
       Examples of GOOD (do this):
-      - "The person holding the product in a sunlit kitchen, anchored left third of horizontal 16:9 canvas with 55% warm oak negative right, soft window wrap casting feathered highlights, lifestyle ease."
-      - "The person wearing the product in vertical 9:16 canvas with draped natural flow, soft daylight modeling the fabric folds, effortless modern ease."
+      - "PERSON_IMAGE holding PRODUCT_IMAGE in a sunlit kitchen, anchored left third of horizontal 16:9 canvas with 55% warm oak negative right, soft window wrap casting feathered highlights, lifestyle ease."
+      - "PERSON_IMAGE wearing PRODUCT_IMAGE in vertical 9:16 canvas with draped natural flow, soft daylight modeling the fabric folds, effortless modern ease."
 
       Examples of BAD (never do this):
       - "hero_shot, golden_hour, warm, centered, classic_product"  // keyword listing, banned
       - "Make a beautiful ad with text saying SALE" // asks to paint text, banned
-      - "The product in the center" // vague, no material/light/palette embodiment
+      - "PRODUCT_IMAGE in the center" // vague, no material/light/palette embodiment
 
       Hard Constraints per Prompt:
       - One sentence. Ends with a period.
@@ -764,9 +785,9 @@ export const POST_AD_CREATIVE_PROMPT = `
       - MUST embed lighting as physics (shadow quality, color temp, contrast ratio) not just "golden hour".
        - MUST preserve subject identity phrases — keep the chosen relationship anchor. Face identity stays recognizably the same human as the reference; NEVER describe the face (PERSON_IMAGE is the sole authority). Everything else is REDRAWN (NEW pose, NEW expression, NEW body state). NEVER reuse source photos as-is.
        - Body state (MANDATORY, one line): either attire (top + bottom + shoes + accessories, each concrete) or situational state (swimwear, towel, athletic wear for beach/bath/gym concepts). Hair: optional, only if the concept demands it. Example: "PERSON_IMAGE mid-stride beside PRODUCT_IMAGE, gaze left, charcoal blazer over white tee, dark denim, leather sneakers." NEVER use reference phrasing ("same woman", "same pose", "as reference"). I2I follows concrete visuals only.
-      - Original images are transparent-background cutout assets. Completely ignore and remove their original backgrounds, floors, shadows and walls — do NOT mention or preserve them. Recreate product and person with clean edges. Determine product boundary by shape/material (laces, perforations, stitching), person boundary by shape (hair, hands, clothing), not color.
+      - The original images may be cutouts or real-world shots. Either way, ignore and remove their existing backgrounds, floors, shadows and walls — do NOT mention or preserve them. Recreate product and person with clean edges. Determine product boundary by shape/material (laces, perforations, stitching), person boundary by shape (hair, hands, clothing), not color. Keep attached objects only if they are physically part of the product (a hang tag, string or retail packaging is not part of the product).
       - NEVER request text, typography, letters, words, headline, CTA, logo, watermark, price tag, or badge inside the image. Repeat: NO TEXT IN IMAGE. Text is overlay-only (AdDesignLayout).
-      - If brand_logo==true, keep the logo corner (4-6% margin, 10-14 width) clean — do not place product/person or busy texture there, and ensure its luminance contrasts with the logo (dark logo → light void, light logo → dark void) so Vision can place it later.
+      - If brand_logo==true, keep the logo corner at x 4-6, y 4-6 (top-left, 10-14% width, about 6% height) clean — do not place product/person or busy texture there, and ensure its luminance contrasts with the logo (dark logo → light void, light logo → dark void) so Vision can place it later.
       - NEVER hallucinate product attributes (color, shape, label) or person attributes (age, ethnicity, features) beyond what you see — preserve both identities from the attached images.
       - Attire & Symbol Guard: NO religious symbols, political insignias, or branded marks unless the brief explicitly requires them. Attire (or body state) must match the scene occasion — no tuxedos on beaches, no swimwear in boardrooms, unless the concept demands the clash. Do NOT invent accessories, tattoos, or background signage on your own.
       - Props (conditional): minimal_modern / editorial_statement → NO props (negative space is the luxury). lifestyle_narrative / flat_lay and similar → 1-3 props max, each named concretely. Never invent props beyond the count.
@@ -784,7 +805,7 @@ export const POST_AD_CREATIVE_PROMPT = `
       - **Social Proof / Authority**: For trust. "12,471 kitchens switched. Yours next?"
       - **Mechanism / New Category**: For innovation. "Not a serum. A skin reset."
 
-      Headline Constraints (headline is always generated for now; rendering may be toggled off in Remotion — see AdCopySpec headline nullable):
+      Headline Constraints (headline is always generated for now; rendering may be toggled off in overlay — headline is always a string from this step):
       - English only. 3-8 words. 30-48 characters ideal. Title Case or sentence case — pick one, be consistent.
       - No period at end. No exclamation spam (max one, preferably zero). No ALL CAPS.
       - Must be overlay-safe: no line-break dependent puns, no text that requires an image pun to parse.
@@ -801,6 +822,7 @@ export const POST_AD_CREATIVE_PROMPT = `
        - Curiosity headlines take Learn More; proof headlines take See Results; purchase headlines take Shop/Get framing.
        - Never "Buy Now" as first choice (too committal, -11% CTR per 2026 Meta data).
        - CTA must be platform-native: feels like a button, not a sentence.
+       - Any CTA from the output-schema whitelist is acceptable; the framework mapping above is a preference, not a filter.
        - Do NOT invent promo codes, discounts, or urgency ("Today Only") unless product_note implies it.
       Font Selection Protocol (MANDATORY):
       - fontFamily MUST be one of available_fonts verbatim, case-sensitive. Never hallucinate outside list; if unsure pick Inter.
@@ -844,15 +866,15 @@ export const POST_AD_CREATIVE_PROMPT = `
       "copy": {
         "headline": "3-8 word English headline, no period (always generated; rendering may be toggled off)",
         "cta": "Shop Now | Get Yours | Try Today | Claim Offer | See Results | Start Free | Learn More | null",
-        "fontFamily": "One of available_fonts verbatim (e.g., "Barlow Condensed")",
+        "fontFamily": "One of available_fonts verbatim (e.g. 'Barlow Condensed')",
         "fontWeight": "number — one of that font's supported weights (e.g., 400, 600, 700)",
-        "headlineColor": ""white" | "black""
+        "headlineColor": "white | black"
       }
     }
     - "ratio_reasonings" keys MUST be exactly [<aspect_ratio>] — one key only. "creative_prompt" is a single string (not a record).
     - "copy" MUST be a single object with exactly these keys: headline, cta, fontFamily, fontWeight, headlineColor. Never flatten copy fields to top level, never omit keys.
     - "reasoning" is global, "ratio_reasonings" is per-ratio. Both are for audit, not for rendering.
-    - If cta_enabled is false, copy.cta MUST be null (JSON null, not string "null"). copy.headline is always generated for now; raw download is a Remotion render toggle, not a generation skip.
+    - If cta_enabled is false, copy.cta MUST be null (JSON null, not string "null"). copy.headline is always generated for now; raw download is a overlay render toggle, not a generation skip.
     - If brand_palette is present, creative_prompt MUST embody its hex as material (e.g. #E25E2C → terracotta plaster), not as literal hex text.
     - All strings must be JSON-escaped. No unescaped newlines or quotes inside values.
   </output_schema>

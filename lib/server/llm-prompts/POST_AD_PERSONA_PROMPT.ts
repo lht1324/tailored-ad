@@ -15,7 +15,7 @@ export const POST_AD_PERSONA_PROMPT = `
   <objective>
     For ONE batch (batch-agnostic, creative-agnostic), generate:
     1. **t2i_prompt** — ONE complete text-to-image prompt sentence for a square 1:1
-       front-facing studio portrait. Submitted verbatim to the image model. No variants, no options.
+       **full-body standing** studio portrait. Submitted verbatim to the image model. No variants, no options.
     Deterministic single candidate. The portrait becomes the batch's identity anchor —
     every creative in the batch redraws scenes around this face.
   </objective>
@@ -39,7 +39,9 @@ export const POST_AD_PERSONA_PROMPT = `
       age bands 20s-50s, hair, vibe). Product fit still applies when the image is present.
     - NEVER name, evoke, or approximate a real person, celebrity, or public figure.
     - MUST be an adult (20s or older in appearance). No children, no teenagers, no age ambiguity.
-    - The persona has NO wardrobe yet (later stages dress per creative) — describe face/head only.
+    - The persona is shown **head to feet** so later stages can dress and pose the whole body,
+      including footwear. Plain unbranded neutral basics are mandatory as a placeholder —
+      later stages replace the wardrobe per creative.
       Hair is part of identity: name length, texture, and style concretely.
   </input_data_interpretation>
   <target_model_profile>
@@ -60,7 +62,7 @@ export const POST_AD_PERSONA_PROMPT = `
       - Fitness / outdoor / sports → athletic vitality, natural texture (light freckles, sun touch welcome), 20s-30s
       - Luxury (watch, perfume, leather) → composed restraint, strong symmetry, 30s-50s, quiet confidence
       - Unknown / no product → fall back to brief, then seed variety. Never stall, always cast.
-      *Constraint*: Fit is direction, not costume. You cast the FACE — no clothing, no props, no scene.
+      *Constraint*: Fit is direction, not costume. You cast the FACE and BODY — no styled clothing, no props, no scene.
       If brief contradicts fit (e.g. "rugged man" for baby lotion), brief wins for the named attributes,
       fit covers the rest.
     </unit_1_casting_fit__product_to_face>
@@ -82,25 +84,29 @@ export const POST_AD_PERSONA_PROMPT = `
       Sentence Architecture (MANDATORY ORDER):
       "[Fictional identity anchor — 'A fictional [age band] [presentation]'] + " +
       "[Face/head clause — hair (length, texture, style), expression, defining natural feature, skin finish] + " +
-      "[Portrait spec clause — 'front-facing studio portrait, head and shoulders, neutral seamless background, square 1:1 canvas']"
+      "[Portrait spec clause — 'full-body standing studio portrait, head to feet, feet visible on the ground, neutral seamless background, square 1:1 canvas']"
       - Face/head MUST be concrete nouns (e.g. "shoulder-length wavy dark hair, light freckles across the nose,
         warm open smile, natural skin with visible texture"). No vibes ("beautiful", "stunning", "perfect").
       - MUST include the fictional anchor verbatim early ("A fictional ..."). This is the likeness guard —
         it instructs the model away from real identities AND documents compliance.
-      - MUST end with the portrait spec clause verbatim-ish (front-facing, head and shoulders,
-        neutral background, square 1:1). This is the format switch for the downstream slot.
-      - No wardrobe, no background scene, no action, no props, no text. Face and head only.
+      - MUST end with the portrait spec clause verbatim-ish (full-body standing, head to feet,
+        feet visible, neutral background, square 1:1). The full body is required: downstream
+        creatives place the product on the person's feet, hands, or body.
+      - No scene, no action, no props, no text. Wardrobe is ONLY plain unbranded neutral basics
+        (e.g. plain white crew-neck tee, straight grey trousers, plain neutral shoes) — never
+        styled, branded, or product-specific.
       - One sentence. Ends with a period.
       Examples of GOOD (do this):
-      - "A fictional woman in her late 20s with shoulder-length wavy dark hair, light freckles across the nose and a warm open smile, natural skin with visible texture, front-facing studio portrait, head and shoulders, neutral seamless background, square 1:1 canvas."
-      - "A fictional man in his early 40s with short cropped grey-flecked hair, light stubble and calm direct gaze, weathered natural skin, front-facing studio portrait, head and shoulders, neutral seamless background, square 1:1 canvas."
+      - "A fictional woman in her late 20s with shoulder-length wavy dark hair, light freckles across the nose and a warm open smile, natural skin with visible texture, wearing a plain white crew-neck tee, straight grey trousers and plain neutral shoes, standing relaxed head to feet on a seamless neutral backdrop, full-body studio portrait, square 1:1 canvas."
+      - "A fictional man in his early 40s with short cropped grey-flecked hair, light stubble and calm direct gaze, weathered natural skin, wearing a plain white crew-neck tee, straight grey trousers and plain neutral shoes, standing relaxed head to feet on a seamless neutral backdrop, full-body studio portrait, square 1:1 canvas."
       Examples of BAD (never do this):
       - "A beautiful stunning woman, 8k, ultra detailed" // vibes + diffusion spam, no identity
       - "Same face as reference, K-pop idol look" // likeness violation, banned
       - "A man in a suit standing in an office" // wardrobe + scene, out of scope
       Hard Constraints per Prompt:
       - MUST contain "fictional" + adult age band + concrete hair + expression + portrait spec clause.
-      - MUST NOT contain wardrobe, setting, action, props, text, brand, or celebrity cues.
+      - MUST NOT contain branded or styled wardrobe, setting, action, props, text, or celebrity cues.
+        Plain neutral basics are required so the full body is visible.
       - MUST NOT contain image tags or _IMAGE words (downstream submits tag-free).
       - NEVER use "trending on artstation", "8k", "ultra detailed", "perfect", "flawless", "symmetrical face".
     </unit_3_t2i_sentence_engineering>
@@ -116,15 +122,15 @@ export const POST_AD_PERSONA_PROMPT = `
   <few_shot_examples>
     Example 1 — guided | brief "20s woman, bright mood" | product (ceramic bottle) | seed 1001
     {
-      "t2i_prompt": "A fictional woman in her mid 20s with loose sunlit brown hair tied half-back, bright open smile and clear glowing skin with natural texture, front-facing studio portrait, head and shoulders, neutral seamless background, square 1:1 canvas."
+      "t2i_prompt": "A fictional woman in her mid 20s with loose sunlit brown hair tied half-back, bright open smile and clear glowing skin with natural texture, wearing a plain white crew-neck tee, straight grey trousers and plain neutral shoes, standing relaxed head to feet on a seamless neutral backdrop, full-body studio portrait, square 1:1 canvas."
     }
     Example 2 — auto | brief empty | product (leather tote) | seed 77319
     {
-      "t2i_prompt": "A fictional woman in her late 30s with slicked-back black bob, composed expression with a faint confident smile and smooth matte skin, front-facing studio portrait, head and shoulders, neutral seamless background, square 1:1 canvas."
+      "t2i_prompt": "A fictional woman in her late 30s with slicked-back black bob, composed expression with a faint confident smile and smooth matte skin, wearing a plain white crew-neck tee, straight grey trousers and plain neutral shoes, standing relaxed head to feet on a seamless neutral backdrop, full-body studio portrait, square 1:1 canvas."
     }
     Example 3 — auto | brief empty | no product (person-only) | seed 44203
     {
-      "t2i_prompt": "A fictional man in his early 30s with short curly dark hair, light stubble and relaxed friendly gaze, natural skin with visible pores, front-facing studio portrait, head and shoulders, neutral seamless background, square 1:1 canvas."
+      "t2i_prompt": "A fictional man in his early 30s with short curly dark hair, light stubble and relaxed friendly gaze, natural skin with visible pores, wearing a plain white crew-neck tee, straight grey trousers and plain neutral shoes, standing relaxed head to feet on a seamless neutral backdrop, full-body studio portrait, square 1:1 canvas."
     }
   </few_shot_examples>
   <constraint>

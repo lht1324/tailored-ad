@@ -72,15 +72,15 @@ export const POST_AD_IMAGE_ANALYSIS_PROMPT = `
 
       Coordinate Contract (AdDesignLayout) — **INTEGER percent only**:
       - headline: {text: string (copy.headline verbatim, NEVER rephrase), x: integer 0-100 (left edge), y: integer 0-100 (top edge), maxWidth: integer 0-100 (cap width), align: "left"|"center"|"right", fontSizePct: integer 2-6 (percent of canvas HEIGHT, 3 = body, 4 = hero)} | null
-        * All coordinates are integer percent (e.g. 6, 62, 78), NOT floats. This is for Remotion integer layout — no decimals.
+        * All coordinates are integer percent (e.g. 6, 62, 78), NOT floats. This is for integer overlay layout — no decimals.
         * If headline text would be <12 characters on narrow canvas, allow maxWidth up to 88%. If headline >28 characters, force maxWidth ≤78% and align left for readability.
         * Headline null ONLY if copy.headline is null (should not happen; headline always exists per creative prompt).
       - cta: {text: string (copy.cta verbatim), x: integer, y: integer, widthPct: integer, fontSizePct: integer} | null
         * null iff copy.cta is null. If cta exists, widthPct 18-32 (pill button), fontSizePct 2-3, y must be ≥ headline y + 8 (vertical rhythm), x aligned to headline's align edge. All integers.
         * NEVER invent CTA text — echo copy.cta exactly.
       - logo: {brand: string ("TailoredAd" placeholder), x: integer, y: integer, widthPct: integer, fontSizePct: integer} | null
-        * If brand_logo==false → MUST be null. If brand_logo==true → place logo at a clean corner (prefer 4,4 or 84,4 or 4,88) with widthPct 10-14, fontSizePct 2, never overlap forbiddenZone >5%, ensure luminance contrast ≥4.5:1 against that corner's background (dark logo on light void, light logo on dark void). If no clean corner exists, keep null and note in ratio_reasonings why, dock score -0.3.
-      - scrim: boolean — true if ANY text zone's busyScore >=6 or luminance contrast <4.5:1 or candidateRect overlaps luminance variance >25. Scrim = 12-18 black gradient behind text (rendered by frontend Remotion, you just flag). If scrim false but text sits on mid-tone, score -1.5.
+        * If brand_logo==true → place logo at the corner the generation step reserved: x 4-6, y 4-6 (top-left), widthPct 10-14, fontSizePct 2. Fall back to 84,4 or 4,88 only if the top-left corner is occupied. Never overlap forbiddenZone >5%, ensure luminance contrast ≥4.5:1 against that corner's background (dark logo on light void, light logo on dark void). If no clean corner exists, keep null and note in ratio_reasonings why, dock score -0.3.
+      - scrim: boolean — true if ANY text zone's busyScore >=6 or luminance contrast <4.5:1 or candidateRect overlaps luminance variance >25. Scrim = 12-18 black gradient behind text (rendered by the overlay layer, you just flag). If scrim false but text sits on mid-tone, score -1.5.
 
       Placement Logic (per image):
       1. **Headline First**: Place headline's x,y at candidateRect's top-left with 3 inset. maxWidth = candidateRect.widthPct - 6 margin. Align = "left" if candidateRect is left/right anchored (left_of_frame/right_of_frame/negative_space), "center" if centered/square minimal, "right" only if visual weight demands it (rare).
@@ -92,7 +92,7 @@ export const POST_AD_IMAGE_ANALYSIS_PROMPT = `
          - 1_1 square: headline y 38-52% centered band or 68-78% bottom, fontSizePct 3-4, maxWidth 68-78%, align center if centered framing
          - 16_9 horizontal: headline y 28-42% vertical center, maxWidth 42-52% (lateral), align left if product left-anchored
 
-      Font Size Calibration (integer percent of canvas height, for Remotion):
+      Font Size Calibration (integer percent of canvas height, for the overlay):
       - Headline: 3 (quiet) … 4 (hero) … 5 (bold_impact only). Minimal_modern/editorial prefer 3; bold_impact allows 5.
       - CTA: 2 … 3. Always 1 smaller than headline.
     </unit_2_geometry_engineering>
@@ -172,7 +172,7 @@ export const POST_AD_IMAGE_ANALYSIS_PROMPT = `
           "design": {
             "headline": { "text": "string verbatim", "x": 6, "y": 62, "maxWidth": 78, "align": "left", "fontSizePct": 4 },
             "cta": { "text": "Shop Now", "x": 6, "y": 78, "widthPct": 26, "fontSizePct": 2 } | null,
-            "logo": { "brand": "TailoredAd", "x": 4, "y": 4, "widthPct": 12, "fontSizePct": 2 } | null,
+            "logo": { "brand": "<brand name read from the logo image>", "x": 4, "y": 4, "widthPct": 12, "fontSizePct": 2 } | null,
             "scrim": true
           },
           "score": 8.3
@@ -184,7 +184,8 @@ export const POST_AD_IMAGE_ANALYSIS_PROMPT = `
     - "ratio_reasonings" keys MUST exactly equal ratio_order (no missing, no extra). If one ratio requested, only that key appears.
     - "image_results" keys MUST exactly equal ratio_order, same set as ratio_reasonings, each value has design + score. No extra keys.
     - Every "image_results"[ratio] value MUST be an object with exactly two keys: "design" and "score". Never flatten headline/cta/logo to ratio level, never omit "score". One malformed entry invalidates the entire output.
-    - All coordinates are integer 0-100 percent (Remotion integer layout). x/y are top-left of text box. maxWidth/widthPct are width caps. fontSizePct is integer percent of canvas HEIGHT.
+    - "logo.brand" MUST be the brand name visible in the attached logo image. NEVER output "TailoredAd" unless that is the customer's own brand.
+    - All coordinates are integer 0-100 percent (integer overlay layout).
     - If copy.cta is null, every image_results[ratio].design.cta MUST be null and its reasoning should note "CTA null per cta_enabled=false".
     - Scores are numbers 0.0-10.0, one decimal, not strings. 7.0+ scale, 5.0-6.9 iterate, <5.0 kill.
     - Qwen native 0-1000 → divide by 10 and round to integer. Do NOT output 0-1000 or floats.
@@ -236,7 +237,7 @@ export const POST_AD_IMAGE_ANALYSIS_PROMPT = `
     - Shape violation (missing design wrapper or non-numeric score at any ratio) fails the whole output — fix before emitting, never ship partial shape.
     - ratio_reasonings and image_results MUST have identical key sets, both exactly equal to ratio_order (no missing, no hallucinated ratios). Order does not matter but keys must match.
     - Every image_results[ratio].design.headline.text MUST equal copy.headline verbatim (case, punctuation). Every design.cta.text MUST equal copy.cta verbatim or be null. Do NOT rephrase, translate, or truncate.
-    - Coordinates are integer 0-100 percent for Remotion. Violations: x<0, x>100, y<0, y>100, x+maxWidth>100, x+widthPct>100, fontSizePct<1 or >7 or non-integer will fail frontend clamping and be rejected.
+    - Coordinates are integer 0-100 percent for the overlay. Violations: x<0, x>100, y<0, y>100, x+maxWidth>100, x+widthPct>100, fontSizePct<1 or >7 or non-integer will fail frontend clamping and be rejected.
     - Scrim is boolean, not string. If busyScore>=6 or contrast<4.5:1 in text zone, scrim MUST be true; if you set false there, score must be docked -1.5 and you must justify in ratio_reasonings.
     - Text zones must not overlap forbiddenZones >5%. If you place headline over product/person, set scrim true AND deduct 3.0 in score — still forbidden as last resort, prefer shifting.
     - Scores are numbers 0.0-10.0, one decimal, not strings. Clamp and round. 7.0+ scale, 5.0-6.9 iterate, <5.0 kill — calibrate honestly, do not inflate to please.
