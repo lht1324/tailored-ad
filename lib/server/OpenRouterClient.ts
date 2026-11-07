@@ -22,6 +22,17 @@ export interface CompletionBaseInput {
     temperature?: number;
     presencePenalty?: number;
     frequencyPenalty?: number;
+    /**
+     * 지정 시 `json_schema`(strict) 강제. 미지정 시 기존 `json_object`.
+     *
+     * `json_object`는 "유효한 JSON"만 보장하고 키 이름은 보장하지 않는다.
+     * `":headline"` 같은 오염을 막으려면 스키마 강제가 필요하다.
+     * 단, strict도 엔드포인트별 지원이라 아래 `require_parameters`를 함께 보낸다.
+     */
+    responseSchema?: {
+        name: string;
+        schema: Record<string, unknown>;
+    };
 }
 
 export class OpenRouterClient {
@@ -55,6 +66,7 @@ export class OpenRouterClient {
             temperature,
             presencePenalty,
             frequencyPenalty,
+            responseSchema,
         } = input;
 
         const apiKey = await this.resolveApiKey();
@@ -112,15 +124,28 @@ export class OpenRouterClient {
             }
         ];
 
+        const responseFormat = responseSchema
+            ? {
+                type: "json_schema" as const,
+                json_schema: {
+                    name: responseSchema.name,
+                    strict: true,
+                    schema: responseSchema.schema,
+                },
+            }
+            : { type: "json_object" as const };
+
         const completion = await client.chat.completions.create({
             model: model,
             messages: messages,
-            response_format: { type: "json_object" },
+            response_format: responseFormat,
             max_completion_tokens: maxCompletionTokens,
 
             // @ts-expect-error: OpenRouter specific parameter not in OpenAI SDK types
             reasoning: { enabled: reasoning === true },
             provider: {
+                // 스키마 강제를 지원하는 엔드포인트로만 라우팅한다 (지원은 엔드포인트별)
+                ...(responseSchema ? { require_parameters: true } : {}),
                 sort: {
                     by: 'throughput',
                     partition: 'none',

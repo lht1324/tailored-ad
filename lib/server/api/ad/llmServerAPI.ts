@@ -9,6 +9,7 @@ import {
 } from "@server/llm-prompts/POST_AD_CREATIVE_PROMPT";
 import { POST_AD_IMAGE_ANALYSIS_PROMPT } from "@server/llm-prompts/POST_AD_IMAGE_ANALYSIS_PROMPT";
 import { POST_AD_PERSONA_PROMPT } from "@server/llm-prompts/POST_AD_PERSONA_PROMPT";
+import { CREATIVE_OUTPUT_SCHEMA } from "@server/llm-prompts/creativeOutputSchema";
 import { fontMap } from "@shared/fonts";
 
 /**
@@ -54,10 +55,11 @@ export const llmServerAPI = {
         success: boolean;
         creativePrompt?: string;
         copy?: AdCopySpec;
-        /** 제품 쓰임 — worn | held | using | placed (모드에 따라 고정값) */
+        /** 제품 쓰임 — worn | held | using | placed | none (모드에 따라 고정값) */
         relationship?: string;
         reasoning?: string;
-        ratioReasonings?: Partial<Record<AdRatioKey, string>>;
+        /** 요청 비율 1개에 대한 구성 근거 (strict 스키마라 동적 키를 쓸 수 없어 문자열) */
+        ratioReasoning?: string;
         error?: { message: string; code: string };
     }> {
         try {
@@ -146,6 +148,7 @@ ${params.feedback ? `\nCORRECTION REQUIRED (your previous output violated these 
                     maxCompletionTokens: 40960,
                     temperature: 0.8,
                     reasoning: true,
+                    responseSchema: CREATIVE_OUTPUT_SCHEMA,
                 },
                 `ad/creative/${creativeIndex}/postAdCreativePrompt()`,
             );
@@ -162,7 +165,9 @@ ${params.feedback ? `\nCORRECTION REQUIRED (your previous output violated these 
             try {
                 const parsed: {
                     reasoning: string;
-                    ratio_reasonings: Partial<Record<AdRatioKey, string>>;
+                    ratio_reasoning?: string;
+                    /** 구버전 폴백 — strict 미지원 엔드포인트로 라우팅되면 이 형태가 올 수 있다 */
+                    ratio_reasonings?: Partial<Record<AdRatioKey, string>>;
                     relationship?: string;
                     creative_prompt: string;
                     copy: AdCopySpec;
@@ -172,8 +177,10 @@ ${params.feedback ? `\nCORRECTION REQUIRED (your previous output violated these 
                 if (parsed.reasoning) {
                     console.log(`[ad/creative/${creativeIndex}] reasoning: ${parsed.reasoning}`);
                 }
-                if (parsed.ratio_reasonings) {
-                    console.log(`[ad/creative/${creativeIndex}] ratio_reasonings:`, parsed.ratio_reasonings);
+                const ratioReasoning = parsed.ratio_reasoning
+                    ?? (parsed.ratio_reasonings ? Object.values(parsed.ratio_reasonings)[0] : undefined);
+                if (ratioReasoning) {
+                    console.log(`[ad/creative/${creativeIndex}] ratio_reasoning:`, ratioReasoning);
                 }
 
                 return {
@@ -182,7 +189,7 @@ ${params.feedback ? `\nCORRECTION REQUIRED (your previous output violated these 
                     copy: parsed.copy,
                     relationship: parsed.relationship,
                     reasoning: parsed.reasoning,
-                    ratioReasonings: parsed.ratio_reasonings,
+                    ratioReasoning,
                 };
             } catch (parseError) {
                 console.error(`[ad/creative/${creativeIndex}] raw LLM output on PARSE_ERROR:`, generatedContent.slice(0, 4000));
